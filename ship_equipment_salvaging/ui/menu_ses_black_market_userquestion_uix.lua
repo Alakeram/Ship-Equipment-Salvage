@@ -23,7 +23,7 @@ local tradeData = nil
 local tradeMenu = {}
 
 local ses = {
-	version = "v364-install-and-localization-hotfix",
+	version = "v367-faction-and-overview",
 	mode = "custom_ses_black_market_trade",
 	blackboard = "$SES_Black_Market_BarterData",
 	tradepayloadblackboard = "$SES_Black_Market_TradePayload",

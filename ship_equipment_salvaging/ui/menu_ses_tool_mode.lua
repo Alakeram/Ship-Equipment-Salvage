@@ -40,7 +40,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v364-install-and-localization-hotfix",
+	version = "v367-faction-and-overview",
 	userdatakey = "ses_tool_mode",
 	controlid = "ses_tool_mode",
 	rowid = "ses_tool_mode_row",

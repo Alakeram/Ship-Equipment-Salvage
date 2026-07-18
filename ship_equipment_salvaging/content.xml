@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <content
   id="ship_equipment_salvaging"
-  name="{1171361,1}"
-  description="{1171361,2}"
+  name="Ship Equipment Salvaging"
+  description="Recover installed equipment from eligible ships for later reuse."
   author="Alakeram"
- version="364"
+ version="367"
   date="2026-07-18"
   enabled="1"
   save="1">

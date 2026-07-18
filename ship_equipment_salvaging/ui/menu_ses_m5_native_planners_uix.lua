@@ -45,7 +45,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v364-install-and-localization-hotfix",
+	version = "v367-faction-and-overview",
 	salvageMode = "custom_ses_m5_salvage",
 	salvageResultMode = "custom_ses_m5_salvage_result",
 	weldMode = "custom_ses_m5_weld",
@@ -353,6 +353,93 @@ local function equipmentName(item)
 	return safeString(itemField(item, "wareid") or itemField(item, "id") or sesText(408, "Installed equipment"))
 end
 
+local function nativeEquipmentName(item, macro)
+	local name = type(item) == "table" and item.name or nil
+	if name and safeString(name) ~= "" then
+		return safeString(name)
+	end
+	macro = safeString(macro or "")
+	if macro ~= "" and GetMacroData then
+		local ok, macroName = pcall(GetMacroData, macro, "name")
+		if ok and macroName and safeString(macroName) ~= "" then
+			return safeString(macroName)
+		end
+	end
+	return sesText(409, "Saved equipment")
+end
+
+local makerCodes = {
+	arg = "ARG", argon = "ARG",
+	bor = "BOR", boron = "BOR",
+	drn = "DRN", drone = "DRN",
+	khk = "KHK", khaak = "KHK",
+	par = "PAR", paranid = "PAR",
+	spl = "SPL", split = "SPL",
+	tel = "TEL", teladi = "TEL",
+	ter = "TER", terran = "TER",
+	xen = "XEN", xenon = "XEN",
+}
+
+local function makerCode(item, macro)
+	local faction = type(item) == "table" and safeString(item.faction or "") or ""
+	local normalized = string.lower(faction)
+	if makerCodes[normalized] then
+		return makerCodes[normalized]
+	end
+	if string.match(faction, "^[A-Z][A-Z][A-Z]$") then
+		return faction
+	end
+	macro = safeString(macro or "")
+	if macro ~= "" and GetMacroData then
+		local ok, races = pcall(GetMacroData, macro, "makerrace")
+		if ok then
+			if type(races) ~= "table" then
+				races = { races }
+			end
+			for _, race in ipairs(races) do
+				local raceText = safeString(race or "")
+				local code = makerCodes[string.lower(raceText)]
+				if code then
+					return code
+				end
+				if string.match(raceText, "^[A-Z][A-Z][A-Z]$") then
+					return raceText
+				end
+			end
+		end
+	end
+	return ""
+end
+
+local function abbreviatedEquipmentName(name, item, macro)
+	name = safeString(name or "")
+	local code = makerCode(item, macro)
+	if code == "" or string.match(name, "^" .. code .. "[%s%-]") then
+		return name
+	end
+	return code .. " " .. name
+end
+
+local function nativeTileName(button, item, macro)
+	-- Ship Configuration has already width-truncated the native name into the
+	-- first line of this two-line box. Preserve that fitted line and reserve the
+	-- second line for the SES stock receipt. Reintroducing the full localized
+	-- name here can wrap it to two lines and push the receipt into a third line.
+	local nativeText = type(button) == "table" and safeString(button.extratext or "") or ""
+	local firstLine = string.match(nativeText, "^([^\r\n]+)")
+	if firstLine and firstLine ~= "" then
+		return abbreviatedEquipmentName(firstLine, item, macro)
+	end
+	macro = safeString(macro or "")
+	if macro ~= "" and GetMacroData then
+		local ok, shortName = pcall(GetMacroData, macro, "shortname")
+		if ok and shortName and safeString(shortName) ~= "" then
+			return abbreviatedEquipmentName(shortName, item, macro)
+		end
+	end
+	return abbreviatedEquipmentName(nativeEquipmentName(item, macro), item, macro)
+end
+
 local function salvageRows()
 	local rows = {}
 	local byKey = {}
@@ -374,6 +461,7 @@ local function salvageRows()
 					macro = macro,
 					category = category,
 					name = equipmentName(item),
+					faction = safeString(itemField(item, "faction") or ""),
 					installed = 0,
 					planned = 0,
 					cost = 0,
@@ -432,6 +520,9 @@ local function salvagePlanRows()
 		table.insert(rows, {
 			index = tonumber(itemField(item, "index")) or tonumber(index) or 0,
 			name = equipmentName(item),
+			wareid = safeString(itemField(item, "wareid") or ""),
+			macro = safeString(itemField(item, "macro") or ""),
+			faction = safeString(itemField(item, "faction") or ""),
 			category = safeString(itemField(item, "category") or ""),
 			quantity = math.max(1, numeric(itemField(item, "plannedquantity"))),
 			cost = math.max(1, numeric(itemField(item, "beamcatalystcost"))),
@@ -872,22 +963,45 @@ function ModLua.getDataAndDisplay_on_assemble_possible_upgrades(data)
 	local added = 0
 	local filtered = 0
 	-- This read-only SES configuration screen must not inherit the normal
-	-- shipyard catalogue.  Rebuild the five supported lists from exact MD
-	-- compatibility results, retaining already-planned macros for confirmation.
+	-- shipyard catalogue. Rebuild the five supported lists from exact MD
+	-- compatibility results, retaining already-fitted and already-planned macros.
+	-- The fitted rows are required by Ship Configuration's Overview calculation;
+	-- dropping them caused every unchanged hardware category to disappear there.
+	local fittedWares = {}
 	for _, upgradetype in ipairs({ "weapon", "shield", "engine", "thruster", "turret" }) do
-		data.upgradewares[upgradetype] = {}
+		fittedWares[upgradetype] = {}
+		for _, entry in ipairs(type(data.upgradewares[upgradetype]) == "table" and data.upgradewares[upgradetype] or {}) do
+			if not entry.isFromShipyard and numeric(entry.objectamount) > 0 and safeString(entry.macro or "") ~= "" then
+				table.insert(fittedWares[upgradetype], entry)
+			end
+		end
+		data.upgradewares[upgradetype] = fittedWares[upgradetype]
 	end
 	if state.kind == "salvage" then
 		for _, item in ipairs(salvageRows()) do
 			local upgradetype = nativeUpgradeTypeFromCategory(item.category)
 			if upgradetype ~= "" and item.wareid ~= "" and item.macro ~= "" then
+				local existing = nil
+				for _, candidate in ipairs(data.upgradewares[upgradetype]) do
+					if candidate.macro == item.macro then
+						existing = candidate
+						break
+					end
+				end
+				if existing then
+					existing.ware = item.wareid
+					existing.name = item.name
+					existing.objectamount = math.max(numeric(existing.objectamount), item.installed)
+					existing.isFromShipyard = false
+				else
 					table.insert(data.upgradewares[upgradetype], {
 						ware = item.wareid,
 						macro = item.macro,
 						name = item.name,
 						objectamount = item.installed,
 						isFromShipyard = false,
-				})
+					})
+				end
 				added = added + 1
 			end
 		end
@@ -901,10 +1015,10 @@ function ModLua.getDataAndDisplay_on_assemble_possible_upgrades(data)
 		-- cannot currently be added.
 		if upgradetype ~= "" and item.wareid ~= "" and item.macro ~= "" then
 			data.upgradewares[upgradetype] = data.upgradewares[upgradetype] or {}
-			local duplicate = false
+			local duplicate = nil
 			for _, existing in ipairs(data.upgradewares[upgradetype]) do
 				if existing.macro == item.macro then
-					duplicate = true
+					duplicate = existing
 					break
 				end
 			end
@@ -923,6 +1037,13 @@ function ModLua.getDataAndDisplay_on_assemble_possible_upgrades(data)
 					isFromShipyard = true,
 				})
 				added = added + 1
+			else
+				-- A saved copy may match hardware already fitted to the ship. Keep one
+				-- catalogue row, but expose the SES stock as provider-backed inventory.
+				duplicate.ware = item.wareid
+				duplicate.name = item.name
+				duplicate.objectamount = item.available
+				duplicate.isFromShipyard = true
 			end
 		else
 			filtered = filtered + 1
@@ -964,6 +1085,7 @@ weldPlanRows = function()
 			name = safeString(itemField(item, "name") or sesText(409, "Saved equipment")),
 			wareid = safeString(itemField(item, "wareid") or ""),
 			macro = safeString(itemField(item, "macro") or ""),
+			faction = safeString(itemField(item, "faction") or ""),
 			category = safeString(itemField(item, "category") or ""),
 			quantity = math.max(1, numeric(itemField(item, "plannedquantity"))),
 			cost = math.max(1, numeric(itemField(item, "bondingcatalystcost"))),
@@ -1443,7 +1565,8 @@ function ModLua.createTitleBar_on_create_controls(frame, ftable, _, menu, data)
 					break
 				end
 				row = panel:addRow(false, { fixed = true })
-				row[1]:setColSpan(4):createText((isSalvage and "- " or "+ ") .. tostring(item.quantity) .. " x " .. item.name, { color = isSalvage and Color["text_negative"] or Color["text_positive"], mouseOverText = categoryName(item.category) })
+				local displayName = abbreviatedEquipmentName(item.name, item, item.macro)
+				row[1]:setColSpan(4):createText((isSalvage and "- " or "+ ") .. tostring(item.quantity) .. " x " .. displayName, { color = isSalvage and Color["text_negative"] or Color["text_positive"], mouseOverText = categoryName(item.category) })
 			end
 		end
 
@@ -1550,7 +1673,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 			active = canAddFromSelectedSlot,
 			useable = canAddFromSelectedSlot,
 			mouseovertext = status,
-			extratext = sesFormat(455, "Installed: %d", math.max(0, salvageItem.installed - salvageItem.planned)),
+			extratext = sesFormat(471, "%s\nInstalled: %d", nativeTileName(button, salvageItem, macro), math.max(0, salvageItem.installed - salvageItem.planned)),
 			onclick = canAddFromSelectedSlot and function()
 				selectedSalvageIndex = salvageItem.index
 				weldResultText = ""
@@ -1615,7 +1738,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 			active = isInstalledInSelectedSlot or isPlanned,
 			useable = false,
 			mouseovertext = authoritativePlannedQuantity > 0 and sesText(457, "All saved copies are already assigned to the pending installation plan.") or sesText(458, "No saved copy is available in the SES salvage inventory."),
-			extratext = sesFormat(459, "Saved: %d", 0),
+			extratext = sesFormat(472, "%s\nSaved: %d", nativeTileName(button, nil, macro), 0),
 		}
 	end
 	local remaining = remainingWeldQuantity(item)
@@ -1633,7 +1756,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 	local canAdd = slotCompatible and (not selectedSlotOccupied) and (not isPlanned)
 		and (not slotReservedForPreview)
 		and (not requestPending) and mdOrNativeEligible and catalystsAvailable and remaining >= item.quantity
-	local receipt = sesFormat(459, "Saved: %d", remaining)
+	local receipt = sesFormat(472, "%s\nSaved: %d", nativeTileName(button, item, macro), remaining)
 	local status = sesFormat(460, "Saved: %d  |  Cost: %d", remaining, item.cost)
 	if isInstalledInSelectedSlot then
 		status = sesFormat(461, "This component is already installed in the selected slot  |  %s", status)
