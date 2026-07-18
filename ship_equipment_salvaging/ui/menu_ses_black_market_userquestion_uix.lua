@@ -23,7 +23,7 @@ local tradeData = nil
 local tradeMenu = {}
 
 local ses = {
-	version = "v313-production",
+	version = "v364-install-and-localization-hotfix",
 	mode = "custom_ses_black_market_trade",
 	blackboard = "$SES_Black_Market_BarterData",
 	tradepayloadblackboard = "$SES_Black_Market_TradePayload",
@@ -130,6 +130,10 @@ local function readText(page, id, fallback)
 	return fallback
 end
 
+local function sesText(id, fallback)
+	return readText(1171361, id, fallback)
+end
+
 local function moneyText(value)
 	local amount = tonumber(value) or 0
 	if ConvertMoneyString then
@@ -170,14 +174,14 @@ end
 
 local function categoryName(key)
 	local names = {
-		weapons = "Weapons",
-		shields = "Shield Generators",
-		engines = "Engines",
-		thrusters = "Thrusters",
-		turrets = "Turrets",
-		other = "Other Equipment",
+		weapons = sesText(100, "Weapons"),
+		shields = sesText(101, "Shield Generators"),
+		engines = sesText(102, "Engines"),
+		thrusters = sesText(103, "Thrusters"),
+		turrets = sesText(104, "Turrets"),
+		other = sesText(105, "Other Equipment"),
 	}
-	return names[key] or safeString(key or "Other Equipment")
+	return names[key] or safeString(key or sesText(105, "Other Equipment"))
 end
 
 local function itemField(item, key)
@@ -210,7 +214,7 @@ local function getItemName(item)
 			return wareName
 		end
 	end
-	return safeString(itemField(item, "wareid") or itemField(item, "ware") or "Salvaged Part")
+	return safeString(itemField(item, "wareid") or itemField(item, "ware") or sesText(505, "Salvaged Part"))
 end
 
 local function numericCount(value)
@@ -507,11 +511,11 @@ local function renderTradeTable(frame, data, properties, isPlayer)
 	row[1]:setColSpan(5):createText(title, Helper.titleTextProperties)
 
 	row = ftable:addRow(true, { bgColor = Helper.color.transparent })
-	row[1]:createText("Ship Part", Helper.subHeaderTextProperties)
-	row[2]:createText("Price", Helper.subHeaderTextProperties)
-	row[3]:createText("Available", Helper.subHeaderTextProperties)
-	row[4]:createText(isPlayer and "Sell" or "Buy", Helper.subHeaderTextProperties)
-	row[5]:createText("Value", Helper.subHeaderTextProperties)
+	row[1]:createText(sesText(500, "Ship Part"), Helper.subHeaderTextProperties)
+	row[2]:createText(sesText(501, "Price"), Helper.subHeaderTextProperties)
+	row[3]:createText(sesText(109, "Available"), Helper.subHeaderTextProperties)
+	row[4]:createText(isPlayer and sesText(502, "Sell") or sesText(503, "Buy"), Helper.subHeaderTextProperties)
+	row[5]:createText(sesText(504, "Value"), Helper.subHeaderTextProperties)
 
 	if tradeData and tradeData.rows and #tradeData.rows > 0 then
 		local lastCategory = ""
@@ -557,7 +561,7 @@ local function renderTradeTable(frame, data, properties, isPlayer)
 		end
 	else
 		row = ftable:addRow(true, { bgColor = Helper.color.transparent })
-		row[1]:setColSpan(5):createText("-- No salvaged ship parts available --", { halign = "center" })
+		row[1]:setColSpan(5):createText(sesText(506, "-- No salvaged ship parts available --"), { halign = "center" })
 	end
 
 	local total = 0
@@ -568,7 +572,7 @@ local function renderTradeTable(frame, data, properties, isPlayer)
 	end
 
 	row = ftable:addRow(true, { bgColor = Helper.color.transparent })
-	row[4]:createText("Total", Helper.subHeaderTextProperties)
+	row[4]:createText(sesText(507, "Total"), Helper.subHeaderTextProperties)
 	row[5]:createText(moneyText(total), { halign = "right" })
 	return ftable
 end
@@ -650,18 +654,18 @@ local function createTradeTables(frame)
 	end
 
 	local row = confirmTable:addRow(true, { bgColor = Helper.color.transparent })
-	row[1]:createText("Transaction Value", Helper.subHeaderTextProperties)
+	row[1]:createText(sesText(508, "Transaction Value"), Helper.subHeaderTextProperties)
 	row[2]:createText(moneyText(math.abs(net)), { halign = "right", color = color })
-	row[3]:createText("Balance", Helper.subHeaderTextProperties)
+	row[3]:createText(sesText(509, "Balance"), Helper.subHeaderTextProperties)
 	row[4]:createText(moneyText(GetPlayerMoney and GetPlayerMoney() or 0), { halign = "right" })
 
 	row = confirmTable:addRow(true, { bgColor = Helper.color.transparent })
-	row[3]:createButton({ active = isConfirmActive() }):setText("Complete Trade", { halign = "center" })
+	row[3]:createButton({ active = isConfirmActive() }):setText(sesText(510, "Complete Trade"), { halign = "center" })
 	row[3].handlers.onClick = function()
 		tradeMenu.confirmRow = row.index
 		return completeTrade()
 	end
-	row[4]:createButton({ active = true }):setText("Cancel", { halign = "center" })
+	row[4]:createButton({ active = true }):setText(sesText(114, "Cancel"), { halign = "center" })
 	row[4].handlers.onClick = function()
 		emit("ses_black_market_closed", { ["$reason"] = "cancelled", ["$version"] = ses.version })
 		userQuestionMenu.onCloseElement("close")

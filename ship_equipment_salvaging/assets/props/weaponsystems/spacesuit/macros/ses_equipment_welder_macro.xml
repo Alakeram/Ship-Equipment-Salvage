@@ -4,7 +4,7 @@
     <!-- v167 mount probe: keep this laser-style and use vanilla spacesuit/default compatibility tags on the custom component. -->
     <component ref="ses_equipment_welder" />
     <properties>
-      <identification name="Avarice Bonding Regulator" description="Illegal black-market hand-laser regulator that reshapes the beam into a crude welding arc for fitting salvaged equipment to compatible ship frames." />
+      <identification name="{1171361,20}" description="{1171361,22}" />
       <bullet class="ses_bullet_equipment_welder_macro" />
       <rotationspeed max="100" />
       <rotationacceleration max="200" />

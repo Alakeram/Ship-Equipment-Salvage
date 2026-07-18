@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff>
+  <add sel="/language">
+    <page id="1171361" title="Ship Equipment Salvaging" descr="Ship Equipment Salvaging player-facing text" voice="no">
+      <!-- Extension metadata and equipment -->
+      <t id="1">Ship Equipment Salvaging</t>
+      <t id="2">Recover installed equipment from eligible ships for later reuse.</t>
+      <t id="10">Avarice Beam Regulator</t>
+      <t id="11">A black-market hand-laser regulator associated with Riptide scrap crews and Avarice chop-shop operators. It forces a standard hand laser into a tighter, unstable cutting arc capable of slicing damaged hull plating, equipment mounts, and exposed component housings. Illegal in most regulated sectors due to its use in unauthorized salvage, equipment theft, and shipboard tampering.</t>
+      <t id="12">Illegal black-market hand-laser regulator that drives a tight, unstable cutting arc for unauthorized salvage and equipment recovery.</t>
+      <t id="20">Avarice Bonding Regulator</t>
+      <t id="21">A black-market hand-laser regulator developed from the same improvised principles as the Avarice Beam Regulator. It reshapes the beam into a crude welding arc for fastening salvaged equipment back onto compatible ship frames. Illegal in most civilized sectors due to unauthorized ship modification, unsafe field repairs, and unregistered equipment installs.</t>
+      <t id="22">Illegal black-market hand-laser regulator that reshapes the beam into a crude welding arc for fitting salvaged equipment to compatible ship frames.</t>
+      <t id="30">Avarice Beam Catalyst</t>
+      <t id="31">A disposable black-market focusing insert for the Avarice Beam Regulator. It briefly stabilizes a hand laser's cutting arc beyond licensed civilian limits, allowing ship equipment to be separated from its mount without destroying the part outright. Illegal in most regulated sectors due to its association with equipment theft and unauthorized salvage.</t>
+      <t id="40">Avarice Bonding Catalyst</t>
+      <t id="41">A disposable black-market field-welding compound for the Avarice Bonding Regulator. When excited by the regulator, it forms a temporary conductive lattice between a salvaged component and a compatible ship mount. Illegal in most regulated sectors due to unlicensed ship modification and field installation of salvaged equipment.</t>
+
+      <!-- Common labels -->
+      <t id="100">Weapons</t>
+      <t id="101">Shield Generators</t>
+      <t id="102">Engines</t>
+      <t id="103">Thrusters</t>
+      <t id="104">Turrets</t>
+      <t id="105">Other Equipment</t>
+      <t id="106">Equipment</t>
+      <t id="107">Category</t>
+      <t id="108">Selected</t>
+      <t id="109">Available</t>
+      <t id="110">Quantity</t>
+      <t id="111">Installed</t>
+      <t id="112">Planned</t>
+      <t id="113">Remove</t>
+      <t id="114">Cancel</t>
+      <t id="115">Clear Plan</t>
+      <t id="116">Ready</t>
+      <t id="117">Unknown</t>
+      <t id="118">Completed</t>
+      <t id="119">Item</t>
+
+      <!-- Tool-mode selector -->
+      <t id="200">Off</t>
+      <t id="201">SES Tool Mode:</t>
+      <t id="202">Select what the mounted Hand Laser should do for Ship Equipment Salvaging. Only modes with the matching SES tool in inventory and a mounted Hand Laser are shown.</t>
+      <t id="203">Hand Laser hits open the SES salvage flow when close enough; transactions are limited to 25 m.</t>
+      <t id="204">Hand Laser hits open the SES installation flow on valid nearby player-owned S/M ships; transactions are limited to 25 m.</t>
+      <t id="205">%s (not in inventory)</t>
+      <t id="206">%s (requires Hand Laser)</t>
+
+      <!-- Salvage inventory -->
+      <t id="300">Salvage Inventory</t>
+      <t id="301">Loading SES salvage ledger...</t>
+      <t id="302">-- None --</t>
+      <t id="303">Secure Container</t>
+      <t id="304">Drop one selected salvage stack item into a new secure lockbox near the player.</t>
+      <t id="305">Stacks: %d</t>
+
+      <!-- Native weld/salvage planners -->
+      <t id="400">Avarice Beam Regulator - Salvage</t>
+      <t id="401">Avarice Bonding Regulator - Loadout</t>
+      <t id="402">AVAILABLE EQUIPMENT</t>
+      <t id="403">PENDING SALVAGE</t>
+      <t id="404">Beam Catalysts</t>
+      <t id="405">SALVAGED PARTS INVENTORY</t>
+      <t id="406">PENDING INSTALL</t>
+      <t id="407">Bonding Catalysts</t>
+      <t id="408">Installed equipment</t>
+      <t id="409">Saved equipment</t>
+      <t id="410">Checking compatibility</t>
+      <t id="411">Avarice Beam Regulator - Salvage Results</t>
+      <t id="412">Unknown target</t>
+      <t id="413">Target: %s\nRecovered: %d / %d    Success: %d    Partial: %d    Failed: %d    Blocked: %d</t>
+      <t id="414">Result</t>
+      <t id="415">Recovered</t>
+      <t id="416">Chance</t>
+      <t id="417">Reason</t>
+      <t id="418">Target Ship: %s</t>
+      <t id="419">Awaiting Mission Director context</t>
+      <t id="420">Choose installed equipment to add to the pending salvage plan.</t>
+      <t id="421">No supported installed equipment remains.</t>
+      <t id="422">Rows</t>
+      <t id="423">Plan cost</t>
+      <t id="424">Add cost</t>
+      <t id="425">Add %d</t>
+      <t id="426">Add Selected</t>
+      <t id="427">Already planned, unavailable, or needs catalysts</t>
+      <t id="428">No equipment selected</t>
+      <t id="429">-- No pending salvage --</t>
+      <t id="430">Review Salvage</t>
+      <t id="431">%s (%d saved / %d open)</t>
+      <t id="432">Choose a saved-equipment category with inventory and open target capacity.</t>
+      <t id="433">No category currently has both saved parts and open target capacity.</t>
+      <t id="434">Plan rows</t>
+      <t id="435">Saved Part</t>
+      <t id="436">Choose a saved part. Compatibility is calculated against the live target loadout.</t>
+      <t id="437">No compatible saved part in this category.</t>
+      <t id="438">Awaiting compatible category data.</t>
+      <t id="439">Install cost</t>
+      <t id="440">No compatible part selected</t>
+      <t id="441">-- No pending installs --</t>
+      <t id="442">Install Loadout</t>
+      <t id="443">-- No pending equipment --</t>
+      <t id="444">+ %d more planned item(s)</t>
+      <t id="445">Catalysts\nPlanned: %d  Total: %d</t>
+      <t id="446">Beam Catalysts\nPlanned: %d  Total: %d</t>
+      <t id="447">Clear every item from the pending salvage plan and restore the preview.</t>
+      <t id="448">Clear every saved part from the pending installation plan.</t>
+      <t id="449">Review the pending removals in a native confirmation dialog.</t>
+      <t id="450">Open the final Apply Plan confirmation for the currently previewed loadout.</t>
+      <t id="451">Select installed equipment to add it to the salvage plan.</t>
+      <t id="452">This installed item is not salvageable.</t>
+      <t id="453">Installed: %d  |  Planned: %d  |  Beam Catalyst cost: %d</t>
+      <t id="454">Select the slot or group where this item is currently installed.  |  %s</t>
+      <t id="455">Installed: %d</t>
+      <t id="456">The Avarice Bonding Regulator installs saved equipment; empty-slot removal is unavailable here.</t>
+      <t id="457">All saved copies are already assigned to the pending installation plan.</t>
+      <t id="458">No saved copy is available in the SES salvage inventory.</t>
+      <t id="459">Saved: %d</t>
+      <t id="460">Saved: %d  |  Cost: %d</t>
+      <t id="461">This component is already installed in the selected slot  |  %s</t>
+      <t id="462">The selected slot already contains a component. Salvage it before welding a replacement.  |  %s</t>
+      <t id="463">This slot already has a pending SES installation  |  %s</t>
+      <t id="464">Waiting for the previous SES selection  |  %s</t>
+      <t id="465">Not compatible with the selected slot  |  %s</t>
+      <t id="466">Need %d more available Catalyst capacity  |  %s</t>
+      <t id="467">Planned Salvage</t>
+      <t id="468">Planned Installation</t>
+      <t id="469">Salvage confirmation opened</t>
+      <t id="470">Installation confirmation opened</t>
+
+      <!-- Black Market trade UI -->
+      <t id="500">Ship Part</t>
+      <t id="501">Price</t>
+      <t id="502">Sell</t>
+      <t id="503">Buy</t>
+      <t id="504">Value</t>
+      <t id="505">Salvaged Part</t>
+      <t id="506">-- No salvaged ship parts available --</t>
+      <t id="507">Total</t>
+      <t id="508">Transaction Value</t>
+      <t id="509">Balance</t>
+      <t id="510">Complete Trade</t>
+      <t id="511">Salvage Inventory</t>
+      <t id="512">Black Market Stock</t>
+
+      <!-- Mission Director gates, operations, and results -->
+      <t id="600">The bonding field cannot reach the component mounts from here. Move closer to the ship.</t>
+      <t id="601">The cutting field cannot reach the component mounts from here. Move closer to the ship.</t>
+      <t id="602">Pilot transmission: Keep that bonding rig off my ship.</t>
+      <t id="603">Pilot transmission: Get that cutting beam off my ship, scavenger!</t>
+      <t id="604">The bonding rig rejects the active ownership transponder. You can only refit ships registered to you.</t>
+      <t id="605">The regulator rejects the active faction transponder. Only your ships or abandoned hulls can be salvaged.</t>
+      <t id="606">Boarding teams are working this hull. The regulator safety interlock will not operate during an active boarding action.</t>
+      <t id="607">The regulator field cannot safely span capital-grade component mounts. This rig is calibrated for S and M ships.</t>
+      <t id="608">The regulator cannot resolve intact component mounts in this wreckage.</t>
+      <t id="609">Construction clamps still own this frame. The regulator cannot isolate removable components yet.</t>
+      <t id="610">The hull telemetry is too unstable to map a safe component path.</t>
+      <t id="611">No items left to salvage.</t>
+      <t id="612">Equipment slots are full.</t>
+      <t id="613">Your suit cannot initialize the Avarice Bonding Regulator. The bonding module is not in your EVA inventory.</t>
+      <t id="614">Your suit cannot initialize the Avarice Beam Regulator. The cutting module is not in your EVA inventory.</t>
+      <t id="615">The regulator controls are EVA-rated. Enter your spacesuit before arming the tool.</t>
+      <t id="616">The bonding regulator is still cycling.</t>
+      <t id="617">The beam regulator is still processing the current salvage operation.</t>
+      <t id="618">Salvage interrupted. The regulator lost its component lock beyond 100 m. Move closer and start again; no equipment was removed.</t>
+      <t id="619">Welding interrupted. The bonding field lost its component lock beyond 100 m. Move closer and start again; no equipment was attached.</t>
+      <t id="620">An interrupted regulator cycle was safely reset. No equipment was changed; move back into range and start again.</t>
+      <t id="621">Trade salvaged ship parts</t>
+      <t id="622">Black Market salvage shop unavailable.</t>
+      <t id="623">Welding complete on %s.%s</t>
+      <t id="624">Avarice Bonding Regulator - Welding Complete</t>
+      <t id="625">Welding completed on %s.\nAttached equipment:%s</t>
+      <t id="626">\n- %s x %s</t>
+      <t id="627">\n- No equipment was attached.</t>
+      <t id="628">Saved equipment</t>
+      <t id="629">Avarice Beam Regulator - Confirm Salvage</t>
+      <t id="630">Salvage %s planned equipment item(s) from %s?\n\nPlan rows: %s\nBeam Catalysts: %s required (%s available)\n\nCatalysts are spent after verified removal, even if recovery fails. Recovery chances were shown in the plan.</t>
+
+      <!-- Salvage result statuses and flavor text -->
+      <t id="700">Blocked</t>
+      <t id="701">Failed</t>
+      <t id="702">Partial</t>
+      <t id="703">Success</t>
+      <t id="704">Canceled</t>
+      <t id="705">Validation/removal accounting failed</t>
+      <t id="706">You cut the wrong wire, and now it is useless.</t>
+      <t id="707">The coupling arced and cooked the control board.</t>
+      <t id="708">A pressure seal ruptured and contaminated the part.</t>
+      <t id="709">The regulator pulse was a little too spicy.</t>
+      <t id="710">A hidden capacitor popped before you could isolate it.</t>
+      <t id="711">The mounting bracket came free; the useful internals did not.</t>
+      <t id="712">The part made one final objection and became scrap.</t>
+      <t id="713">The casing twisted as it came free and sheared the alignment pins.</t>
+      <t id="714">A dormant charge flashed through the contacts and fused the core.</t>
+      <t id="715">The salvage beam pulled cleanly; the part disagreed halfway through.</t>
+      <t id="716">A brittle relay snapped before the regulator could stabilize it.</t>
+      <t id="717">The salvage beam found the weakest link first.</t>
+      <t id="718">Some parts survived; some became scrap.</t>
+      <t id="719">You saved the core, but the casing is toast.</t>
+      <t id="720">The regulator caught most of it, but not all of it.</t>
+      <t id="721">A few useful pieces made it through the smoke.</t>
+      <t id="722">Recovered usable part(s)</t>
+      <t id="723">Player canceled</t>
+    </page>
+  </add>
+</diff>

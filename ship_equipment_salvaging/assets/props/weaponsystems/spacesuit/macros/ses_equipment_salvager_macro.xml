@@ -4,7 +4,7 @@
     <!-- v167 mount probe: keep this laser-style and use vanilla spacesuit/default compatibility tags on the custom component. -->
     <component ref="ses_equipment_salvager" />
     <properties>
-      <identification name="Avarice Beam Regulator" description="Illegal black-market hand-laser regulator that drives a tight, unstable cutting arc for unauthorized salvage and equipment recovery." />
+      <identification name="{1171361,10}" description="{1171361,12}" />
       <bullet class="ses_bullet_equipment_salvager_macro" />
       <rotationspeed max="100" />
       <rotationacceleration max="200" />

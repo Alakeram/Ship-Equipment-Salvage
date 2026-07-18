@@ -40,7 +40,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v320-production-mode-persistence",
+	version = "v364-install-and-localization-hotfix",
 	userdatakey = "ses_tool_mode",
 	controlid = "ses_tool_mode",
 	rowid = "ses_tool_mode_row",
@@ -120,6 +120,27 @@ local function safeString(value)
 		return result
 	end
 	return "<tostring failed>"
+end
+
+local SES_TEXT_PAGE = 1171361
+
+local function sesText(id, fallback)
+	if ReadText then
+		local ok, value = pcall(ReadText, SES_TEXT_PAGE, id)
+		if ok and value and value ~= "" then
+			return value
+		end
+	end
+	return fallback or ""
+end
+
+local function sesFormat(id, fallback, ...)
+	local ok, value = pcall(string.format, sesText(id, fallback), ...)
+	if ok then
+		return value
+	end
+	local fallbackOK, fallbackValue = pcall(string.format, fallback or "", ...)
+	return fallbackOK and fallbackValue or (fallback or "")
 end
 
 local function numericAmount(value)
@@ -553,25 +574,25 @@ local function getModeOptions(context, availability)
 	local state = availability or getToolAvailability(context)
 	local handLaserRequirement = "Requires the Hand Laser to be mounted on the current spacesuit weapon list."
 	local options = {
-		{ id = "off", text = "Off", icon = "", displayremoveoption = false },
+		{ id = "off", text = sesText(200, "Off"), icon = "", displayremoveoption = false },
 	}
 
-	local salvagerText = "Avarice Beam Regulator"
+	local salvagerText = sesText(10, "Avarice Beam Regulator")
 	if state.salvagerAmount == nil then
-		salvagerText = "Avarice Beam Regulator"
+		salvagerText = sesText(10, "Avarice Beam Regulator")
 	elseif state.salvagerAmount <= 0 then
-		salvagerText = "Avarice Beam Regulator (not in inventory)"
+		salvagerText = sesFormat(205, "%s (not in inventory)", sesText(10, "Avarice Beam Regulator"))
 	elseif not state.hasHandLaser then
-		salvagerText = "Avarice Beam Regulator (requires Hand Laser)"
+		salvagerText = sesFormat(206, "%s (requires Hand Laser)", sesText(10, "Avarice Beam Regulator"))
 	end
 
-	local welderText = "Avarice Bonding Regulator"
+	local welderText = sesText(20, "Avarice Bonding Regulator")
 	if state.welderAmount == nil then
-		welderText = "Avarice Bonding Regulator"
+		welderText = sesText(20, "Avarice Bonding Regulator")
 	elseif state.welderAmount <= 0 then
-		welderText = "Avarice Bonding Regulator (not in inventory)"
+		welderText = sesFormat(205, "%s (not in inventory)", sesText(20, "Avarice Bonding Regulator"))
 	elseif not state.hasHandLaser then
-		welderText = "Avarice Bonding Regulator (requires Hand Laser)"
+		welderText = sesFormat(206, "%s (requires Hand Laser)", sesText(20, "Avarice Bonding Regulator"))
 	end
 
 	if state.hasSalvager and state.hasHandLaser then
@@ -580,7 +601,7 @@ local function getModeOptions(context, availability)
 			text = salvagerText,
 			icon = "",
 			displayremoveoption = false,
-			mouseOverText = "Hand Laser hits open the SES salvage flow when close enough; MD limits dropdown-mode transactions to 25m.",
+			mouseOverText = sesText(203, "Hand Laser hits open the SES salvage flow when close enough; transactions are limited to 25 m."),
 		}
 	elseif state.hasSalvager and not state.hasHandLaser then
 		emit("option_hidden_no_handlaser", "mode=salvage, amount=" .. safeString(state.salvagerAmount)
@@ -595,7 +616,7 @@ local function getModeOptions(context, availability)
 			text = welderText,
 			icon = "",
 			displayremoveoption = false,
-			mouseOverText = "Hand Laser hits open the SES install/spend inventory on valid close player-owned S/M ships; MD limits dropdown-mode transactions to 25m.",
+			mouseOverText = sesText(204, "Hand Laser hits open the SES installation flow on valid nearby player-owned S/M ships; transactions are limited to 25 m."),
 		}
 	elseif state.hasWelder and not state.hasHandLaser then
 		emit("option_hidden_no_handlaser", "mode=install, amount=" .. safeString(state.welderAmount)
@@ -1011,11 +1032,11 @@ local function addModeRow(rowgroup, defensibleid, source)
 			.. ", handlaser=" .. bool01(availability.hasHandLaser))
 	end
 	local row = rowgroup:addRow(ses.rowid, {})
-	row[1]:setColSpan(2):createText("    SES Tool Mode:")
+	row[1]:setColSpan(2):createText("    " .. sesText(201, "SES Tool Mode:"))
 	row[3]:setColSpan(11):createDropDown(options, {
 		startOption = startMode,
 		active = true,
-		mouseOverText = "Select what the mounted Hand Laser should do for Ship Equipment Salvaging. Only modes with the matching SES tool in inventory and a mounted Hand Laser are shown.",
+		mouseOverText = sesText(202, "Select what the mounted Hand Laser should do for Ship Equipment Salvaging. Only modes with the matching SES tool in inventory and a mounted Hand Laser are shown."),
 		uiTriggerID = ses.controlid,
 	})
 	if row[3].properties then
@@ -1081,11 +1102,11 @@ local function addModeRowDocked(uitable, defensibleid, source)
 			.. ", handlaser=" .. bool01(availability.hasHandLaser))
 	end
 	local row = uitable:addRow(ses.rowid .. "_docked", {})
-	row[1]:setColSpan(2):createText("    SES Tool Mode:")
+	row[1]:setColSpan(2):createText("    " .. sesText(201, "SES Tool Mode:"))
 	row[3]:setColSpan(9):createDropDown(options, {
 		startOption = startMode,
 		active = true,
-		mouseOverText = "Select what the mounted Hand Laser should do for Ship Equipment Salvaging. Only modes with the matching SES tool in inventory and a mounted Hand Laser are shown.",
+		mouseOverText = sesText(202, "Select what the mounted Hand Laser should do for Ship Equipment Salvaging. Only modes with the matching SES tool in inventory and a mounted Hand Laser are shown."),
 		uiTriggerID = ses.controlid,
 	})
 	if row[3].properties then
