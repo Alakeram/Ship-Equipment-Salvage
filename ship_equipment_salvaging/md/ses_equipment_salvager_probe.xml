@@ -502,7 +502,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v364. Production player-facing text resolves through SES page 1171361; install macro IDs resolve to typed X4 objects.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v367. Runtime player-facing text resolves through SES page 1171361; equipment captions use compact maker codes and the right-side panel preserves fitted equipment.'" />
       </actions>
     </cue>
 
@@ -594,7 +594,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v364-install-and-localization-hotfix',
+              $version = 'v367-faction-and-overview',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -608,7 +608,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v364-install-and-localization-hotfix',
+              $version = 'v367-faction-and-overview',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -6285,7 +6285,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v364-install-and-localization-hotfix',
+            $version = 'v367-faction-and-overview',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -7684,7 +7684,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v364-install-and-localization-hotfix',
+            $version = 'v367-faction-and-overview',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,

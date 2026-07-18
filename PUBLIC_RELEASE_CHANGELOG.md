@@ -5,6 +5,39 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v3.67 - 2026-07-18
+
+**UI and localization fixes since public release v3.64**
+
+### Native Equipment Presentation
+
+- Restored the ship's installed weapons, shields, engines, thrusters, and
+  turrets to X4's native top-right Overview panel in the SES salvage and
+  welding menus.
+- Preserved fitted equipment rows while rebuilding the read-only SES catalogue,
+  preventing unchanged hardware categories from disappearing from Overview.
+- Added compact maker prefixes such as `ARG`, `BOR`, `PAR`, `SPL`, `TEL`, and
+  `TER` to equipment names, while avoiding duplicate prefixes when X4 already
+  provides one.
+- Kept native equipment tiles inside their intended two-line geometry by using
+  X4's fitted first-line caption and reserving the second line for the live
+  `Saved: N` or `Installed: N` receipt.
+
+### Extensions Menu
+
+- Restored literal extension name and description metadata because X4's
+  Extensions menu displays those manifest fields directly instead of resolving
+  text-page references.
+
+### Verification
+
+- Confirmed in game that the native Overview shows engines, thrusters, shield
+  generators, weapons, turrets, software, and consumables together.
+- Confirmed equipment slots use the expected compact faction-prefixed names and
+  the Extensions menu displays the expected extension metadata.
+- Validated all 17 XML files and the extracted X4 9.00 Mission Director, diff,
+  and UI addon schemas.
+
 ## v3.64 - 2026-07-18
 
 **Hotfix changes since public release v3.61**

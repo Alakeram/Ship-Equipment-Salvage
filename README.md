@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.64  
+**Release:** v3.67<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -15,7 +15,19 @@ through a dedicated Black Market parts network.
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
 
-## What Is New in v3.64
+## What Is New in v3.67
+
+- Restored installed weapons, shields, engines, thrusters, and turrets to the
+  native top-right Overview panel in the read-only salvage and welding menus.
+- Added compact maker prefixes such as `ARG`, `BOR`, `PAR`, `SPL`, `TEL`, and
+  `TER` to equipment captions without duplicating prefixes already supplied by
+  X4.
+- Kept equipment tiles inside their native two-line layout: the fitted X4 name
+  stays on the first line and `Saved: N` or `Installed: N` stays on the second.
+- Restored literal extension name and description metadata so the Extensions
+  menu no longer displays unresolved localization references.
+
+## What Was Fixed in v3.64
 
 - Fixed compatible saved weapons and shields being accepted by the planner but
   rejected during installation.
