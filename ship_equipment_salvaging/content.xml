@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<content
+  id="ship_equipment_salvaging"
+  name="Ship Equipment Salvaging"
+  description="Recover installed equipment from eligible ships for later reuse."
+  author="Alakeram"
+ version="361"
+  date="2026-07-15"
+  enabled="1"
+  save="1">
+  <dependency version="900" />
+  <dependency id="kuerteeUIExtensionsAndHUD" optional="false" />
+  <dependency id="ws_2042901274" optional="false" />
+  <dependency id="ws_3715253556" optional="false" name="Options Helper" version="110" />
+</content>

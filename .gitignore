@@ -1,0 +1,14 @@
+# Generated build and extraction output
+/build/
+/dist/
+/vendor/
+/x4-source/
+
+# X4 catalog output
+*.cat
+*.dat
+
+# Runtime logs and saves
+debug.log
+*.gz
+

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon name="ship_equipment_salvaging" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../ui/core/addon.xsd">
+  <environment type="menus">
+    <file name="ui/menu_ses_black_market_userquestion_uix.lua" />
+    <file name="ui/menu_ses_m5_native_planners_uix.lua" />
+    <file name="ui/menu_ses_tool_mode.lua" />
+    <file name="ui/menu_ses_salvage_inventory.lua" />
+    <dependency name="kuertee_ui_extensions" />
+  </environment>
+</addon>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript
+  name="SES_Black_Market_Stock_Rotation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="md.xsd">
+  <cues>
+    <cue name="SES_Black_Market_Random_Stock_V1_Startup">
+      <actions>
+        <set_value name="global.$SES_Black_Market_Random_Stock_Version" exact="1" />
+        <do_if value="not @global.$SES_Black_Market_Random_Stock_State">
+          <set_value name="global.$SES_Black_Market_Random_Stock_State" exact="table[]" />
+        </do_if>
+        <do_if value="not @global.$SES_Black_Market_Shop_Stock">
+          <set_value name="global.$SES_Black_Market_Shop_Stock" exact="[]" />
+        </do_if>
+      </actions>
+    </cue>
+
+    <cue name="SES_Black_Market_Random_Stock_Build_Candidates_V1">
+      <delay exact="2s" />
+      <actions>
+        <do_if value="not @global.$SES_Ware_Definition_List">
+          <get_ware_definition flags="equipment" result="global.$SES_Ware_Definition_List" />
+        </do_if>
+        <set_value name="global.$SES_Black_Market_Stock_MK1_Wares" exact="[]" />
+        <set_value name="global.$SES_Black_Market_Stock_MK2_Wares" exact="[]" />
+        <set_value name="global.$SES_Black_Market_Stock_MK3_Wares" exact="[]" />
+        <set_value name="global.$SES_Black_Market_Stock_MK4_Wares" exact="[]" />
+        <do_for_each name="$KnownWare" in="global.$SES_Ware_Definition_List">
+          <do_if value="@global.$SES_Black_Market_Stock_MK1_WareIds and global.$SES_Black_Market_Stock_MK1_WareIds.indexof.{$KnownWare.id} gt 0">
+            <append_to_list name="global.$SES_Black_Market_Stock_MK1_Wares" exact="$KnownWare" />
+          </do_if>
+          <do_elseif value="@global.$SES_Black_Market_Stock_MK2_WareIds and global.$SES_Black_Market_Stock_MK2_WareIds.indexof.{$KnownWare.id} gt 0">
+            <append_to_list name="global.$SES_Black_Market_Stock_MK2_Wares" exact="$KnownWare" />
+          </do_elseif>
+          <do_elseif value="@global.$SES_Black_Market_Stock_MK3_WareIds and global.$SES_Black_Market_Stock_MK3_WareIds.indexof.{$KnownWare.id} gt 0">
+            <append_to_list name="global.$SES_Black_Market_Stock_MK3_Wares" exact="$KnownWare" />
+          </do_elseif>
+          <do_elseif value="@global.$SES_Black_Market_Stock_MK4_WareIds and global.$SES_Black_Market_Stock_MK4_WareIds.indexof.{$KnownWare.id} gt 0">
+            <append_to_list name="global.$SES_Black_Market_Stock_MK4_Wares" exact="$KnownWare" />
+          </do_elseif>
+        </do_for_each>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Runtime S/M stock candidates built. mk1=%s, mk2=%s, mk3=%s, mk4=%s'.[
+          global.$SES_Black_Market_Stock_MK1_Wares.count,
+          global.$SES_Black_Market_Stock_MK2_Wares.count,
+          global.$SES_Black_Market_Stock_MK3_Wares.count,
+          global.$SES_Black_Market_Stock_MK4_Wares.count
+        ]" />
+      </actions>
+    </cue>
+
+    <cue name="SES_Black_Market_Random_Stock_Progress_Migration_V1">
+      <delay exact="2s" />
+      <actions>
+        <do_if value="not @global.$SES_Progress_First_Successful_Salvage and @global.$SES_Salvage_Inventory">
+          <set_value name="$ExistingRecoveredRows" exact="0" />
+          <do_for_each name="$ExistingInventoryEntry" in="global.$SES_Salvage_Inventory">
+            <do_if value="@$ExistingInventoryEntry.$count and $ExistingInventoryEntry.$count gt 0">
+              <set_value name="$ExistingRecoveredRows" operation="add" />
+            </do_if>
+          </do_for_each>
+          <do_if value="$ExistingRecoveredRows gt 0">
+            <set_value name="global.$SES_Progress_First_Successful_Salvage" exact="true" />
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Existing-save progression migration found recovered equipment; first-successful-salvage gate unlocked. rows=%s'.[$ExistingRecoveredRows]" />
+          </do_if>
+        </do_if>
+        <do_if value="@global.$SES_Progress_First_Successful_Salvage">
+          <signal_cue_instantly cue="SES_Black_Market_Random_Stock_Announcement_Request_V1" />
+        </do_if>
+      </actions>
+    </cue>
+
+    <cue name="SES_Black_Market_Random_Stock_Announcement_Request_V1" instantiate="true" namespace="this">
+      <conditions>
+        <event_cue_signalled />
+      </conditions>
+      <delay min="2min" max="4min" />
+      <actions>
+        <do_if value="@global.$SES_Progress_First_Successful_Salvage and not @global.$SES_Black_Market_Random_Stock_Announced_V1">
+          <write_incoming_message
+            source="'Galaxy Network'"
+            highpriority="true"
+            title="'GalNet - Unregistered Ship Components Surface in Dockside Trade'"
+            text="'Authorities across several major trade corridors are investigating a sudden rise in unregistered ship components appearing in private dockside sales. Unlike ordinary scrap, the seized goods include intact drive assemblies, shield cores, weapon housings, and turret interfaces carrying serial records from ships reported abandoned, dismantled, or missing from licensed repair queues.&#10;&#10;Shipyard representatives insist that legitimate yards are not responsible for the new supply. Several affected operators claim their inventories remain balanced, while independent repair crews report being approached by brokers offering complete components with no installation history and no questions attached.&#10;&#10;A Teladi trade assessor, speaking to GalNet on condition of anonymity, described the development as an inevitable correction.&#10;&#10;&quot;Pilots have always paid for convenience. The only difference is that someone has finally worked out how to put convenience in a crate and move it through the back door.&quot;&#10;&#10;Port authorities have issued a general advisory warning captains that equipment purchased outside an accredited yard may carry altered identifiers, voided warranties, or links to unresolved salvage claims. Nevertheless, reports indicate that Black Market contacts are already circulating revised stock lists, with availability varying sharply from one station to the next. Higher-grade components remain scarce, but investigators expect the supply to change as quickly as damaged ships disappear from contested sectors.&#10;&#10;For licensed shipyards, this is evidence of an expanding criminal supply chain. For independent captains, it may simply mean that a familiar contact now has something more substantial hidden behind the counter.&#10;&#10;Ralen Voss&#10;Industrial Affairs Correspondent, GalNet'" />
+          <set_value name="global.$SES_Black_Market_Random_Stock_Announced_V1" exact="true" />
+          <set_value name="global.$SES_Black_Market_Random_Stock_Announcement_Time" exact="player.age" />
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] GalNet random-stock announcement published after the randomized 2-4 minute post-salvage delay; generated dealer stock and the shady-guy salvage-shop conversation option are now unlocked. playerage=%s'.[
+            player.age
+          ]" />
+        </do_if>
+      </actions>
+    </cue>
+
+    <cue name="SES_Black_Market_Ensure_Contact_Stock_V1" instantiate="true" namespace="this">
+      <conditions>
+        <event_cue_signalled />
+      </conditions>
+      <actions>
+        <set_value name="$ShopActor" exact="@event.param.$actor" />
+        <set_value name="$ShopStation" exact="@event.param.$station" />
+        <set_value name="$ContactKey" exact="if $ShopStation.exists then $ShopStation else $ShopActor" />
+        <set_value name="$CandidatesReady" exact="@global.$SES_Black_Market_Stock_MK1_Wares and global.$SES_Black_Market_Stock_MK1_Wares.count gt 0" />
+        <do_if value="@global.$SES_Black_Market_Random_Stock_Announced_V1 and $ShopActor.exists and @$ShopActor.isshadyguy and $CandidatesReady">
+          <do_if value="not @global.$SES_Black_Market_Random_Stock_State">
+            <set_value name="global.$SES_Black_Market_Random_Stock_State" exact="table[]" />
+          </do_if>
+          <do_if value="not @global.$SES_Black_Market_Shop_Stock">
+            <set_value name="global.$SES_Black_Market_Shop_Stock" exact="[]" />
+          </do_if>
+          <do_if value="not @global.$SES_Black_Market_Random_Stock_State.{$ContactKey}">
+            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}" exact="table[
+              $nextrefresh = 0s,
+              $generation = 0,
+              $debugforcegeneration = 0
+            ]" />
+          </do_if>
+          <set_value name="$ContactState" exact="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}" />
+          <set_value name="$DebugForceGeneration" exact="if @global.$SES_Black_Market_Debug_Force_Rotation_Generation then global.$SES_Black_Market_Debug_Force_Rotation_Generation else 0" />
+          <set_value name="$DebugForceDue" exact="$DebugForceGeneration gt (if @$ContactState.$debugforcegeneration then $ContactState.$debugforcegeneration else 0)" />
+          <set_value name="$FastRotation" exact="@global.$SES_Black_Market_Debug_Fast_Rotation_Enabled and @global.$SES_Debug_Keys_Enabled" />
+          <set_value name="$RefreshDue" exact="not @$ContactState.$nextrefresh or player.age ge $ContactState.$nextrefresh or $DebugForceDue" />
+          <do_if value="$RefreshDue">
+            <!-- Migrate legacy player-sold rows and clear only the generated
+                 portion. Empty generated rows become reusable slots. -->
+            <do_for_each name="$StockEntry" in="global.$SES_Black_Market_Shop_Stock" counter="$StockIndex">
+              <do_if value="((@$StockEntry.$station and $StockEntry.$station == $ShopStation) or (not @$StockEntry.$station and @$StockEntry.$actor == $ShopActor))">
+                <do_if value="not @$StockEntry.$buybackcount">
+                  <set_value name="global.$SES_Black_Market_Shop_Stock.{$StockIndex}.$buybackcount" exact="if @$StockEntry.$source == 'generated' then 0 else if @$StockEntry.$count then $StockEntry.$count else 0" />
+                </do_if>
+                <set_value name="global.$SES_Black_Market_Shop_Stock.{$StockIndex}.$generatedcount" exact="0" />
+                <set_value name="global.$SES_Black_Market_Shop_Stock.{$StockIndex}.$count" exact="global.$SES_Black_Market_Shop_Stock.{$StockIndex}.$buybackcount" />
+                <set_value name="global.$SES_Black_Market_Shop_Stock.{$StockIndex}.$source" exact="if global.$SES_Black_Market_Shop_Stock.{$StockIndex}.$buybackcount gt 0 then 'player_sale' else 'empty_generated_slot'" />
+              </do_if>
+            </do_for_each>
+
+            <set_value name="$DesiredRows" min="4" max="10" />
+            <set_value name="$SelectedWareIds" exact="[]" />
+            <set_value name="$GeneratedRows" exact="0" />
+            <do_all exact="$DesiredRows" counter="$SlotCounter">
+              <set_value name="$TierRoll" min="1" max="100" />
+              <set_value name="$CandidateTier" exact="if $TierRoll le 55 then 1 else if $TierRoll le 83 then 2 else if $TierRoll le 96 then 3 else 4" />
+              <set_value name="$TierCandidates" exact="if $CandidateTier == 1 then global.$SES_Black_Market_Stock_MK1_Wares else if $CandidateTier == 2 then global.$SES_Black_Market_Stock_MK2_Wares else if $CandidateTier == 3 then global.$SES_Black_Market_Stock_MK3_Wares else global.$SES_Black_Market_Stock_MK4_Wares" />
+              <remove_value name="$CandidateWare" />
+              <do_all exact="20" counter="$CandidateAttempt">
+                <do_if value="$TierCandidates.count gt 0">
+                  <set_value name="$CandidateProbe" exact="$TierCandidates.random" />
+                  <do_if value="$SelectedWareIds.indexof.{$CandidateProbe.id} == 0">
+                    <set_value name="$CandidateWare" exact="$CandidateProbe" />
+                    <break />
+                  </do_if>
+                </do_if>
+              </do_all>
+              <do_if value="not $CandidateWare and global.$SES_Black_Market_Stock_MK1_Wares.count gt 0">
+                <set_value name="$CandidateTier" exact="1" />
+                <do_all exact="20" counter="$FallbackAttempt">
+                  <set_value name="$CandidateProbe" exact="global.$SES_Black_Market_Stock_MK1_Wares.random" />
+                  <do_if value="$SelectedWareIds.indexof.{$CandidateProbe.id} == 0">
+                    <set_value name="$CandidateWare" exact="$CandidateProbe" />
+                    <break />
+                  </do_if>
+                </do_all>
+              </do_if>
+              <do_if value="$CandidateWare and $CandidateWare.objectmacro">
+                <append_to_list name="$SelectedWareIds" exact="$CandidateWare.id" />
+                <set_value name="$CandidateCategory" exact="if $CandidateWare.hastag.turret then 'turrets' else if $CandidateWare.hastag.shield then 'shields' else if $CandidateWare.hastag.engine then 'engines' else if $CandidateWare.hastag.thruster then 'thrusters' else 'weapons'" />
+                <set_value name="$CandidateFaction" exact="if $CandidateWare.objectmacro.makerraces.count gt 0 then $CandidateWare.objectmacro.makerraces.{1}.shortname else ''" />
+                <set_value name="$MatchedStockIndex" exact="0" />
+                <set_value name="$ReusableStockIndex" exact="0" />
+                <do_for_each name="$StockEntry" in="global.$SES_Black_Market_Shop_Stock" counter="$StockIndex">
+                  <do_if value="((@$StockEntry.$station and $StockEntry.$station == $ShopStation) or (not @$StockEntry.$station and @$StockEntry.$actor == $ShopActor))">
+                    <do_if value="$MatchedStockIndex == 0 and @$StockEntry.$wareid == $CandidateWare.id">
+                      <set_value name="$MatchedStockIndex" exact="$StockIndex" />
+                    </do_if>
+                    <do_elseif value="$ReusableStockIndex == 0 and (not @$StockEntry.$count or $StockEntry.$count le 0) and (not @$StockEntry.$buybackcount or $StockEntry.$buybackcount le 0) and (not @$StockEntry.$generatedcount or $StockEntry.$generatedcount le 0)">
+                      <set_value name="$ReusableStockIndex" exact="$StockIndex" />
+                    </do_elseif>
+                  </do_if>
+                </do_for_each>
+                <do_if value="$MatchedStockIndex == 0">
+                  <set_value name="$MatchedStockIndex" exact="$ReusableStockIndex" />
+                </do_if>
+                <do_if value="$MatchedStockIndex gt 0">
+                  <set_value name="$ExistingBuybackCount" exact="if @global.$SES_Black_Market_Shop_Stock.{$MatchedStockIndex}.$buybackcount then global.$SES_Black_Market_Shop_Stock.{$MatchedStockIndex}.$buybackcount else 0" />
+                  <set_value name="global.$SES_Black_Market_Shop_Stock.{$MatchedStockIndex}" exact="table[
+                    $actor = $ShopActor,
+                    $station = $ShopStation,
+                    $ware = $CandidateWare,
+                    $wareid = $CandidateWare.id,
+                    $macro = $CandidateWare.objectmacro.id,
+                    $category = $CandidateCategory,
+                    $name = $CandidateWare.name,
+                    $faction = $CandidateFaction,
+                    $buybackcount = $ExistingBuybackCount,
+                    $generatedcount = 1,
+                    $count = $ExistingBuybackCount + 1,
+                    $source = if $ExistingBuybackCount gt 0 then 'mixed' else 'generated',
+                    $generatedtier = $CandidateTier,
+                    $lasttime = player.age,
+                    $lastgenerationtime = player.age
+                  ]" />
+                </do_if>
+                <do_else>
+                  <append_to_list name="global.$SES_Black_Market_Shop_Stock" exact="table[
+                    $actor = $ShopActor,
+                    $station = $ShopStation,
+                    $ware = $CandidateWare,
+                    $wareid = $CandidateWare.id,
+                    $macro = $CandidateWare.objectmacro.id,
+                    $category = $CandidateCategory,
+                    $name = $CandidateWare.name,
+                    $faction = $CandidateFaction,
+                    $buybackcount = 0,
+                    $generatedcount = 1,
+                    $count = 1,
+                    $source = 'generated',
+                    $generatedtier = $CandidateTier,
+                    $lasttime = player.age,
+                    $lastgenerationtime = player.age
+                  ]" />
+                </do_else>
+                <set_value name="$GeneratedRows" operation="add" />
+                <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Generated contact stock actor=%s, station=%s, slot=%s, tier=MK%s, ware=%s, macro=%s'.[
+                  $ShopActor,
+                  $ShopStation,
+                  $SlotCounter,
+                  $CandidateTier,
+                  $CandidateWare.id,
+                  $CandidateWare.objectmacro.id
+                ]" />
+              </do_if>
+            </do_all>
+            <set_value name="$RefreshDelay" min="if $FastRotation then 1min else 3h" max="if $FastRotation then 2min else 5h" />
+            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$lastrefresh" exact="player.age" />
+            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$nextrefresh" exact="player.age + $RefreshDelay" />
+            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$generation" operation="add" />
+            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$rows" exact="$GeneratedRows" />
+            <do_if value="$DebugForceGeneration gt 0">
+              <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$debugforcegeneration" exact="$DebugForceGeneration" />
+            </do_if>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Contact stock rotation complete actor=%s, station=%s, generation=%s, rows=%s, nextrefresh=%s, announced=%s, debugforced=%s, debugforcegeneration=%s, fastrotation=%s, refreshdelay=%s'.[
+              $ShopActor,
+              $ShopStation,
+              global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$generation,
+              $GeneratedRows,
+              global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$nextrefresh,
+              global.$SES_Black_Market_Random_Stock_Announced_V1,
+              $DebugForceDue,
+              $DebugForceGeneration,
+              $FastRotation,
+              $RefreshDelay
+            ]" />
+          </do_if>
+        </do_if>
+        <do_elseif value="@global.$SES_Black_Market_Random_Stock_Announced_V1 and not $CandidatesReady">
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Contact stock generation deferred because the runtime candidate catalog is not ready. actor=%s, station=%s'.[
+            $ShopActor,
+            $ShopStation
+          ]" />
+        </do_elseif>
+      </actions>
+    </cue>
+  </cues>
+</mdscript>

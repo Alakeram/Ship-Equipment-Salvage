@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="diff.xsd">
+  <add sel="/mdscript/cues/cue[@name='OnPlatformPopulation_Itemtrader']/cues">
+    <cue name="SES_Debug_Reroll_ShadyGuy_Item_Stock_V1" instantiate="true">
+      <conditions>
+        <event_object_signalled object="$actor" param="'ses_debug_reroll_shadyguy_item_stock'" />
+      </conditions>
+      <actions>
+        <do_if value="$actor.exists and event.object == $actor and @$actor.isshadyguy and @global.$SES_Debug_Keys_Enabled">
+          <set_value name="$SESDebugOldStockWares" exact="$actor.stock.list" />
+          <set_value name="$SESDebugRemovedWareTypes" exact="0" />
+          <do_for_each name="$SESDebugOldStockWare" in="$SESDebugOldStockWares">
+            <set_value name="$SESDebugOldStockCount" exact="$actor.inventory.{$SESDebugOldStockWare}.count" />
+            <do_if value="$SESDebugOldStockCount gt 0">
+              <remove_inventory entity="$actor" ware="$SESDebugOldStockWare" exact="$SESDebugOldStockCount" />
+              <set_value name="$SESDebugRemovedWareTypes" operation="add" />
+            </do_if>
+          </do_for_each>
+
+          <add_stock entity="$actor" />
+
+          <set_value name="$CharacterStock" exact="$actor.stock.list" />
+          <set_value name="$WareList" exact="[]" />
+          <remove_value name="$SESDebugBeamCatalystPrice" />
+          <remove_value name="$SESDebugBondingCatalystPrice" />
+          <do_all exact="$CharacterStock.count" counter="$SESDebugStockCounter">
+            <set_value name="$SESDebugWare" exact="$CharacterStock.{$SESDebugStockCounter}" />
+            <set_value name="$SESDebugPrice" min="$SESDebugWare.minprice" max="$SESDebugWare.maxprice" />
+            <append_to_list name="$WareList" exact="[$SESDebugWare, $SESDebugPrice]" />
+            <do_if value="$SESDebugWare == ware.ses_avarice_beam_catalyst">
+              <set_value name="$SESDebugBeamCatalystPrice" exact="$SESDebugPrice" />
+            </do_if>
+            <do_elseif value="$SESDebugWare == ware.ses_avarice_bonding_catalyst">
+              <set_value name="$SESDebugBondingCatalystPrice" exact="$SESDebugPrice" />
+            </do_elseif>
+          </do_all>
+
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][DEBUG] Shady-guy item inventory and cached prices rerolled. actor=%s, station=%s, removedtypes=%s, stockrows=%s, beamcount=%s, beamprice=%s, bondingcount=%s, bondingprice=%s'.[
+            $actor,
+            $actor.station,
+            $SESDebugRemovedWareTypes,
+            $WareList.count,
+            $actor.inventory.{ware.ses_avarice_beam_catalyst}.count,
+            @$SESDebugBeamCatalystPrice,
+            $actor.inventory.{ware.ses_avarice_bonding_catalyst}.count,
+            @$SESDebugBondingCatalystPrice
+          ]" />
+        </do_if>
+      </actions>
+    </cue>
+  </add>
+</diff>

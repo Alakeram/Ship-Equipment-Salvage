@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<components>
+  <component name="ses_equipment_salvager" class="weapon">
+    <source geometry="assets\props\WeaponSystems\spacesuit\spacesuit_gen_laser_01_data" />
+    <layers>
+      <layer />
+    </layers>
+    <connections>
+      <connection name="Connection01" tags="detail_xs nocollision part " hidden="true">
+        <offset>
+          <position x="0" y="0" z="0.07606052" />
+        </offset>
+        <restrictions>
+          <restriction type="rotation_y">
+            <limits>
+              <min value="-10" />
+              <max value="10" />
+            </limits>
+          </restriction>
+        </restrictions>
+        <parts>
+          <part name="detail_xs_rotator">
+            <lods>
+              <lod index="0">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hullpattern_01" />
+                </materials>
+              </lod>
+            </lods>
+            <size>
+              <max x="0.002904195" y="0.002904195" z="0.00121661" />
+              <center x="0" y="0" z="-9e-10" />
+            </size>
+          </part>
+        </parts>
+      </connection>
+      <connection name="Connection03" tags="forceoutline part platformcollision ">
+        <parts>
+          <part name="part_mount" wreck="part_mount_wreck">
+            <lods>
+              <lod index="0">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+              <lod index="1">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+              <lod index="2">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+              <lod index="3">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+            </lods>
+            <size>
+              <max x="0.04775548" y="0.02668929" z="0.05285154" />
+              <center x="9e-10" y="0" z="0.05185499" />
+            </size>
+          </part>
+        </parts>
+      </connection>
+      <connection name="WeaponCon_01" tags="component default spacesuit weapon " />
+      <connection name="position" tags="position" value="1" />
+      <connection name="Connection02" tags="forceoutline part platformcollision " parent="detail_xs_rotator">
+        <restrictions>
+          <restriction type="rotation_x">
+            <limits>
+              <min value="-10" />
+              <max value="10" />
+            </limits>
+          </restriction>
+        </restrictions>
+        <parts>
+          <part name="barel">
+            <lods>
+              <lod index="0">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                  <material id="2" ref="p2generic.gen_p2_fx_01" />
+                </materials>
+              </lod>
+            </lods>
+            <size>
+              <max x="0.01076971" y="0.01076918" z="0.00324091" />
+              <center x="1.05e-08" y="-1.02e-08" z="0.003260108" />
+            </size>
+          </part>
+        </parts>
+      </connection>
+      <connection name="Con_laser01" tags="laser " parent="barel">
+        <offset>
+          <position x="-0.002709081" y="1.4453e-06" z="0.01722503" />
+        </offset>
+      </connection>
+    </connections>
+  </component>
+</components>

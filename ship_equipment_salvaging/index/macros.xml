@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<index>
+  <entry
+    name="ses_bullet_equipment_salvager_macro"
+    value="extensions\ship_equipment_salvaging\assets\fx\weaponfx\macros\ses_bullet_equipment_salvager_macro" />
+  <entry
+    name="ses_bullet_equipment_welder_macro"
+    value="extensions\ship_equipment_salvaging\assets\fx\weaponfx\macros\ses_bullet_equipment_welder_macro" />
+  <entry
+    name="ses_equipment_salvager_macro"
+    value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\spacesuit\macros\ses_equipment_salvager_macro" />
+  <entry
+    name="ses_equipment_welder_macro"
+    value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\spacesuit\macros\ses_equipment_welder_macro" />
+</index>
