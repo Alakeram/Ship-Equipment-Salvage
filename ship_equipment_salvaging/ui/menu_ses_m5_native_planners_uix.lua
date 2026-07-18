@@ -45,7 +45,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v361-terminal-tool-gates",
+	version = "v364-install-and-localization-hotfix",
 	salvageMode = "custom_ses_m5_salvage",
 	salvageResultMode = "custom_ses_m5_salvage_result",
 	weldMode = "custom_ses_m5_weld",
@@ -72,6 +72,27 @@ local function safeString(value)
 		return result
 	end
 	return "<tostring failed>"
+end
+
+local SES_TEXT_PAGE = 1171361
+
+local function sesText(id, fallback)
+	if ReadText then
+		local ok, value = pcall(ReadText, SES_TEXT_PAGE, id)
+		if ok and value and value ~= "" then
+			return value
+		end
+	end
+	return fallback or ""
+end
+
+local function sesFormat(id, fallback, ...)
+	local ok, value = pcall(string.format, sesText(id, fallback), ...)
+	if ok then
+		return value
+	end
+	local fallbackOK, fallbackValue = pcall(string.format, fallback or "", ...)
+	return fallbackOK and fallbackValue or (fallback or "")
 end
 
 local function emit(control, param)
@@ -280,16 +301,16 @@ end
 
 local function plannerTitle(kind)
 	if kind == "salvage" then
-		return "Avarice Beam Regulator - Salvage"
+		return sesText(400, "Avarice Beam Regulator - Salvage")
 	end
-	return "Avarice Bonding Regulator - Loadout"
+	return sesText(401, "Avarice Bonding Regulator - Loadout")
 end
 
 local function paneLabels(kind)
 	if kind == "salvage" then
-		return "AVAILABLE EQUIPMENT", "PENDING SALVAGE", "Beam Catalysts"
+		return sesText(402, "AVAILABLE EQUIPMENT"), sesText(403, "PENDING SALVAGE"), sesText(404, "Beam Catalysts")
 	end
-	return "SALVAGED PARTS INVENTORY", "PENDING INSTALL", "Bonding Catalysts"
+	return sesText(405, "SALVAGED PARTS INVENTORY"), sesText(406, "PENDING INSTALL"), sesText(407, "Bonding Catalysts")
 end
 
 local excludedSalvageWares = {
@@ -315,13 +336,13 @@ local allowedCategories = {
 
 local function categoryName(category)
 	local names = {
-		weapons = "Weapons",
-		shields = "Shield Generators",
-		engines = "Engines",
-		thrusters = "Thrusters",
-		turrets = "Turrets",
+		weapons = sesText(100, "Weapons"),
+		shields = sesText(101, "Shield Generators"),
+		engines = sesText(102, "Engines"),
+		thrusters = sesText(103, "Thrusters"),
+		turrets = sesText(104, "Turrets"),
 	}
-	return names[safeString(category)] or safeString(category or "Equipment")
+	return names[safeString(category)] or safeString(category or sesText(106, "Equipment"))
 end
 
 local function equipmentName(item)
@@ -329,7 +350,7 @@ local function equipmentName(item)
 	if name and safeString(name) ~= "" then
 		return safeString(name)
 	end
-	return safeString(itemField(item, "wareid") or itemField(item, "id") or "Installed equipment")
+	return safeString(itemField(item, "wareid") or itemField(item, "id") or sesText(408, "Installed equipment"))
 end
 
 local function salvageRows()
@@ -460,11 +481,11 @@ local function weldAvailableRows()
 				index = index,
 				wareid = safeString(itemField(item, "wareid") or ""),
 				macro = safeString(itemField(item, "macro") or ""),
-				name = safeString(itemField(item, "name") or "Saved equipment"),
+				name = safeString(itemField(item, "name") or sesText(409, "Saved equipment")),
 				faction = safeString(itemField(item, "faction") or "--"),
 				category = category,
 				available = numeric(itemField(item, "available")),
-				status = safeString(itemField(item, "status") or "Checking compatibility"),
+				status = safeString(itemField(item, "status") or sesText(410, "Checking compatibility")),
 				canAdd = canAddValue == true or canAddValue == 1 or safeString(canAddValue) == "true",
 				quantity = math.max(1, numeric(itemField(item, "quantity"))),
 				cost = math.max(1, numeric(itemField(item, "cost"))),
@@ -940,7 +961,7 @@ weldPlanRows = function()
 	for index, item in pairs(dataList("plan")) do
 		table.insert(rows, {
 			index = numeric(itemField(item, "index")) > 0 and numeric(itemField(item, "index")) or (tonumber(index) or 0),
-			name = safeString(itemField(item, "name") or "Saved equipment"),
+			name = safeString(itemField(item, "name") or sesText(409, "Saved equipment")),
 			wareid = safeString(itemField(item, "wareid") or ""),
 			macro = safeString(itemField(item, "macro") or ""),
 			category = safeString(itemField(item, "category") or ""),
@@ -981,28 +1002,27 @@ local function createPlannerTables(frame, kind)
 			maxVisibleHeight = helperNumber("viewHeight", 1080) * 0.68,
 		})
 		local row = resultTable:addRow(false, { fixed = true })
-		row[1]:setColSpan(6):createText("Avarice Beam Regulator - Salvage Results", Helper.titleTextProperties)
+		row[1]:setColSpan(6):createText(sesText(411, "Avarice Beam Regulator - Salvage Results"), Helper.titleTextProperties)
 		row = resultTable:addRow(false, { fixed = true })
-		row[1]:setColSpan(6):createText("Target: " .. safeString(itemField(plannerData, "targetname") or "Unknown target")
-			.. "\nRecovered: " .. tostring(numeric(itemField(plannerData, "recovered"))) .. " / " .. tostring(numeric(itemField(plannerData, "attempted")))
-			.. "    Success: " .. tostring(numeric(itemField(plannerData, "success")))
-			.. "    Partial: " .. tostring(numeric(itemField(plannerData, "partial")))
-			.. "    Failed: " .. tostring(numeric(itemField(plannerData, "failed")))
-			.. "    Blocked: " .. tostring(numeric(itemField(plannerData, "blocked"))), { wordwrap = true, font = Helper.standardFontBold })
+		row[1]:setColSpan(6):createText(sesFormat(413, "Target: %s\nRecovered: %d / %d    Success: %d    Partial: %d    Failed: %d    Blocked: %d",
+			safeString(itemField(plannerData, "targetname") or sesText(412, "Unknown target")),
+			numeric(itemField(plannerData, "recovered")), numeric(itemField(plannerData, "attempted")),
+			numeric(itemField(plannerData, "success")), numeric(itemField(plannerData, "partial")),
+			numeric(itemField(plannerData, "failed")), numeric(itemField(plannerData, "blocked"))), { wordwrap = true, font = Helper.standardFontBold })
 		row = resultTable:addRow(false, { fixed = true, bgColor = Color["row_title_background"] })
-		row[1]:createText("Result", Helper.subHeaderTextProperties)
-		row[2]:createText("Recovered", Helper.subHeaderTextProperties)
-		row[3]:createText("Chance", Helper.subHeaderTextProperties)
-		row[4]:setColSpan(2):createText("Item", Helper.subHeaderTextProperties)
-		row[6]:createText("Reason", Helper.subHeaderTextProperties)
+		row[1]:createText(sesText(414, "Result"), Helper.subHeaderTextProperties)
+		row[2]:createText(sesText(415, "Recovered"), Helper.subHeaderTextProperties)
+		row[3]:createText(sesText(416, "Chance"), Helper.subHeaderTextProperties)
+		row[4]:setColSpan(2):createText(sesText(119, "Item"), Helper.subHeaderTextProperties)
+		row[6]:createText(sesText(417, "Reason"), Helper.subHeaderTextProperties)
 		for _, item in pairs(dataList("results")) do
 			row = resultTable:addRow(false, {})
-			local status = safeString(itemField(item, "status") or "Unknown")
-			row[1]:createText(status, { color = (status == "Success" or status == "Partial") and Color["text_positive"] or Color["text_negative"] })
+			local status = safeString(itemField(item, "status") or sesText(117, "Unknown"))
+			row[1]:createText(status, { color = (status == sesText(703, "Success") or status == sesText(702, "Partial")) and Color["text_positive"] or Color["text_negative"] })
 			row[2]:createText(tostring(numeric(itemField(item, "recovered"))) .. " / " .. tostring(numeric(itemField(item, "attempted"))))
 			row[3]:createText(tostring(numeric(itemField(item, "chance"))) .. "%")
 			row[4]:setColSpan(2):createText(equipmentName(item))
-			row[6]:createText(safeString(itemField(item, "reason") or "Completed"), { wordwrap = true })
+			row[6]:createText(safeString(itemField(item, "reason") or sesText(118, "Completed")), { wordwrap = true })
 		end
 		return resultTable
 	end
@@ -1020,7 +1040,7 @@ local function createPlannerTables(frame, kind)
 	local row = planner:addRow(false, { fixed = true })
 	row[1]:setColSpan(8):createText(plannerTitle(kind), Helper.titleTextProperties)
 	row = planner:addRow(false, { fixed = true })
-	row[1]:setColSpan(8):createText("Target Ship: " .. (state.target ~= "" and state.target or "Awaiting Mission Director context"), { wordwrap = true })
+	row[1]:setColSpan(8):createText(sesFormat(418, "Target Ship: %s", state.target ~= "" and state.target or sesText(419, "Awaiting Mission Director context")), { wordwrap = true })
 
 	if kind == "salvage" then
 		local availableRows = salvageRows()
@@ -1047,12 +1067,12 @@ local function createPlannerTables(frame, kind)
 		row[1]:setColSpan(4):createText(leftLabel, Helper.subHeaderTextProperties)
 		row[5]:setColSpan(4):createText(rightLabel, Helper.subHeaderTextProperties)
 		row = planner:addRow(true, { fixed = true })
-		row[1]:createText("Equipment", { halign = "right" })
+		row[1]:createText(sesText(106, "Equipment"), { halign = "right" })
 		if #options > 0 then
 			row[2]:setColSpan(3):createDropDown(options, {
 				startOption = selectedSalvageIndex,
 				active = true,
-				mouseOverText = "Choose installed equipment to add to the pending salvage plan.",
+				mouseOverText = sesText(420, "Choose installed equipment to add to the pending salvage plan."),
 			})
 			row[2].handlers.onDropDownConfirmed = function(_, value)
 				selectedSalvageIndex = numeric(value)
@@ -1062,46 +1082,46 @@ local function createPlannerTables(frame, kind)
 				end
 			end
 		else
-			row[2]:setColSpan(3):createText("No supported installed equipment remains.")
+			row[2]:setColSpan(3):createText(sesText(421, "No supported installed equipment remains."))
 		end
-		row[5]:createText("Rows", { halign = "right" })
+		row[5]:createText(sesText(422, "Rows"), { halign = "right" })
 		row[6]:createText(tostring(#planRows))
-		row[7]:createText("Quantity", { halign = "right" })
+		row[7]:createText(sesText(110, "Quantity"), { halign = "right" })
 		row[8]:createText(tostring(state.pendingQuantity))
 
 		row = planner:addRow(false, {})
-		row[1]:createText("Selected", Helper.subHeaderTextProperties)
+		row[1]:createText(sesText(108, "Selected"), Helper.subHeaderTextProperties)
 		row[2]:setColSpan(3):createText(selectedRow and selectedRow.name or "--")
 		row[5]:createText(catalystLabel, Helper.subHeaderTextProperties)
 		row[6]:createText(tostring(state.catalysts), { halign = "right" })
-		row[7]:createText("Plan cost", Helper.subHeaderTextProperties)
+		row[7]:createText(sesText(423, "Plan cost"), Helper.subHeaderTextProperties)
 		row[8]:createText(tostring(state.catalystCost), { halign = "right" })
 		row = planner:addRow(false, {})
-		row[1]:createText("Category")
+		row[1]:createText(sesText(107, "Category"))
 		row[2]:createText(selectedRow and categoryName(selectedRow.category) or "--")
-		row[3]:createText("Installed")
+		row[3]:createText(sesText(111, "Installed"))
 		row[4]:createText(selectedRow and tostring(selectedRow.installed) or "0", { halign = "right" })
-		row[5]:createText("Planned")
+		row[5]:createText(sesText(112, "Planned"))
 		row[6]:createText(selectedRow and tostring(selectedRow.planned) or "0", { halign = "right" })
-		row[7]:createText("Add cost")
+		row[7]:createText(sesText(424, "Add cost"))
 		row[8]:createText(selectedRow and tostring(selectedRow.cost) or "0", { halign = "right" })
 		row = planner:addRow(true, {})
-		row[1]:setColSpan(4):createButton({ active = selectedRow and selectedRow.canAdd or false }):setText(selectedRow and ("Add " .. tostring(selectedRow.addQuantity)) or "Add Selected", { halign = "center" })
+		row[1]:setColSpan(4):createButton({ active = selectedRow and selectedRow.canAdd or false }):setText(selectedRow and sesFormat(425, "Add %d", selectedRow.addQuantity) or sesText(426, "Add Selected"), { halign = "center" })
 		row[1].handlers.onClick = function()
 			if selectedRow then
 				nativeAction("salvage_add", selectedRow.index)
 			end
 		end
-		row[5]:setColSpan(4):createText(selectedRow and (selectedRow.canAdd and "Ready" or "Already planned, unavailable, or needs catalysts") or "No equipment selected", { halign = "center" })
+		row[5]:setColSpan(4):createText(selectedRow and (selectedRow.canAdd and sesText(116, "Ready") or sesText(427, "Already planned, unavailable, or needs catalysts")) or sesText(428, "No equipment selected"), { halign = "center" })
 
 		if #planRows == 0 then
 			row = planner:addRow(false, {})
-			row[5]:setColSpan(4):createText("-- No pending salvage --", { halign = "center" })
+			row[5]:setColSpan(4):createText(sesText(429, "-- No pending salvage --"), { halign = "center" })
 		else
 			for _, item in ipairs(planRows) do
 				local planIndex = item.index
 				row = planner:addRow(true, {})
-				row[5]:createButton({ active = true }):setText("Remove", { halign = "center" })
+				row[5]:createButton({ active = true }):setText(sesText(113, "Remove"), { halign = "center" })
 				row[5].handlers.onClick = function()
 					nativeAction("salvage_remove", planIndex)
 				end
@@ -1111,7 +1131,7 @@ local function createPlannerTables(frame, kind)
 		end
 
 		row = planner:addRow(true, { fixed = true })
-		row[3]:setColSpan(2):createButton({ active = #planRows > 0 and state.catalysts >= state.catalystCost }):setText("Review Salvage", { halign = "center" })
+		row[3]:setColSpan(2):createButton({ active = #planRows > 0 and state.catalysts >= state.catalystCost }):setText(sesText(430, "Review Salvage"), { halign = "center" })
 		row[3].handlers.onClick = function()
 			suppressCleanupEvent = true
 			if userQuestionMenu and userQuestionMenu.onCloseElement then
@@ -1119,11 +1139,11 @@ local function createPlannerTables(frame, kind)
 			end
 			nativeAction("salvage_begin", 0)
 		end
-		row[5]:setColSpan(2):createButton({ active = #planRows > 0 }):setText("Clear Plan", { halign = "center" })
+		row[5]:setColSpan(2):createButton({ active = #planRows > 0 }):setText(sesText(115, "Clear Plan"), { halign = "center" })
 		row[5].handlers.onClick = function()
 			nativeAction("salvage_clear", 0)
 		end
-		row[7]:setColSpan(2):createButton({ active = true }):setText("Cancel", { halign = "center" })
+		row[7]:setColSpan(2):createButton({ active = true }):setText(sesText(114, "Cancel"), { halign = "center" })
 		row[7].handlers.onClick = function()
 			closePlanner("button", true)
 		end
@@ -1140,7 +1160,7 @@ local function createPlannerTables(frame, kind)
 	for _, item in ipairs(categories) do
 		table.insert(categoryOptions, {
 			id = item.id,
-			text = item.text .. " (" .. tostring(item.rows) .. " saved / " .. tostring(item.open) .. " open)",
+			text = sesFormat(431, "%s (%d saved / %d open)", item.text, item.rows, item.open),
 			icon = "",
 			displayremoveoption = false,
 		})
@@ -1175,12 +1195,12 @@ local function createPlannerTables(frame, kind)
 	row[1]:setColSpan(4):createText(leftLabel, Helper.subHeaderTextProperties)
 	row[5]:setColSpan(4):createText(rightLabel, Helper.subHeaderTextProperties)
 	row = planner:addRow(true, { fixed = true })
-	row[1]:createText("Category", { halign = "right" })
+	row[1]:createText(sesText(107, "Category"), { halign = "right" })
 	if #categoryOptions > 0 then
 		row[2]:setColSpan(3):createDropDown(categoryOptions, {
 			startOption = selectedWeldCategory,
 			active = true,
-			mouseOverText = "Choose a saved-equipment category with inventory and open target capacity.",
+			mouseOverText = sesText(432, "Choose a saved-equipment category with inventory and open target capacity."),
 		})
 		row[2].handlers.onDropDownConfirmed = function(_, value)
 			selectedWeldCategory = safeString(value)
@@ -1188,57 +1208,57 @@ local function createPlannerTables(frame, kind)
 			nativeAction("weld_category", 0, selectedWeldCategory)
 		end
 	else
-		row[2]:setColSpan(3):createText("No category currently has both saved parts and open target capacity.")
+		row[2]:setColSpan(3):createText(sesText(433, "No category currently has both saved parts and open target capacity."))
 	end
-	row[5]:createText("Plan rows", { halign = "right" })
+	row[5]:createText(sesText(434, "Plan rows"), { halign = "right" })
 	row[6]:createText(tostring(#planRows))
-	row[7]:createText("Quantity", { halign = "right" })
+	row[7]:createText(sesText(110, "Quantity"), { halign = "right" })
 	row[8]:createText(tostring(state.pendingQuantity))
 
 	row = planner:addRow(true, { fixed = true })
-	row[1]:createText("Saved Part", { halign = "right" })
+	row[1]:createText(sesText(435, "Saved Part"), { halign = "right" })
 	if #inventoryOptions > 0 then
 		row[2]:setColSpan(3):createDropDown(inventoryOptions, {
 			startOption = selectedWeldIndex,
 			active = true,
-			mouseOverText = "Choose a saved part. Compatibility is calculated by Mission Director against the live target loadout.",
+			mouseOverText = sesText(436, "Choose a saved part. Compatibility is calculated against the live target loadout."),
 		})
 		row[2].handlers.onDropDownConfirmed = function(_, value)
 			selectedWeldIndex = numeric(value)
 			nativeAction("weld_select", selectedWeldIndex)
 		end
 	else
-		row[2]:setColSpan(3):createText(#categoryOptions > 0 and "No compatible saved part in this category." or "Awaiting compatible category data.")
+		row[2]:setColSpan(3):createText(#categoryOptions > 0 and sesText(437, "No compatible saved part in this category.") or sesText(438, "Awaiting compatible category data."))
 	end
 	row[5]:createText(catalystLabel, Helper.subHeaderTextProperties)
 	row[6]:createText(tostring(state.catalysts), { halign = "right" })
-	row[7]:createText("Plan cost", Helper.subHeaderTextProperties)
+	row[7]:createText(sesText(423, "Plan cost"), Helper.subHeaderTextProperties)
 	row[8]:createText(tostring(state.catalystCost), { halign = "right" })
 
 	row = planner:addRow(false, {})
-	row[1]:createText("Selected", Helper.subHeaderTextProperties)
+	row[1]:createText(sesText(108, "Selected"), Helper.subHeaderTextProperties)
 	row[2]:setColSpan(3):createText(selectedInventoryRow and selectedInventoryRow.name or "--")
-	row[5]:createText("Available")
+	row[5]:createText(sesText(109, "Available"))
 	row[6]:createText(selectedInventoryRow and tostring(selectedInventoryRow.available) or "0", { halign = "right" })
-	row[7]:createText("Install cost")
+	row[7]:createText(sesText(439, "Install cost"))
 	row[8]:createText(selectedInventoryRow and tostring(selectedInventoryRow.cost) or "0", { halign = "right" })
 	row = planner:addRow(true, {})
-	row[1]:setColSpan(4):createButton({ active = selectedInventoryRow and selectedInventoryRow.canAdd or false }):setText(selectedInventoryRow and ("Add " .. tostring(selectedInventoryRow.quantity)) or "Add Selected", { halign = "center" })
+	row[1]:setColSpan(4):createButton({ active = selectedInventoryRow and selectedInventoryRow.canAdd or false }):setText(selectedInventoryRow and sesFormat(425, "Add %d", selectedInventoryRow.quantity) or sesText(426, "Add Selected"), { halign = "center" })
 	row[1].handlers.onClick = function()
 		if selectedInventoryRow then
 			nativeAction("weld_add", selectedInventoryRow.index)
 		end
 	end
-	row[5]:setColSpan(4):createText(selectedInventoryRow and selectedInventoryRow.status or "No compatible part selected", { halign = "center" })
+	row[5]:setColSpan(4):createText(selectedInventoryRow and selectedInventoryRow.status or sesText(440, "No compatible part selected"), { halign = "center" })
 
 	if #planRows == 0 then
 		row = planner:addRow(false, {})
-		row[5]:setColSpan(4):createText("-- No pending installs --", { halign = "center" })
+		row[5]:setColSpan(4):createText(sesText(441, "-- No pending installs --"), { halign = "center" })
 	else
 		for _, item in ipairs(planRows) do
 			local planIndex = item.index
 			row = planner:addRow(true, {})
-			row[5]:createButton({ active = true }):setText("Remove", { halign = "center" })
+			row[5]:createButton({ active = true }):setText(sesText(113, "Remove"), { halign = "center" })
 			row[5].handlers.onClick = function()
 				nativeAction("weld_remove", planIndex)
 			end
@@ -1248,7 +1268,7 @@ local function createPlannerTables(frame, kind)
 	end
 
 	row = planner:addRow(true, { fixed = true })
-	row[3]:setColSpan(2):createButton({ active = #planRows > 0 and state.catalysts >= state.catalystCost }):setText("Install Loadout", { halign = "center" })
+	row[3]:setColSpan(2):createButton({ active = #planRows > 0 and state.catalysts >= state.catalystCost }):setText(sesText(442, "Install Loadout"), { halign = "center" })
 	row[3].handlers.onClick = function()
 		suppressCleanupEvent = true
 		if userQuestionMenu and userQuestionMenu.onCloseElement then
@@ -1256,13 +1276,13 @@ local function createPlannerTables(frame, kind)
 		end
 		nativeAction("weld_confirm", 0)
 	end
-	row[5]:setColSpan(2):createButton({ active = #planRows > 0 }):setText("Clear Plan", { halign = "center" })
+	row[5]:setColSpan(2):createButton({ active = #planRows > 0 }):setText(sesText(115, "Clear Plan"), { halign = "center" })
 	row[5].handlers.onClick = function()
 		weldPreviewSlots = {}
 		restoreWeldPreview()
 		nativeAction("weld_clear", 0)
 	end
-	row[7]:setColSpan(2):createButton({ active = true }):setText("Cancel", { halign = "center" })
+	row[7]:setColSpan(2):createButton({ active = true }):setText(sesText(114, "Cancel"), { halign = "center" })
 	row[7].handlers.onClick = function()
 		closePlanner("button", true)
 	end
@@ -1405,7 +1425,7 @@ function ModLua.createTitleBar_on_create_controls(frame, ftable, _, menu, data)
 		panel:setColWidthPercent(2, 24)
 		panel:setColWidthPercent(3, 21)
 
-		local summary = isSalvage and "Planned Salvage" or "Planned Installation"
+		local summary = isSalvage and sesText(467, "Planned Salvage") or sesText(468, "Planned Installation")
 		if weldResultText ~= "" then
 			summary = summary .. " - " .. weldResultText
 		end
@@ -1414,12 +1434,12 @@ function ModLua.createTitleBar_on_create_controls(frame, ftable, _, menu, data)
 
 		if #planRows == 0 then
 			row = panel:addRow(false, { fixed = true })
-			row[1]:setColSpan(4):createText("-- No pending equipment --", { halign = "center" })
+			row[1]:setColSpan(4):createText(sesText(443, "-- No pending equipment --"), { halign = "center" })
 		else
 			for index, item in ipairs(planRows) do
 				if index > 4 then
 					row = panel:addRow(false, { fixed = true })
-					row[1]:setColSpan(4):createText("+ " .. tostring(#planRows - 4) .. " more planned item(s)", { color = Color["text_positive"] })
+					row[1]:setColSpan(4):createText(sesFormat(444, "+ %d more planned item(s)", #planRows - 4), { color = Color["text_positive"] })
 					break
 				end
 				row = panel:addRow(false, { fixed = true })
@@ -1428,11 +1448,11 @@ function ModLua.createTitleBar_on_create_controls(frame, ftable, _, menu, data)
 		end
 
 		row = panel:addRow(true, { fixed = true })
-		row[1]:createText((isSalvage and "Beam Catalysts" or "Catalysts") .. "\nPlanned: " .. tostring(state.catalystCost) .. "  Total: " .. tostring(state.catalysts), { halign = "center", wordwrap = true, height = 2 * Helper.standardTextHeight })
+		row[1]:createText(isSalvage and sesFormat(446, "Beam Catalysts\nPlanned: %d  Total: %d", state.catalystCost, state.catalysts) or sesFormat(445, "Catalysts\nPlanned: %d  Total: %d", state.catalystCost, state.catalysts), { halign = "center", wordwrap = true, height = 2 * Helper.standardTextHeight })
 		row[2]:createButton({
 			active = #planRows > 0,
-			mouseOverText = isSalvage and "Clear every item from the pending salvage plan and restore the preview." or "Clear every saved part from the pending installation plan."
-		}):setText("Clear Plan", { halign = "center" })
+			mouseOverText = isSalvage and sesText(447, "Clear every item from the pending salvage plan and restore the preview.") or sesText(448, "Clear every saved part from the pending installation plan.")
+		}):setText(sesText(115, "Clear Plan"), { halign = "center" })
 		row[2].handlers.onClick = function()
 			weldResultText = ""
 			weldPendingReservations = {}
@@ -1453,10 +1473,10 @@ function ModLua.createTitleBar_on_create_controls(frame, ftable, _, menu, data)
 		end
 		row[3]:setColSpan(2):createButton({
 			active = #planRows > 0 and state.catalysts >= state.catalystCost,
-			mouseOverText = isSalvage and "Review the pending removals in a native confirmation dialog." or "Open the final Apply Plan confirmation for the currently previewed loadout."
-		}):setText(isSalvage and "Review Salvage" or "Install Loadout", { halign = "center" })
+			mouseOverText = isSalvage and sesText(449, "Review the pending removals in a native confirmation dialog.") or sesText(450, "Open the final Apply Plan confirmation for the currently previewed loadout.")
+		}):setText(isSalvage and sesText(430, "Review Salvage") or sesText(442, "Install Loadout"), { halign = "center" })
 		row[3].handlers.onClick = function()
-			weldResultText = isSalvage and "Salvage confirmation opened" or "Installation confirmation opened"
+			weldResultText = isSalvage and sesText(469, "Salvage confirmation opened") or sesText(470, "Installation confirmation opened")
 			if isSalvage then
 				-- The native confirmation closes Ship Configuration. Preserve the
 				-- accepted slot choices, then capture a fresh baseline and replay them
@@ -1502,7 +1522,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 	local macro = safeString(button.macro or "")
 	if state.kind == "salvage" then
 		if macro == "" then
-			return { active = false, useable = false, mouseovertext = "Select installed equipment to add it to the salvage plan." }
+			return { active = false, useable = false, mouseovertext = sesText(451, "Select installed equipment to add it to the salvage plan.") }
 		end
 		local salvageItem = nil
 		for _, candidate in ipairs(salvageRows()) do
@@ -1512,7 +1532,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 			end
 		end
 		if not salvageItem then
-			return { active = false, useable = false, mouseovertext = "This installed item is not salvageable." }
+			return { active = false, useable = false, mouseovertext = sesText(452, "This installed item is not salvageable.") }
 		end
 		-- Ship Configuration shows every compatible catalogue macro for the
 		-- selected slot. Salvage must only act on the macro that is actually in
@@ -1522,17 +1542,15 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 		-- of the slot tabs and the UI can no longer represent the queued plan.
 		local isInstalledInSelectedSlot = safeString(button.plannedmacro or "") == macro
 		local canAddFromSelectedSlot = isInstalledInSelectedSlot and salvageItem.canAdd
-		local status = "Installed: " .. tostring(salvageItem.installed)
-			.. "  |  Planned: " .. tostring(salvageItem.planned)
-			.. "  |  Beam Catalyst cost: " .. tostring(salvageItem.cost)
+		local status = sesFormat(453, "Installed: %d  |  Planned: %d  |  Beam Catalyst cost: %d", salvageItem.installed, salvageItem.planned, salvageItem.cost)
 		if not isInstalledInSelectedSlot then
-			status = "Select the slot or group where this item is currently installed.  |  " .. status
+			status = sesFormat(454, "Select the slot or group where this item is currently installed.  |  %s", status)
 		end
 		return {
 			active = canAddFromSelectedSlot,
 			useable = canAddFromSelectedSlot,
 			mouseovertext = status,
-			extratext = "Installed: " .. tostring(math.max(0, salvageItem.installed - salvageItem.planned)),
+			extratext = sesFormat(455, "Installed: %d", math.max(0, salvageItem.installed - salvageItem.planned)),
 			onclick = canAddFromSelectedSlot and function()
 				selectedSalvageIndex = salvageItem.index
 				weldResultText = ""
@@ -1552,7 +1570,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 		return {
 			active = false,
 			useable = false,
-			mouseovertext = "The Avarice Bonding Regulator installs saved equipment; empty-slot removal is unavailable here.",
+			mouseovertext = sesText(456, "The Avarice Bonding Regulator installs saved equipment; empty-slot removal is unavailable here."),
 		}
 	end
 	local nativePlanned = macro ~= "" and safeString(button.plannedmacro or "") == macro
@@ -1596,8 +1614,8 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 		return {
 			active = isInstalledInSelectedSlot or isPlanned,
 			useable = false,
-			mouseovertext = authoritativePlannedQuantity > 0 and "All saved copies are already assigned to the pending installation plan." or "No saved copy is available in the SES salvage inventory.",
-			extratext = "Saved: 0",
+			mouseovertext = authoritativePlannedQuantity > 0 and sesText(457, "All saved copies are already assigned to the pending installation plan.") or sesText(458, "No saved copy is available in the SES salvage inventory."),
+			extratext = sesFormat(459, "Saved: %d", 0),
 		}
 	end
 	local remaining = remainingWeldQuantity(item)
@@ -1615,20 +1633,20 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 	local canAdd = slotCompatible and (not selectedSlotOccupied) and (not isPlanned)
 		and (not slotReservedForPreview)
 		and (not requestPending) and mdOrNativeEligible and catalystsAvailable and remaining >= item.quantity
-	local receipt = "Saved: " .. tostring(remaining)
-	local status = receipt .. "  |  Cost: " .. tostring(item.cost)
+	local receipt = sesFormat(459, "Saved: %d", remaining)
+	local status = sesFormat(460, "Saved: %d  |  Cost: %d", remaining, item.cost)
 	if isInstalledInSelectedSlot then
-		status = "This component is already installed in the selected slot  |  " .. status
+		status = sesFormat(461, "This component is already installed in the selected slot  |  %s", status)
 	elseif selectedSlotOccupied then
-		status = "The selected slot already contains a component. Salvage it before welding a replacement.  |  " .. status
+		status = sesFormat(462, "The selected slot already contains a component. Salvage it before welding a replacement.  |  %s", status)
 	elseif slotReservedForPreview and not isPlanned then
-		status = "This slot already has a pending SES installation  |  " .. status
+		status = sesFormat(463, "This slot already has a pending SES installation  |  %s", status)
 	elseif requestPending then
-		status = "Waiting for the previous SES selection  |  " .. status
+		status = sesFormat(464, "Waiting for the previous SES selection  |  %s", status)
 	elseif not slotCompatible then
-		status = "Not compatible with the selected slot  |  " .. status
+		status = sesFormat(465, "Not compatible with the selected slot  |  %s", status)
 	elseif not catalystsAvailable then
-		status = "Need " .. tostring(item.cost) .. " more available Catalyst capacity  |  " .. status
+		status = sesFormat(466, "Need %d more available Catalyst capacity  |  %s", item.cost, status)
 	elseif not nativeSlotAuthority and item.status ~= "" and item.status ~= "Compatible" then
 		status = item.status .. "  |  " .. status
 	end

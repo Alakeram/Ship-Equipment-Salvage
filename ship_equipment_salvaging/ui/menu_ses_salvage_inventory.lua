@@ -6,7 +6,7 @@
 local ffi = require("ffi")
 
 local ses = {
-	version = "v313-production",
+	version = "v364-install-and-localization-hotfix",
 	screen = "SES_Salvage_Inventory_UI",
 	category = "ses_salvage",
 	patchid = "ship_equipment_salvaging",
@@ -172,6 +172,19 @@ local function readText(page, id, fallback)
 	return fallback
 end
 
+local function sesText(id, fallback)
+	return readText(1171361, id, fallback)
+end
+
+local function sesFormat(id, fallback, ...)
+	local ok, value = pcall(string.format, sesText(id, fallback), ...)
+	if ok then
+		return value
+	end
+	local fallbackOK, fallbackValue = pcall(string.format, fallback or "", ...)
+	return fallbackOK and fallbackValue or (fallback or "")
+end
+
 local function wareAvgPrice(ware)
 	if GetWareData and type(ware) == "string" and ware ~= "" then
 		local ok, avgprice = pcall(GetWareData, ware, "avgprice")
@@ -287,14 +300,14 @@ end
 
 local function categoryName(key, rawcategory)
 	local names = {
-		weapons = "Weapons",
-		turrets = "Turrets",
-		shields = "Shield Generators",
-		engines = "Engines",
-		thrusters = "Thrusters",
-		other = "Other Equipment",
+		weapons = sesText(100, "Weapons"),
+		turrets = sesText(104, "Turrets"),
+		shields = sesText(101, "Shield Generators"),
+		engines = sesText(102, "Engines"),
+		thrusters = sesText(103, "Thrusters"),
+		other = sesText(105, "Other Equipment"),
 	}
-	return names[key] or tostring(rawcategory or "Other Equipment")
+	return names[key] or tostring(rawcategory or sesText(105, "Other Equipment"))
 end
 
 local function resetInventorySubmode(playerInfoMenu, reason)
@@ -414,7 +427,7 @@ local function renderSalvageInventory(playerInfoMenu, frame, tableProperties, mo
 	infotable:setDefaultBackgroundColSpan(1, 4)
 
 	local row = infotable:addRow(nil, { fixed = true, bgColor = Color["row_title_background"] })
-	row[1]:setColSpan(4):createText("Salvage Inventory", Helper.titleTextProperties)
+	row[1]:setColSpan(4):createText(sesText(300, "Salvage Inventory"), Helper.titleTextProperties)
 
 	row = infotable:addRow(nil, { fixed = true, bgColor = Color["row_background_unselectable"] })
 	row[1]:createText(readText(1001, 95, "Item"), { font = Helper.standardFontBold })
@@ -428,10 +441,10 @@ local function renderSalvageInventory(playerInfoMenu, frame, tableProperties, mo
 	local totalvalue = 0
 	if state.loading and #state.rows == 0 then
 		row = infotable:addRow(true, { interactive = false })
-		row[1]:setColSpan(4):createText("Loading SES salvage ledger...", { halign = "center" })
+		row[1]:setColSpan(4):createText(sesText(301, "Loading SES salvage ledger..."), { halign = "center" })
 	elseif #state.rows == 0 then
 		row = infotable:addRow(true, { interactive = false })
-		row[1]:setColSpan(4):createText("-- None --", { halign = "center" })
+		row[1]:setColSpan(4):createText(sesText(302, "-- None --"), { halign = "center" })
 	else
 		local groups = {}
 		local order = { "weapons", "turrets", "shields", "engines", "thrusters" }
@@ -492,12 +505,12 @@ local function renderSalvageInventory(playerInfoMenu, frame, tableProperties, mo
 	row[1]:setColSpan(4):createText(" ")
 
 	row = buttontable:addRow(false, { fixed = true, bgColor = Color["row_title_background"] })
-	row[1]:setColSpan(4):createText("Secure Container", { halign = "center" })
+	row[1]:setColSpan(4):createText(sesText(303, "Secure Container"), { halign = "center" })
 
 	row = buttontable:addRow(true, { fixed = true, bgColor = Color["row_background_unselectable"] })
 	row[1]:setColSpan(2):createButton({
 		active = function () return currentEntryIndex(playerInfoMenu, infotable) ~= nil end,
-		mouseOverText = "Drop one selected salvage stack item into a new secure lockbox near the player.",
+		mouseOverText = sesText(304, "Drop one selected salvage stack item into a new secure lockbox near the player."),
 		helpOverlayID = "playerinfo_inventory_ses_salvage_drop",
 		helpOverlayText = " ",
 	}):setText("Drop Selected", { halign = "center" })
@@ -507,7 +520,7 @@ local function renderSalvageInventory(playerInfoMenu, frame, tableProperties, mo
 			requestDropOne(selectedindex)
 		end
 	end
-	row[3]:setColSpan(2):createText(string.format("Stacks: %d", #state.rows), { halign = "center" })
+	row[3]:setColSpan(2):createText(sesFormat(305, "Stacks: %d", #state.rows), { halign = "center" })
 
 	local maxVisibleHeight = height - buttontable:getFullHeight() - frameborder
 	if playerInfoMenu.inventoryHeaderTable and type(playerInfoMenu.inventoryHeaderTable.getFullHeight) == "function" then

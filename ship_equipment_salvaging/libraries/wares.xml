@@ -3,8 +3,8 @@
   <add sel="/wares">
     <ware
       id="ses_equipment_salvager"
-      name="Avarice Beam Regulator"
-      description="A black-market hand-laser regulator associated with Riptide scrap crews and Avarice chop-shop operators. It forces a standard hand laser into a tighter, unstable cutting arc capable of slicing damaged hull plating, equipment mounts, and exposed component housings. Illegal in most regulated sectors due to its use in unauthorized salvage, equipment theft, and shipboard tampering."
+      name="{1171361,10}"
+      description="{1171361,11}"
       group="contraband"
       transport="inventory"
       volume="1"
@@ -15,8 +15,8 @@
     </ware>
     <ware
       id="ses_equipment_welder"
-      name="Avarice Bonding Regulator"
-      description="A black-market hand-laser regulator developed from the same improvised principles as the Avarice Beam Regulator. It reshapes the beam into a crude welding arc for fastening salvaged equipment back onto compatible ship frames. Illegal in most civilized sectors due to unauthorized ship modification, unsafe field repairs, and unregistered equipment installs."
+      name="{1171361,20}"
+      description="{1171361,21}"
       group="contraband"
       transport="inventory"
       volume="1"
@@ -27,8 +27,8 @@
     </ware>
     <ware
       id="ses_avarice_beam_catalyst"
-      name="Avarice Beam Catalyst"
-      description="A disposable black-market focusing insert for the Avarice Beam Regulator. It briefly stabilizes a hand laser's cutting arc beyond licensed civilian limits, allowing ship equipment to be separated from its mount without destroying the part outright. Illegal in most regulated sectors due to its association with equipment theft and unauthorized salvage."
+      name="{1171361,30}"
+      description="{1171361,31}"
       group="contraband"
       transport="inventory"
       volume="1"
@@ -39,8 +39,8 @@
     </ware>
     <ware
       id="ses_avarice_bonding_catalyst"
-      name="Avarice Bonding Catalyst"
-      description="A disposable black-market field-welding compound for the Avarice Bonding Regulator. When excited by the regulator, it forms a temporary conductive lattice between a salvaged component and a compatible ship mount. Illegal in most regulated sectors due to unlicensed ship modification and field installation of salvaged equipment."
+      name="{1171361,40}"
+      description="{1171361,41}"
       group="contraband"
       transport="inventory"
       volume="1"

@@ -5,6 +5,42 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v3.64 - 2026-07-18
+
+**Hotfix changes since public release v3.61**
+
+### Compatible Equipment Installation
+
+- Fixed compatible salvaged weapons and shields being accepted by the native
+  planner but silently omitted by X4's authoritative loadout generation.
+- Resolved persisted ware and macro ID strings to typed X4 objects at every
+  preflight and apply boundary, and compare stable IDs instead of macro-object
+  identity.
+- Generate complete weapon, shield, and turret category plans containing the
+  existing loadout plus the requested item, preventing an empty-slot install
+  from replacing equipment already mounted in that category.
+- Preserve the transaction safety gate: salvaged inventory and Bonding
+  Catalysts are spent only after exact selected-item and total-loadout gains.
+
+### Localization and UI Feedback
+
+- Added the production English text catalog on X4 page `1171361` and the
+  framework for community translations.
+- Fixed formatted welding-completion, salvage-confirmation, and installed-item
+  text appearing as unresolved references such as `{1171361,625}`.
+- Resolve localized format templates through X4 `readtext` before substituting
+  ship names, equipment names, quantities, and result lists.
+
+### Verification
+
+- Reproduced the reported failure with save slot 16 without overwriting it.
+  A TER M Shield Generator Mk3 and SPL M Neutron Gatling Mk2 both installed,
+  existing weapon and shield rows remained, inventory changed from one to zero
+  for each item, and Bonding Catalysts changed from 20 to 16.
+- Turrets use the same repaired category path. The test save had no stored
+  turret for an independent mutation test, so turret coverage is schema-checked
+  and shares the weapon/shield logic validated in game.
+
 ## v3.61 - 2026-07-15
 
 **Changes since public release v3.13**
@@ -74,4 +110,3 @@ under the final public version rather than listed individually.
 - Kept all SES-specific UI behavior inside the SES extension and consumed the
   published Kuertee callback surfaces without patching the installed UIX
   package.
-

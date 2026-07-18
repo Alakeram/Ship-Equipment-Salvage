@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.61  
+**Release:** v3.64  
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -15,7 +15,20 @@ through a dedicated Black Market parts network.
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
 
-## What Is New in v3.61
+## What Is New in v3.64
+
+- Fixed compatible saved weapons and shields being accepted by the planner but
+  rejected during installation.
+- Applied the same typed-macro and complete-category planning repair to
+  turrets, preventing an empty-slot install from replacing an existing row.
+- Kept inventory and Bonding Catalysts unchanged unless the requested item and
+  total loadout both gain exactly the planned quantity.
+- Added the production translation catalog and routed player-facing SES text
+  through X4 text page `1171361`.
+- Fixed formatted completion and confirmation text appearing as raw references
+  such as `{1171361,625}` in the logbook.
+
+## What Was Added in v3.61
 
 The complete salvage and welding workflow now uses X4's native Ship
 Configuration interface through Kuertee UI Extensions:
@@ -186,6 +199,16 @@ For a clean update, fully close X4 before replacing the existing
   treated as normal recoverable S/M components.
 - The extension stores persistent state in saves. Back up important saves
   before installing or removing save-persistent mods.
+
+## Translations
+
+SES reserves X4 text page `1171361` and ships an English fallback catalog at
+`t/0001.xml`. Community translators can add a language file without editing
+gameplay code; German uses `t/0001-l049.xml`.
+
+See [TRANSLATING.md](TRANSLATING.md) for the file naming convention,
+placeholder rules, validation requirements, and test checklist. Translation
+files must preserve all text IDs and `%s`/`%d` format tokens.
 
 ## Troubleshooting
 
