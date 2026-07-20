@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.67<br>
+**Release:** v3.68<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -15,7 +15,19 @@ through a dedicated Black Market parts network.
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
 
-## What Is New in v3.67
+## What Was Fixed in v3.68
+
+- Fixed the native salvage-results window displaying raw localization tokens
+  instead of the result status and recovery reason.
+- Resolved Mission Director text before passing stored values, result tables,
+  and labels into Lua or native UI surfaces.
+- Applied the same localization-boundary repair to operational gate messages,
+  notifications, the tool-mode choice, Black Market labels, salvage
+  confirmation, and result counters.
+- Kept inventory accounting, catalysts, planner behavior, ship mutations, and
+  existing translated catalog wording unchanged.
+
+## What Was Added in v3.67
 
 - Restored installed weapons, shields, engines, thrusters, and turrets to the
   native top-right Overview panel in the read-only salvage and welding menus.

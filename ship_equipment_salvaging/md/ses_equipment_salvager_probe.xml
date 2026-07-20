@@ -80,43 +80,43 @@
       <actions>
         <set_value name="$GateMessage" exact="''" />
         <do_if value="$Reason == 'range'">
-          <set_value name="$GateMessage" exact="if $Mode == 'install' then '{1171361,600}' else '{1171361,601}'" />
+          <set_value name="$GateMessage" exact="if $Mode == 'install' then readtext.{1171361}.{600} else readtext.{1171361}.{601}" />
         </do_if>
         <do_elseif value="$Reason == 'occupied'">
-          <set_value name="$GateMessage" exact="if $Mode == 'install' then '{1171361,602}' else '{1171361,603}'" />
+          <set_value name="$GateMessage" exact="if $Mode == 'install' then readtext.{1171361}.{602} else readtext.{1171361}.{603}" />
         </do_elseif>
         <do_elseif value="$Reason == 'ownership'">
-          <set_value name="$GateMessage" exact="if $Mode == 'install' then '{1171361,604}' else '{1171361,605}'" />
+          <set_value name="$GateMessage" exact="if $Mode == 'install' then readtext.{1171361}.{604} else readtext.{1171361}.{605}" />
         </do_elseif>
         <do_elseif value="$Reason == 'boarding'">
-          <set_value name="$GateMessage" exact="'{1171361,606}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{606}" />
         </do_elseif>
         <do_elseif value="$Reason == 'large'">
-          <set_value name="$GateMessage" exact="'{1171361,607}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{607}" />
         </do_elseif>
         <do_elseif value="$Reason == 'wreck'">
-          <set_value name="$GateMessage" exact="'{1171361,608}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{608}" />
         </do_elseif>
         <do_elseif value="$Reason == 'construction'">
-          <set_value name="$GateMessage" exact="'{1171361,609}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{609}" />
         </do_elseif>
         <do_elseif value="$Reason == 'state'">
-          <set_value name="$GateMessage" exact="'{1171361,610}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{610}" />
         </do_elseif>
         <do_elseif value="$Reason == 'empty'">
-          <set_value name="$GateMessage" exact="'{1171361,611}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{611}" />
         </do_elseif>
         <do_elseif value="$Reason == 'full'">
-          <set_value name="$GateMessage" exact="'{1171361,612}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{612}" />
         </do_elseif>
         <do_elseif value="$Reason == 'tool'">
-          <set_value name="$GateMessage" exact="if $Mode == 'install' then '{1171361,613}' else '{1171361,614}'" />
+          <set_value name="$GateMessage" exact="if $Mode == 'install' then readtext.{1171361}.{613} else readtext.{1171361}.{614}" />
         </do_elseif>
         <do_elseif value="$Reason == 'eva'">
-          <set_value name="$GateMessage" exact="'{1171361,615}'" />
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{615}" />
         </do_elseif>
         <do_elseif value="$Reason == 'busy'">
-          <set_value name="$GateMessage" exact="if $Mode == 'install' then '{1171361,616}' else '{1171361,617}'" />
+          <set_value name="$GateMessage" exact="if $Mode == 'install' then readtext.{1171361}.{616} else readtext.{1171361}.{617}" />
         </do_elseif>
         <do_if value="$GateMessage != ''">
           <set_value name="$GateMessageKey" exact="'%s:%s:%s'.[$Mode, $Reason, $Target]" />
@@ -160,7 +160,7 @@
             <signal_cue_instantly cue="SES_Salvage_Multi_Plan_Apply_Scheduler_V1" param="'work_timer_complete'" />
           </do_if>
           <do_else>
-            <show_notification text="'{1171361,618}'" />
+            <show_notification text="readtext.{1171361}.{618}" />
             <remove_value name="global.$SES_Salvage_Work_Seconds" />
             <remove_value name="global.$SES_Salvage_Work_Duration" />
             <remove_value name="global.$SES_Salvage_Plan_Apply_Index" />
@@ -198,7 +198,7 @@
             <signal_cue_instantly cue="SES_Weld_Plan_Apply_Scheduler_V1" param="'work_timer_complete'" />
           </do_if>
           <do_else>
-            <show_notification text="'{1171361,619}'" />
+            <show_notification text="readtext.{1171361}.{619}" />
             <remove_value name="global.$SES_Weld_Work_Seconds" />
             <remove_value name="global.$SES_Weld_Work_Duration" />
             <remove_value name="global.$SES_Weld_Plan_Apply_Index" />
@@ -492,7 +492,7 @@
           <remove_value name="global.$SES_M5_Native_UI_Context" />
           <remove_value name="player.entity.$SES_M5_Native_PlannerData" />
           <set_value name="global.$SES_Menu_Cooldown_Until" exact="player.age + 1s" />
-          <show_notification text="'{1171361,620}'" />
+          <show_notification text="readtext.{1171361}.{620}" />
           <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 WORK] Cleared stale v358 work state during v359 startup recovery.'" />
         </do_if>
       </actions>
@@ -502,7 +502,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v367. Runtime player-facing text resolves through SES page 1171361; equipment captions use compact maker codes and the right-side panel preserves fitted equipment.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v368. Runtime player-facing text resolves through SES page 1171361 before values cross the MD/UI boundary; equipment captions use compact maker codes and the right-side panel preserves fitted equipment.'" />
       </actions>
     </cue>
 
@@ -594,7 +594,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v367-faction-and-overview',
+              $version = 'v368-md-localization-resolution',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -608,7 +608,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v367-faction-and-overview',
+              $version = 'v368-md-localization-resolution',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -1099,7 +1099,7 @@
         </do_for_each>
         <set_value name="$SESBlackMarketShopSelectable" exact="event.object.tradesvisible and ($SESBlackMarketShopVisibleRows gt 0 or $SESBlackMarketShopStockRows gt 0)" />
         <add_player_choice_sub
-          text="'{1171361,621}'"
+          text="readtext.{1171361}.{621}"
           section="ses_black_market_salvage_shop"
           position="bottom_left"
           selectable="$SESBlackMarketShopSelectable"
@@ -1258,11 +1258,11 @@
           $openedat = player.age,
           $actorok = $ShopActorOK,
           $playerData = table[
-            $name = '{1171361,511}',
+            $name = readtext.{1171361}.{511},
             $inventory = $PlayerInventory
           ],
           $storeData = table[
-            $name = '{1171361,512}',
+            $name = readtext.{1171361}.{512},
             $inventory = $StoreInventory
           ]
         ]" />
@@ -2626,7 +2626,7 @@
             @global.$SES_Simple_Menu_API_Ready,
             @global.$SES_Black_Market_Sell_Request
           ]" />
-          <show_notification text="'{1171361,622}'" />
+          <show_notification text="readtext.{1171361}.{622}" />
         </do_else>
       </actions>
     </cue>
@@ -5865,7 +5865,7 @@
             <set_value name="global.$SES_M5_Native_Salvage_Confirm_Active" exact="$Request.$token" />
             <set_value name="$SalvageConfirmTextTemplate" exact="readtext.{1171361}.{630}" />
             <open_menu menu="UserQuestionMenu" param="[0, 0, 'custom', [
-              '{1171361,629}',
+              readtext.{1171361}.{629},
               $SalvageConfirmTextTemplate.[
                 $PlanTotalQuantity,
                 $Request.$target.knownname,
@@ -6270,13 +6270,13 @@
           <set_value name="$AttemptedTotal" operation="add" exact="if @$ResultRow.$attempted then $ResultRow.$attempted else 0" />
           <set_value name="$RemovedTotal" operation="add" exact="if @$ResultRow.$removed then $ResultRow.$removed else 0" />
           <set_value name="$RecoveredTotal" operation="add" exact="if @$ResultRow.$recovered then $ResultRow.$recovered else 0" />
-          <do_if value="@$ResultRow.$status == '{1171361,703}'">
+          <do_if value="@$ResultRow.$status == readtext.{1171361}.{703}">
             <set_value name="$SuccessRows" operation="add" />
           </do_if>
-          <do_elseif value="@$ResultRow.$status == '{1171361,702}'">
+          <do_elseif value="@$ResultRow.$status == readtext.{1171361}.{702}">
             <set_value name="$PartialRows" operation="add" />
           </do_elseif>
-          <do_elseif value="@$ResultRow.$status == '{1171361,701}'">
+          <do_elseif value="@$ResultRow.$status == readtext.{1171361}.{701}">
             <set_value name="$FailedRows" operation="add" />
           </do_elseif>
           <do_else>
@@ -6285,7 +6285,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v367-faction-and-overview',
+            $version = 'v368-md-localization-resolution',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -7684,7 +7684,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v367-faction-and-overview',
+            $version = 'v368-md-localization-resolution',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,
@@ -11473,78 +11473,78 @@
           <set_value name="$ResultRecovered" exact="0" />
           <set_value name="$ResultGrade" exact="if @$ExtractionGrade then $ExtractionGrade else if @$Request.$extractiongrade then $Request.$extractiongrade else 1" />
           <set_value name="$ResultChance" exact="if @$ExtractionChance then $ExtractionChance else if @$Request.$extractionchance then $Request.$extractionchance else 94" />
-          <set_value name="$ResultStatus" exact="'{1171361,700}'" />
-          <set_value name="$ResultReason" exact="'{1171361,705}'" />
+          <set_value name="$ResultStatus" exact="readtext.{1171361}.{700}" />
+          <set_value name="$ResultReason" exact="readtext.{1171361}.{705}" />
           <do_if value="$ResultAttempted lt 1">
             <set_value name="$ResultAttempted" exact="1" />
           </do_if>
           <do_if value="@$CreditGateOK">
             <set_value name="$ResultRemoved" exact="$CreditQuantity" />
-            <set_value name="$ResultStatus" exact="'{1171361,701}'" />
+            <set_value name="$ResultStatus" exact="readtext.{1171361}.{701}" />
             <set_value name="$ResultReasonRoll" min="1" max="12" />
             <do_if value="$ResultReasonRoll == 1">
-              <set_value name="$ResultReason" exact="'{1171361,706}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{706}" />
             </do_if>
             <do_elseif value="$ResultReasonRoll == 2">
-              <set_value name="$ResultReason" exact="'{1171361,707}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{707}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 3">
-              <set_value name="$ResultReason" exact="'{1171361,708}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{708}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 4">
-              <set_value name="$ResultReason" exact="'{1171361,709}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{709}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 5">
-              <set_value name="$ResultReason" exact="'{1171361,710}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{710}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 6">
-              <set_value name="$ResultReason" exact="'{1171361,711}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{711}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 7">
-              <set_value name="$ResultReason" exact="'{1171361,712}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{712}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 8">
-              <set_value name="$ResultReason" exact="'{1171361,713}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{713}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 9">
-              <set_value name="$ResultReason" exact="'{1171361,714}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{714}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 10">
-              <set_value name="$ResultReason" exact="'{1171361,715}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{715}" />
             </do_elseif>
             <do_elseif value="$ResultReasonRoll == 11">
-              <set_value name="$ResultReason" exact="'{1171361,716}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{716}" />
             </do_elseif>
             <do_else>
-              <set_value name="$ResultReason" exact="'{1171361,717}'" />
+              <set_value name="$ResultReason" exact="readtext.{1171361}.{717}" />
             </do_else>
             <do_if value="@$ExtractionSuccessQuantity">
               <set_value name="$ResultRecovered" exact="$ExtractionSuccessQuantity" />
             </do_if>
             <do_if value="$ResultRecovered gt 0">
-              <set_value name="$ResultStatus" exact="'{1171361,702}'" />
+              <set_value name="$ResultStatus" exact="readtext.{1171361}.{702}" />
               <set_value name="$ResultPartialReasonRoll" min="1" max="4" />
               <do_if value="$ResultPartialReasonRoll == 1">
-                <set_value name="$ResultReason" exact="'{1171361,718}'" />
+                <set_value name="$ResultReason" exact="readtext.{1171361}.{718}" />
               </do_if>
               <do_elseif value="$ResultPartialReasonRoll == 2">
-                <set_value name="$ResultReason" exact="'{1171361,719}'" />
+                <set_value name="$ResultReason" exact="readtext.{1171361}.{719}" />
               </do_elseif>
               <do_elseif value="$ResultPartialReasonRoll == 3">
-                <set_value name="$ResultReason" exact="'{1171361,720}'" />
+                <set_value name="$ResultReason" exact="readtext.{1171361}.{720}" />
               </do_elseif>
               <do_else>
-                <set_value name="$ResultReason" exact="'{1171361,721}'" />
+                <set_value name="$ResultReason" exact="readtext.{1171361}.{721}" />
               </do_else>
               <do_if value="$ResultRecovered == $ResultAttempted">
-                <set_value name="$ResultStatus" exact="'{1171361,703}'" />
-                <set_value name="$ResultReason" exact="'{1171361,722}'" />
+                <set_value name="$ResultStatus" exact="readtext.{1171361}.{703}" />
+                <set_value name="$ResultReason" exact="readtext.{1171361}.{722}" />
               </do_if>
             </do_if>
           </do_if>
           <do_elseif value="event.param != 1">
-            <set_value name="$ResultStatus" exact="'{1171361,704}'" />
-            <set_value name="$ResultReason" exact="'{1171361,723}'" />
+            <set_value name="$ResultStatus" exact="readtext.{1171361}.{704}" />
+            <set_value name="$ResultReason" exact="readtext.{1171361}.{723}" />
           </do_elseif>
           <append_to_list name="global.$SES_Salvage_Plan_Results" exact="table[
             $index = if @$Request.$salvagemultiplanindex then $Request.$salvagemultiplanindex else @global.$SES_Salvage_Plan_Apply_Index,

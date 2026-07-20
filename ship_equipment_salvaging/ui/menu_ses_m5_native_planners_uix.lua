@@ -45,7 +45,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v367-faction-and-overview",
+	version = "v368-md-localization-resolution",
 	salvageMode = "custom_ses_m5_salvage",
 	salvageResultMode = "custom_ses_m5_salvage_result",
 	weldMode = "custom_ses_m5_weld",
