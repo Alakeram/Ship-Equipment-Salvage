@@ -5,6 +5,30 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v3.68 - 2026-07-20
+
+**Hotfix changes since public release v3.67**
+
+### Localization Results and Messages
+
+- Fixed the native salvage-results window displaying unresolved text-page
+  references such as `{1171361,703}` and `{1171361,722}` instead of the
+  localized result status and recovery reason.
+- Resolved localized text through Mission Director `readtext` before storing
+  it in variables, lists, and result tables passed to Lua or native UI.
+- Applied the same repair to tool-gate feedback, direct notifications, the
+  tool-mode choice, Black Market labels, salvage confirmation, result counts,
+  statuses, and reasons.
+- Preserved text-aware X4 ware and macro references, catalog wording, planner
+  behavior, inventory accounting, catalysts, and ship mutation logic.
+
+### Verification
+
+- Validated all 17 XML files and the extracted X4 9.00 Mission Director, diff,
+  and UI addon schemas.
+- Built and deployed the v3.68 package with synchronized manifest and loose-UI
+  runtime markers.
+
 ## v3.67 - 2026-07-18
 
 **UI and localization fixes since public release v3.64**
