@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.68<br>
+**Release:** v3.70<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -14,6 +14,19 @@ through a dedicated Black Market parts network.
 
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
+
+## What Was Fixed in v3.70
+
+- Fixed saved weapons, shields, and turrets being rejected when older or
+  user-provided saves stored their ware and macro identity in a different X4
+  value shape.
+- Fixed final installation rejecting equipment when the ship already had one
+  or more copies of the exact same weapon, shield, or turret installed.
+- Preserved exact compatibility, slot, post-install gain, inventory, and
+  Bonding Catalyst safety checks.
+- Live-tested save slot 2 without saving: the target installed both planned TER
+  beam turrets from 2/4 to 4/4, and the complete plan finished 7/7 with zero
+  skipped rows.
 
 ## What Was Fixed in v3.68
 
