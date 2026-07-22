@@ -40,7 +40,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v368-md-localization-resolution",
+	version = "v370-existing-selection-validation",
 	userdatakey = "ses_tool_mode",
 	controlid = "ses_tool_mode",
 	rowid = "ses_tool_mode_row",

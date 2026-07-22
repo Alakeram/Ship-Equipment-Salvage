@@ -71,6 +71,63 @@
       </actions>
     </library>
 
+    <library name="SES_Resolve_Equipment_Ware_V1" purpose="run_actions">
+      <params>
+        <param name="Entry" />
+        <param name="WareID" />
+      </params>
+      <actions>
+        <!-- Persisted SES inventory rows already retain the authoritative ware
+             object. Prefer it over rebuilding a ware reference from a saved
+             text ID; dynamic ware lookup is not reliable for every loaded-save
+             entry. Keep the definition-list scan as a legacy-row fallback. -->
+        <set_value name="$ResolvedWare" exact="@$Entry.$ware" />
+        <do_if value="$ResolvedWare and $ResolvedWare.id != $WareID">
+          <set_value name="$ResolvedWare" exact="null" />
+        </do_if>
+        <do_if value="not $ResolvedWare and $WareID">
+          <set_value name="$DynamicWare" exact="ware.{$WareID}" />
+          <do_if value="$DynamicWare and $DynamicWare.id == $WareID">
+            <set_value name="$ResolvedWare" exact="$DynamicWare" />
+          </do_if>
+        </do_if>
+        <do_if value="not $ResolvedWare and $WareID">
+          <do_if value="not @global.$SES_Ware_Definition_List">
+            <get_ware_definition flags="equipment" result="global.$SES_Ware_Definition_List" />
+          </do_if>
+          <do_for_each name="$KnownWare" in="global.$SES_Ware_Definition_List">
+            <do_if value="not $ResolvedWare and @$KnownWare.id == $WareID">
+              <set_value name="$ResolvedWare" exact="$KnownWare" />
+            </do_if>
+          </do_for_each>
+        </do_if>
+        <return value="$ResolvedWare" />
+      </actions>
+    </library>
+
+    <library name="SES_Resolve_Equipment_Macro_ID_V1" purpose="run_actions">
+      <params>
+        <param name="Entry" />
+        <param name="Ware" />
+      </params>
+      <actions>
+        <!-- Historical inventory rows persist the macro object, while newer
+             helper-created rows may persist its ID string. Canonicalize both
+             shapes before any identity comparison without rewriting the save. -->
+        <set_value name="$ResolvedMacroID" exact="''" />
+        <do_if value="@$Entry.$macro.id">
+          <set_value name="$ResolvedMacroID" exact="$Entry.$macro.id" />
+        </do_if>
+        <do_elseif value="@$Entry.$macro">
+          <set_value name="$ResolvedMacroID" exact="'%s'.[$Entry.$macro]" />
+        </do_elseif>
+        <do_elseif value="@$Ware.objectmacro.id">
+          <set_value name="$ResolvedMacroID" exact="$Ware.objectmacro.id" />
+        </do_elseif>
+        <return value="$ResolvedMacroID" />
+      </actions>
+    </library>
+
     <library name="SES_Show_Tool_Gate_Message_V1" purpose="run_actions">
       <params>
         <param name="Mode" />
@@ -502,7 +559,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v368. Runtime player-facing text resolves through SES page 1171361 before values cross the MD/UI boundary; equipment captions use compact maker codes and the right-side panel preserves fitted equipment.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v370. Final apply validation preserves pre-existing copies of the selected equipment macro.'" />
       </actions>
     </cue>
 
@@ -594,7 +651,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v368-md-localization-resolution',
+              $version = 'v370-existing-selection-validation',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -608,7 +665,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v368-md-localization-resolution',
+              $version = 'v370-existing-selection-validation',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -6285,7 +6342,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v368-md-localization-resolution',
+            $version = 'v370-existing-selection-validation',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -7446,9 +7503,16 @@
               <set_value name="$DropdownPreflightExpectedSelectedCount" exact="0" />
               <set_value name="$DropdownPreflightPlanCategoryCount" exact="0" />
               <set_value name="$DropdownPreflightPlanSelectedCount" exact="0" />
-              <set_value name="$DropdownRequestedWare" exact="ware.{$DropdownEntry.$wareid}" />
+              <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$DropdownRequestedWare">
+                <param name="Entry" value="$DropdownEntry" />
+                <param name="WareID" value="@$DropdownEntry.$wareid" />
+              </run_actions>
               <set_value name="$DropdownRequestedMacro" exact="@$DropdownRequestedWare.objectmacro" />
-              <do_if value="$DropdownSlotBaseOK and $DropdownRequestedMacro and $DropdownRequestedMacro.id == $DropdownEntry.$macro">
+              <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$DropdownRequestedMacroID">
+                <param name="Entry" value="$DropdownEntry" />
+                <param name="Ware" value="$DropdownRequestedWare" />
+              </run_actions>
+              <do_if value="$DropdownSlotBaseOK and $DropdownRequestedMacro and $DropdownRequestedMacro.id == $DropdownRequestedMacroID">
                 <do_if value="$DropdownEntryCategory == 'weapons'">
                   <do_if value="@$InventoryInstallTarget.loadout.wares.list">
                     <do_for_each name="$DropdownPreflightWare" in="$InventoryInstallTarget.loadout.wares.list">
@@ -7457,7 +7521,7 @@
                       </run_actions>
                       <do_if value="$DropdownPreflightWareCategory == 'weapons' and @$DropdownPreflightWare.objectmacro">
                         <append_to_list name="$DropdownPreflightMacros" exact="$DropdownPreflightWare.objectmacro" />
-                        <do_if value="$DropdownPreflightWare.id == $DropdownEntry.$wareid and @$DropdownPreflightWare.objectmacro.id == $DropdownEntry.$macro">
+                        <do_if value="$DropdownPreflightWare.id == $DropdownEntry.$wareid and @$DropdownPreflightWare.objectmacro.id == $DropdownRequestedMacroID">
                           <set_value name="$DropdownPreflightPreCount" operation="add" />
                         </do_if>
                       </do_if>
@@ -7466,9 +7530,16 @@
                   <do_for_each name="$DropdownPreflightPlanEntry" in="global.$SES_Weld_Plan">
                     <do_if value="@$DropdownPreflightPlanEntry.$category == 'weapons'">
                       <set_value name="$DropdownPreflightPlanQuantity" exact="if @$DropdownPreflightPlanEntry.$plannedquantity then $DropdownPreflightPlanEntry.$plannedquantity else 1" />
-                      <set_value name="$DropdownPreflightPlanWareObject" exact="ware.{$DropdownPreflightPlanEntry.$wareid}" />
+                      <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$DropdownPreflightPlanWareObject">
+                        <param name="Entry" value="$DropdownPreflightPlanEntry" />
+                        <param name="WareID" value="@$DropdownPreflightPlanEntry.$wareid" />
+                      </run_actions>
                       <set_value name="$DropdownPreflightPlanMacro" exact="@$DropdownPreflightPlanWareObject.objectmacro" />
-                      <do_if value="$DropdownPreflightPlanMacro and $DropdownPreflightPlanMacro.id == $DropdownPreflightPlanEntry.$macro">
+                      <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$DropdownPreflightPlanMacroID">
+                        <param name="Entry" value="$DropdownPreflightPlanEntry" />
+                        <param name="Ware" value="$DropdownPreflightPlanWareObject" />
+                      </run_actions>
+                      <do_if value="$DropdownPreflightPlanMacro and $DropdownPreflightPlanMacro.id == $DropdownPreflightPlanMacroID">
                         <do_all exact="$DropdownPreflightPlanQuantity">
                           <append_to_list name="$DropdownPreflightMacros" exact="$DropdownPreflightPlanMacro" />
                         </do_all>
@@ -7496,7 +7567,7 @@
                       </run_actions>
                       <do_if value="$DropdownPreflightWareCategory == 'shields' and @$DropdownPreflightWare.objectmacro">
                         <append_to_list name="$DropdownPreflightMacros" exact="$DropdownPreflightWare.objectmacro" />
-                        <do_if value="$DropdownPreflightWare.id == $DropdownEntry.$wareid and @$DropdownPreflightWare.objectmacro.id == $DropdownEntry.$macro">
+                        <do_if value="$DropdownPreflightWare.id == $DropdownEntry.$wareid and @$DropdownPreflightWare.objectmacro.id == $DropdownRequestedMacroID">
                           <set_value name="$DropdownPreflightPreCount" operation="add" />
                         </do_if>
                       </do_if>
@@ -7505,9 +7576,16 @@
                   <do_for_each name="$DropdownPreflightPlanEntry" in="global.$SES_Weld_Plan">
                     <do_if value="@$DropdownPreflightPlanEntry.$category == 'shields'">
                       <set_value name="$DropdownPreflightPlanQuantity" exact="if @$DropdownPreflightPlanEntry.$plannedquantity then $DropdownPreflightPlanEntry.$plannedquantity else 1" />
-                      <set_value name="$DropdownPreflightPlanWareObject" exact="ware.{$DropdownPreflightPlanEntry.$wareid}" />
+                      <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$DropdownPreflightPlanWareObject">
+                        <param name="Entry" value="$DropdownPreflightPlanEntry" />
+                        <param name="WareID" value="@$DropdownPreflightPlanEntry.$wareid" />
+                      </run_actions>
                       <set_value name="$DropdownPreflightPlanMacro" exact="@$DropdownPreflightPlanWareObject.objectmacro" />
-                      <do_if value="$DropdownPreflightPlanMacro and $DropdownPreflightPlanMacro.id == $DropdownPreflightPlanEntry.$macro">
+                      <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$DropdownPreflightPlanMacroID">
+                        <param name="Entry" value="$DropdownPreflightPlanEntry" />
+                        <param name="Ware" value="$DropdownPreflightPlanWareObject" />
+                      </run_actions>
+                      <do_if value="$DropdownPreflightPlanMacro and $DropdownPreflightPlanMacro.id == $DropdownPreflightPlanMacroID">
                         <do_all exact="$DropdownPreflightPlanQuantity">
                           <append_to_list name="$DropdownPreflightMacros" exact="$DropdownPreflightPlanMacro" />
                         </do_all>
@@ -7527,7 +7605,7 @@
                       </run_actions>
                       <do_if value="$DropdownPreflightWareCategory == 'turrets' and @$DropdownPreflightWare.objectmacro">
                         <append_to_list name="$DropdownPreflightMacros" exact="$DropdownPreflightWare.objectmacro" />
-                        <do_if value="$DropdownPreflightWare.id == $DropdownEntry.$wareid and @$DropdownPreflightWare.objectmacro.id == $DropdownEntry.$macro">
+                        <do_if value="$DropdownPreflightWare.id == $DropdownEntry.$wareid and @$DropdownPreflightWare.objectmacro.id == $DropdownRequestedMacroID">
                           <set_value name="$DropdownPreflightPreCount" operation="add" />
                         </do_if>
                       </do_if>
@@ -7536,9 +7614,16 @@
                   <do_for_each name="$DropdownPreflightPlanEntry" in="global.$SES_Weld_Plan">
                     <do_if value="@$DropdownPreflightPlanEntry.$category == 'turrets'">
                       <set_value name="$DropdownPreflightPlanQuantity" exact="if @$DropdownPreflightPlanEntry.$plannedquantity then $DropdownPreflightPlanEntry.$plannedquantity else 1" />
-                      <set_value name="$DropdownPreflightPlanWareObject" exact="ware.{$DropdownPreflightPlanEntry.$wareid}" />
+                      <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$DropdownPreflightPlanWareObject">
+                        <param name="Entry" value="$DropdownPreflightPlanEntry" />
+                        <param name="WareID" value="@$DropdownPreflightPlanEntry.$wareid" />
+                      </run_actions>
                       <set_value name="$DropdownPreflightPlanMacro" exact="@$DropdownPreflightPlanWareObject.objectmacro" />
-                      <do_if value="$DropdownPreflightPlanMacro and $DropdownPreflightPlanMacro.id == $DropdownPreflightPlanEntry.$macro">
+                      <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$DropdownPreflightPlanMacroID">
+                        <param name="Entry" value="$DropdownPreflightPlanEntry" />
+                        <param name="Ware" value="$DropdownPreflightPlanWareObject" />
+                      </run_actions>
+                      <do_if value="$DropdownPreflightPlanMacro and $DropdownPreflightPlanMacro.id == $DropdownPreflightPlanMacroID">
                         <do_all exact="$DropdownPreflightPlanQuantity">
                           <append_to_list name="$DropdownPreflightMacros" exact="$DropdownPreflightPlanMacro" />
                         </do_all>
@@ -7563,7 +7648,7 @@
                     </run_actions>
                     <do_if value="$DropdownPreflightPlanWareCategory == $DropdownEntryCategory">
                       <set_value name="$DropdownPreflightPlanCategoryCount" operation="add" />
-                      <do_if value="$DropdownPreflightPlanWare.id == $DropdownEntry.$wareid and @$DropdownPreflightPlanWare.objectmacro.id == $DropdownEntry.$macro">
+                      <do_if value="$DropdownPreflightPlanWare.id == $DropdownEntry.$wareid and @$DropdownPreflightPlanWare.objectmacro.id == $DropdownRequestedMacroID">
                         <set_value name="$DropdownPreflightPlanSelectedCount" operation="add" />
                       </do_if>
                     </do_if>
@@ -7684,7 +7769,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v368-md-localization-resolution',
+            $version = 'v370-existing-selection-validation',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,
@@ -8086,9 +8171,16 @@
             <set_value name="$InventoryPreflightExpectedSelectedCount" exact="0" />
             <set_value name="$InventoryPreflightPlanCategoryCount" exact="0" />
             <set_value name="$InventoryPreflightPlanSelectedCount" exact="0" />
-            <set_value name="$InventoryRequestedWare" exact="ware.{$InventoryEntry.$wareid}" />
+            <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InventoryRequestedWare">
+              <param name="Entry" value="$InventoryEntry" />
+              <param name="WareID" value="@$InventoryEntry.$wareid" />
+            </run_actions>
             <set_value name="$InventoryRequestedMacro" exact="@$InventoryRequestedWare.objectmacro" />
-            <do_if value="$InventoryPreflightBaseOK and @$InventoryInstallTarget.loadout and $InventoryRequestedMacro and $InventoryRequestedMacro.id == $InventoryEntry.$macro">
+            <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InventoryRequestedMacroID">
+              <param name="Entry" value="$InventoryEntry" />
+              <param name="Ware" value="$InventoryRequestedWare" />
+            </run_actions>
+            <do_if value="$InventoryPreflightBaseOK and @$InventoryInstallTarget.loadout.wares.list and $InventoryRequestedMacro and $InventoryRequestedMacro.id == $InventoryRequestedMacroID">
               <do_if value="$InventoryCategory == 'weapons'">
                 <do_for_each name="$InventoryPreflightWare" in="$InventoryInstallTarget.loadout.wares.list">
                   <run_actions ref="SES_Get_Equipment_Category_V1" result="$InventoryPreflightWareCategory">
@@ -8096,7 +8188,7 @@
                   </run_actions>
                   <do_if value="$InventoryPreflightWareCategory == 'weapons' and @$InventoryPreflightWare.objectmacro">
                     <append_to_list name="$InventoryPreflightMacros" exact="$InventoryPreflightWare.objectmacro" />
-                    <do_if value="$InventoryPreflightWare.id == $InventoryEntry.$wareid and @$InventoryPreflightWare.objectmacro.id == $InventoryEntry.$macro">
+                    <do_if value="$InventoryPreflightWare.id == $InventoryEntry.$wareid and @$InventoryPreflightWare.objectmacro.id == $InventoryRequestedMacroID">
                       <set_value name="$InventoryPreflightPreCount" operation="add" />
                     </do_if>
                   </do_if>
@@ -8104,9 +8196,16 @@
                 <do_for_each name="$InventoryPreflightPlanEntry" in="global.$SES_Weld_Plan">
                   <do_if value="@$InventoryPreflightPlanEntry.$category == 'weapons'">
                     <set_value name="$InventoryPreflightPlanQuantity" exact="if @$InventoryPreflightPlanEntry.$plannedquantity then $InventoryPreflightPlanEntry.$plannedquantity else 1" />
-                    <set_value name="$InventoryPreflightPlanWareObject" exact="ware.{$InventoryPreflightPlanEntry.$wareid}" />
+                    <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InventoryPreflightPlanWareObject">
+                      <param name="Entry" value="$InventoryPreflightPlanEntry" />
+                      <param name="WareID" value="@$InventoryPreflightPlanEntry.$wareid" />
+                    </run_actions>
                     <set_value name="$InventoryPreflightPlanMacro" exact="@$InventoryPreflightPlanWareObject.objectmacro" />
-                    <do_if value="$InventoryPreflightPlanMacro and $InventoryPreflightPlanMacro.id == $InventoryPreflightPlanEntry.$macro">
+                    <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InventoryPreflightPlanMacroID">
+                      <param name="Entry" value="$InventoryPreflightPlanEntry" />
+                      <param name="Ware" value="$InventoryPreflightPlanWareObject" />
+                    </run_actions>
+                    <do_if value="$InventoryPreflightPlanMacro and $InventoryPreflightPlanMacro.id == $InventoryPreflightPlanMacroID">
                       <do_all exact="$InventoryPreflightPlanQuantity">
                         <append_to_list name="$InventoryPreflightMacros" exact="$InventoryPreflightPlanMacro" />
                       </do_all>
@@ -8152,7 +8251,7 @@
                   </run_actions>
                   <do_if value="$InventoryPreflightWareCategory == 'shields' and @$InventoryPreflightWare.objectmacro">
                     <append_to_list name="$InventoryPreflightMacros" exact="$InventoryPreflightWare.objectmacro" />
-                    <do_if value="$InventoryPreflightWare.id == $InventoryEntry.$wareid and @$InventoryPreflightWare.objectmacro.id == $InventoryEntry.$macro">
+                    <do_if value="$InventoryPreflightWare.id == $InventoryEntry.$wareid and @$InventoryPreflightWare.objectmacro.id == $InventoryRequestedMacroID">
                       <set_value name="$InventoryPreflightPreCount" operation="add" />
                     </do_if>
                   </do_if>
@@ -8160,9 +8259,16 @@
                 <do_for_each name="$InventoryPreflightPlanEntry" in="global.$SES_Weld_Plan">
                   <do_if value="@$InventoryPreflightPlanEntry.$category == 'shields'">
                     <set_value name="$InventoryPreflightPlanQuantity" exact="if @$InventoryPreflightPlanEntry.$plannedquantity then $InventoryPreflightPlanEntry.$plannedquantity else 1" />
-                    <set_value name="$InventoryPreflightPlanWareObject" exact="ware.{$InventoryPreflightPlanEntry.$wareid}" />
+                    <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InventoryPreflightPlanWareObject">
+                      <param name="Entry" value="$InventoryPreflightPlanEntry" />
+                      <param name="WareID" value="@$InventoryPreflightPlanEntry.$wareid" />
+                    </run_actions>
                     <set_value name="$InventoryPreflightPlanMacro" exact="@$InventoryPreflightPlanWareObject.objectmacro" />
-                    <do_if value="$InventoryPreflightPlanMacro and $InventoryPreflightPlanMacro.id == $InventoryPreflightPlanEntry.$macro">
+                    <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InventoryPreflightPlanMacroID">
+                      <param name="Entry" value="$InventoryPreflightPlanEntry" />
+                      <param name="Ware" value="$InventoryPreflightPlanWareObject" />
+                    </run_actions>
+                    <do_if value="$InventoryPreflightPlanMacro and $InventoryPreflightPlanMacro.id == $InventoryPreflightPlanMacroID">
                       <do_all exact="$InventoryPreflightPlanQuantity">
                         <append_to_list name="$InventoryPreflightMacros" exact="$InventoryPreflightPlanMacro" />
                       </do_all>
@@ -8190,7 +8296,7 @@
                   </run_actions>
                   <do_if value="$InventoryPreflightWareCategory == 'turrets' and @$InventoryPreflightWare.objectmacro">
                     <append_to_list name="$InventoryPreflightMacros" exact="$InventoryPreflightWare.objectmacro" />
-                    <do_if value="$InventoryPreflightWare.id == $InventoryEntry.$wareid and @$InventoryPreflightWare.objectmacro.id == $InventoryEntry.$macro">
+                    <do_if value="$InventoryPreflightWare.id == $InventoryEntry.$wareid and @$InventoryPreflightWare.objectmacro.id == $InventoryRequestedMacroID">
                       <set_value name="$InventoryPreflightPreCount" operation="add" />
                     </do_if>
                   </do_if>
@@ -8198,9 +8304,16 @@
                 <do_for_each name="$InventoryPreflightPlanEntry" in="global.$SES_Weld_Plan">
                   <do_if value="@$InventoryPreflightPlanEntry.$category == 'turrets'">
                     <set_value name="$InventoryPreflightPlanQuantity" exact="if @$InventoryPreflightPlanEntry.$plannedquantity then $InventoryPreflightPlanEntry.$plannedquantity else 1" />
-                    <set_value name="$InventoryPreflightPlanWareObject" exact="ware.{$InventoryPreflightPlanEntry.$wareid}" />
+                    <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InventoryPreflightPlanWareObject">
+                      <param name="Entry" value="$InventoryPreflightPlanEntry" />
+                      <param name="WareID" value="@$InventoryPreflightPlanEntry.$wareid" />
+                    </run_actions>
                     <set_value name="$InventoryPreflightPlanMacro" exact="@$InventoryPreflightPlanWareObject.objectmacro" />
-                    <do_if value="$InventoryPreflightPlanMacro and $InventoryPreflightPlanMacro.id == $InventoryPreflightPlanEntry.$macro">
+                    <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InventoryPreflightPlanMacroID">
+                      <param name="Entry" value="$InventoryPreflightPlanEntry" />
+                      <param name="Ware" value="$InventoryPreflightPlanWareObject" />
+                    </run_actions>
+                    <do_if value="$InventoryPreflightPlanMacro and $InventoryPreflightPlanMacro.id == $InventoryPreflightPlanMacroID">
                       <do_all exact="$InventoryPreflightPlanQuantity">
                         <append_to_list name="$InventoryPreflightMacros" exact="$InventoryPreflightPlanMacro" />
                       </do_all>
@@ -8243,7 +8356,7 @@
                   </run_actions>
                   <do_if value="$InventoryPreflightPlanWareCategory == $InventoryCategory">
                     <set_value name="$InventoryPreflightPlanCategoryCount" operation="add" />
-                    <do_if value="$InventoryPreflightPlanWare.id == $InventoryEntry.$wareid and @$InventoryPreflightPlanWare.objectmacro.id == $InventoryEntry.$macro">
+                    <do_if value="$InventoryPreflightPlanWare.id == $InventoryEntry.$wareid and @$InventoryPreflightPlanWare.objectmacro.id == $InventoryRequestedMacroID">
                       <set_value name="$InventoryPreflightPlanSelectedCount" operation="add" />
                     </do_if>
                   </do_if>
@@ -8740,9 +8853,16 @@
           <set_value name="$InstallRequestExpectedSelectedCount" exact="0" />
           <set_value name="$InstallRequestPlanCategoryCount" exact="0" />
           <set_value name="$InstallRequestPlanSelectedCount" exact="0" />
-          <set_value name="$InstallRequestWare" exact="ware.{$InventoryEntry.$wareid}" />
+          <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InstallRequestWare">
+            <param name="Entry" value="$InventoryEntry" />
+            <param name="WareID" value="@$InventoryEntry.$wareid" />
+          </run_actions>
           <set_value name="$InstallRequestMacro" exact="@$InstallRequestWare.objectmacro" />
-          <do_if value="$InstallRequestBaseOK and @$InstallTarget.loadout and $InstallRequestMacro and $InstallRequestMacro.id == $InventoryEntry.$macro">
+          <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InstallRequestMacroID">
+            <param name="Entry" value="$InventoryEntry" />
+            <param name="Ware" value="$InstallRequestWare" />
+          </run_actions>
+          <do_if value="$InstallRequestBaseOK and @$InstallTarget.loadout.wares.list and $InstallRequestMacro and $InstallRequestMacro.id == $InstallRequestMacroID">
             <do_if value="$InventoryCategory == 'weapons'">
               <do_for_each name="$InstallRequestPreflightWare" in="$InstallTarget.loadout.wares.list">
                 <run_actions ref="SES_Get_Equipment_Category_V1" result="$InstallRequestPreflightWareCategory">
@@ -8750,7 +8870,7 @@
                 </run_actions>
                 <do_if value="$InstallRequestPreflightWareCategory == 'weapons' and @$InstallRequestPreflightWare.objectmacro">
                   <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestPreflightWare.objectmacro" />
-                  <do_if value="$InstallRequestPreflightWare.id == $InventoryEntry.$wareid and @$InstallRequestPreflightWare.objectmacro.id == $InventoryEntry.$macro">
+                  <do_if value="$InstallRequestPreflightWare.id == $InventoryEntry.$wareid and @$InstallRequestPreflightWare.objectmacro.id == $InstallRequestMacroID">
                     <set_value name="$InstallRequestPreflightPreCount" operation="add" />
                   </do_if>
                 </do_if>
@@ -8758,9 +8878,16 @@
               <do_for_each name="$InstallRequestPlanEntry" in="global.$SES_Weld_Plan">
                 <do_if value="@$InstallRequestPlanEntry.$category == 'weapons'">
                   <set_value name="$InstallRequestPlanQuantity" exact="if @$InstallRequestPlanEntry.$plannedquantity then $InstallRequestPlanEntry.$plannedquantity else 1" />
-                  <set_value name="$InstallRequestPlanWareObject" exact="ware.{$InstallRequestPlanEntry.$wareid}" />
+                  <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InstallRequestPlanWareObject">
+                    <param name="Entry" value="$InstallRequestPlanEntry" />
+                    <param name="WareID" value="@$InstallRequestPlanEntry.$wareid" />
+                  </run_actions>
                   <set_value name="$InstallRequestPlanMacro" exact="@$InstallRequestPlanWareObject.objectmacro" />
-                  <do_if value="$InstallRequestPlanMacro and $InstallRequestPlanMacro.id == $InstallRequestPlanEntry.$macro">
+                  <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InstallRequestPlanMacroID">
+                    <param name="Entry" value="$InstallRequestPlanEntry" />
+                    <param name="Ware" value="$InstallRequestPlanWareObject" />
+                  </run_actions>
+                  <do_if value="$InstallRequestPlanMacro and $InstallRequestPlanMacro.id == $InstallRequestPlanMacroID">
                     <do_all exact="$InstallRequestPlanQuantity">
                       <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestPlanMacro" />
                     </do_all>
@@ -8805,7 +8932,7 @@
                 </run_actions>
                 <do_if value="$InstallRequestPreflightWareCategory == 'shields' and @$InstallRequestPreflightWare.objectmacro">
                   <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestPreflightWare.objectmacro" />
-                  <do_if value="$InstallRequestPreflightWare.id == $InventoryEntry.$wareid and @$InstallRequestPreflightWare.objectmacro.id == $InventoryEntry.$macro">
+                  <do_if value="$InstallRequestPreflightWare.id == $InventoryEntry.$wareid and @$InstallRequestPreflightWare.objectmacro.id == $InstallRequestMacroID">
                     <set_value name="$InstallRequestPreflightPreCount" operation="add" />
                   </do_if>
                 </do_if>
@@ -8813,9 +8940,16 @@
               <do_for_each name="$InstallRequestPlanEntry" in="global.$SES_Weld_Plan">
                 <do_if value="@$InstallRequestPlanEntry.$category == 'shields'">
                   <set_value name="$InstallRequestPlanQuantity" exact="if @$InstallRequestPlanEntry.$plannedquantity then $InstallRequestPlanEntry.$plannedquantity else 1" />
-                  <set_value name="$InstallRequestPlanWareObject" exact="ware.{$InstallRequestPlanEntry.$wareid}" />
+                  <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InstallRequestPlanWareObject">
+                    <param name="Entry" value="$InstallRequestPlanEntry" />
+                    <param name="WareID" value="@$InstallRequestPlanEntry.$wareid" />
+                  </run_actions>
                   <set_value name="$InstallRequestPlanMacro" exact="@$InstallRequestPlanWareObject.objectmacro" />
-                  <do_if value="$InstallRequestPlanMacro and $InstallRequestPlanMacro.id == $InstallRequestPlanEntry.$macro">
+                  <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InstallRequestPlanMacroID">
+                    <param name="Entry" value="$InstallRequestPlanEntry" />
+                    <param name="Ware" value="$InstallRequestPlanWareObject" />
+                  </run_actions>
+                  <do_if value="$InstallRequestPlanMacro and $InstallRequestPlanMacro.id == $InstallRequestPlanMacroID">
                     <do_all exact="$InstallRequestPlanQuantity">
                       <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestPlanMacro" />
                     </do_all>
@@ -8843,7 +8977,7 @@
                 </run_actions>
                 <do_if value="$InstallRequestPreflightWareCategory == 'turrets' and @$InstallRequestPreflightWare.objectmacro">
                   <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestPreflightWare.objectmacro" />
-                  <do_if value="$InstallRequestPreflightWare.id == $InventoryEntry.$wareid and @$InstallRequestPreflightWare.objectmacro.id == $InventoryEntry.$macro">
+                  <do_if value="$InstallRequestPreflightWare.id == $InventoryEntry.$wareid and @$InstallRequestPreflightWare.objectmacro.id == $InstallRequestMacroID">
                     <set_value name="$InstallRequestPreflightPreCount" operation="add" />
                   </do_if>
                 </do_if>
@@ -8851,9 +8985,16 @@
               <do_for_each name="$InstallRequestPlanEntry" in="global.$SES_Weld_Plan">
                 <do_if value="@$InstallRequestPlanEntry.$category == 'turrets'">
                   <set_value name="$InstallRequestPlanQuantity" exact="if @$InstallRequestPlanEntry.$plannedquantity then $InstallRequestPlanEntry.$plannedquantity else 1" />
-                  <set_value name="$InstallRequestPlanWareObject" exact="ware.{$InstallRequestPlanEntry.$wareid}" />
+                  <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$InstallRequestPlanWareObject">
+                    <param name="Entry" value="$InstallRequestPlanEntry" />
+                    <param name="WareID" value="@$InstallRequestPlanEntry.$wareid" />
+                  </run_actions>
                   <set_value name="$InstallRequestPlanMacro" exact="@$InstallRequestPlanWareObject.objectmacro" />
-                  <do_if value="$InstallRequestPlanMacro and $InstallRequestPlanMacro.id == $InstallRequestPlanEntry.$macro">
+                  <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InstallRequestPlanMacroID">
+                    <param name="Entry" value="$InstallRequestPlanEntry" />
+                    <param name="Ware" value="$InstallRequestPlanWareObject" />
+                  </run_actions>
+                  <do_if value="$InstallRequestPlanMacro and $InstallRequestPlanMacro.id == $InstallRequestPlanMacroID">
                     <do_all exact="$InstallRequestPlanQuantity">
                       <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestPlanMacro" />
                     </do_all>
@@ -8896,7 +9037,7 @@
                 </run_actions>
                 <do_if value="$InstallRequestPlanWareCategory == $InventoryCategory">
                   <set_value name="$InstallRequestPlanCategoryCount" operation="add" />
-                  <do_if value="$InstallRequestPlanWare.id == $InventoryEntry.$wareid and @$InstallRequestPlanWare.objectmacro.id == $InventoryEntry.$macro">
+                  <do_if value="$InstallRequestPlanWare.id == $InventoryEntry.$wareid and @$InstallRequestPlanWare.objectmacro.id == $InstallRequestMacroID">
                     <set_value name="$InstallRequestPlanSelectedCount" operation="add" />
                   </do_if>
                 </do_if>
@@ -8913,6 +9054,7 @@
             <append_to_list name="global.$SES_Weld_Plan" exact="table[
               $target = $InstallTarget,
               $inventoryindex = $InventoryIndex,
+              $ware = $InstallRequestWare,
               $wareid = $InventoryEntry.$wareid,
               $macro = $InventoryEntry.$macro,
               $name = if @$InventoryEntry.$name then $InventoryEntry.$name else $InventoryCategory,
@@ -9241,7 +9383,7 @@
           <set_value name="$TargetTurretSlots" exact="0" />
           <set_value name="$TargetTurretInstalled" exact="0" />
           <set_value name="$TargetThrusterInstalled" exact="0" />
-          <do_if value="$Target.exists and @$Target.loadout">
+          <do_if value="$Target.exists and @$Target.loadout.wares.list">
             <set_value name="$TargetWeaponSlots" exact="$Target.weapons.numslots" />
             <set_value name="$TargetEngineSlots" exact="$Target.engines.numslots" />
             <set_value name="$TargetEngineInstalled" exact="$Target.engines.all.count" />
@@ -9266,6 +9408,7 @@
             <set_value name="global.$SES_Install_Request" exact="table[
               $target = $Target,
               $inventoryindex = $InventoryIndex,
+              $ware = if @$PlanEntry.$ware then $PlanEntry.$ware else @$InventoryEntry.$ware,
               $wareid = $PlanEntry.$wareid,
               $macro = $PlanEntry.$macro,
               $name = if @$PlanEntry.$name then $PlanEntry.$name else if @$InventoryEntry.$name then $InventoryEntry.$name else $PlanEntry.$category,
@@ -9718,6 +9861,10 @@
           <set_value name="$BondingCatalystCountBefore" exact="player.entity.inventory.{ware.ses_avarice_bonding_catalyst}.count" />
           <set_value name="$BondingCatalystCountAfter" exact="$BondingCatalystCountBefore" />
           <set_value name="$BondingCatalystOK" exact="$BondingCatalystCountBefore ge $BondingCatalystCost" />
+          <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$RequestMacroID">
+            <param name="Entry" value="$Request" />
+            <param name="Ware" value="@$Request.$ware" />
+          </run_actions>
           <do_if value="@global.$SES_Salvage_Inventory and $Request.$inventoryindex gt 0 and $Request.$inventoryindex le global.$SES_Salvage_Inventory.count">
             <set_value name="$InventoryEntry" exact="global.$SES_Salvage_Inventory.{$Request.$inventoryindex}" />
             <set_value name="$InventoryEntryCategory" exact="'legacy/unknown'" />
@@ -9725,11 +9872,18 @@
               <set_value name="$InventoryEntryCategory" exact="$InventoryEntry.$category" />
             </do_if>
             <set_value name="$InventoryCountBefore" exact="if @$InventoryEntry.$count then $InventoryEntry.$count else 0" />
-            <set_value name="$InventoryEntryOK" exact="($InventoryEntryCategory == 'weapons' or $InventoryEntryCategory == 'engines' or $InventoryEntryCategory == 'shields' or $InventoryEntryCategory == 'turrets' or $InventoryEntryCategory == 'thrusters') and $InventoryEntryCategory == $Request.$category and $InventoryCountBefore ge $PlannedInstallQuantity and @$InventoryEntry.$wareid == $Request.$wareid and @$InventoryEntry.$macro == $Request.$macro and $BondingCatalystOK" />
+            <run_actions ref="SES_Resolve_Equipment_Macro_ID_V1" result="$InventoryEntryMacroID">
+              <param name="Entry" value="$InventoryEntry" />
+              <param name="Ware" value="@$InventoryEntry.$ware" />
+            </run_actions>
+            <set_value name="$InventoryEntryOK" exact="($InventoryEntryCategory == 'weapons' or $InventoryEntryCategory == 'engines' or $InventoryEntryCategory == 'shields' or $InventoryEntryCategory == 'turrets' or $InventoryEntryCategory == 'thrusters') and $InventoryEntryCategory == $Request.$category and $InventoryCountBefore ge $PlannedInstallQuantity and @$InventoryEntry.$wareid == $Request.$wareid and $InventoryEntryMacroID == $RequestMacroID and $BondingCatalystOK" />
           </do_if>
-          <set_value name="$RequestedWare" exact="ware.{$Request.$wareid}" />
+          <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$RequestedWare">
+            <param name="Entry" value="$Request" />
+            <param name="WareID" value="@$Request.$wareid" />
+          </run_actions>
           <set_value name="$RequestedMacro" exact="@$RequestedWare.objectmacro" />
-          <set_value name="$RequestedIdentityOK" exact="$RequestedWare and $RequestedMacro and $RequestedWare.id == $Request.$wareid and $RequestedMacro.id == $Request.$macro" />
+          <set_value name="$RequestedIdentityOK" exact="$RequestedWare and $RequestedMacro and $RequestedWare.id == $Request.$wareid and $RequestedMacro.id == $RequestMacroID" />
           <set_value name="$PreCount" exact="0" />
           <set_value name="$TotalBefore" exact="0" />
           <set_value name="$WeaponInstallMacros" exact="[]" />
@@ -9744,7 +9898,7 @@
           <set_value name="$TargetTurretSlots" exact="0" />
           <set_value name="$TargetTurretInstalled" exact="0" />
           <set_value name="$TargetThrusterInstalled" exact="0" />
-          <do_if value="$Target.exists and @$Target.loadout">
+          <do_if value="$Target.exists and @$Target.loadout.wares.list">
             <set_value name="$TotalBefore" exact="$Target.loadout.wares.list.count" />
             <set_value name="$TargetWeaponSlots" exact="$Target.weapons.numslots" />
             <set_value name="$TargetEngineSlots" exact="$Target.engines.numslots" />
@@ -9770,7 +9924,7 @@
               <do_if value="$CurrentWareCategory == 'thrusters' and @$CurrentWare.objectmacro">
                 <set_value name="$TargetThrusterInstalled" operation="add" />
               </do_if>
-              <do_if value="$CurrentWare.id == $Request.$wareid and @$CurrentWare.objectmacro.id == $Request.$macro">
+              <do_if value="$CurrentWare.id == $Request.$wareid and @$CurrentWare.objectmacro.id == $RequestMacroID">
                 <set_value name="$PreCount" operation="add" />
               </do_if>
             </do_for_each>
@@ -9857,16 +10011,16 @@
               </run_actions>
               <do_if value="$InstallPlanGroup == $Request.$category">
                 <set_value name="$InstallPlanCategoryCount" operation="add" />
-                <do_if value="$InstallPlanWare.id == $Request.$wareid and @$InstallPlanWare.objectmacro.id == $Request.$macro">
+                <do_if value="$InstallPlanWare.id == $Request.$wareid and @$InstallPlanWare.objectmacro.id == $RequestMacroID">
                   <set_value name="$InstallPlanSelectedCount" operation="add" />
                 </do_if>
               </do_if>
             </do_for_each>
           </do_if>
-          <set_value name="$WeaponInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'weapons' and $TargetWeaponSlots gt 0 and $TargetWeaponInstalled lt $TargetWeaponSlots and @$Request.$targetweaponslots == $TargetWeaponSlots and @$Request.$targetweaponinstalled == $TargetWeaponInstalled and $PlannedInstallQuantity == 1 and $WeaponInstallMacros.count == $TargetWeaponInstalled + 1 and $InstallMacros.count == $TargetWeaponInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetWeaponInstalled + 1 and $InstallPlanSelectedCount == 1" />
+          <set_value name="$WeaponInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'weapons' and $TargetWeaponSlots gt 0 and $TargetWeaponInstalled lt $TargetWeaponSlots and @$Request.$targetweaponslots == $TargetWeaponSlots and @$Request.$targetweaponinstalled == $TargetWeaponInstalled and $PlannedInstallQuantity == 1 and $WeaponInstallMacros.count == $TargetWeaponInstalled + 1 and $InstallMacros.count == $TargetWeaponInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetWeaponInstalled + 1 and $InstallPlanSelectedCount == $PreCount + 1" />
           <set_value name="$EngineInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'engines' and $TargetEngineSlots gt 0 and $TargetEngineInstalled == 0 and $PlannedInstallQuantity == $TargetEngineSlots and @$Request.$targetengineslots == $TargetEngineSlots and @$Request.$targetengineinstalled == 0 and $InstallMacros.count == $PlannedInstallQuantity and $InstallPlans.count == 1 and $InstallUsed.count == $PlannedInstallQuantity and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $PlannedInstallQuantity and $InstallPlanSelectedCount == $PlannedInstallQuantity" />
-          <set_value name="$ShieldInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'shields' and $TargetShieldSlots gt 0 and $TargetShieldInstalled lt $TargetShieldSlots and @$Request.$targetshieldslots == $TargetShieldSlots and @$Request.$targetshieldinstalled == $TargetShieldInstalled and $PlannedInstallQuantity == 1 and $ShieldInstallMacros.count == $TargetShieldInstalled + 1 and $InstallMacros.count == $TargetShieldInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetShieldInstalled + 1 and $InstallPlanSelectedCount == 1" />
-          <set_value name="$TurretInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'turrets' and $TargetTurretSlots gt 0 and $TargetTurretInstalled lt $TargetTurretSlots and @$Request.$targetturretslots == $TargetTurretSlots and @$Request.$targetturretinstalled == $TargetTurretInstalled and $PlannedInstallQuantity == 1 and $TurretInstallMacros.count == $TargetTurretInstalled + 1 and $InstallMacros.count == $TargetTurretInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetTurretInstalled + 1 and $InstallPlanSelectedCount == 1" />
+          <set_value name="$ShieldInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'shields' and $TargetShieldSlots gt 0 and $TargetShieldInstalled lt $TargetShieldSlots and @$Request.$targetshieldslots == $TargetShieldSlots and @$Request.$targetshieldinstalled == $TargetShieldInstalled and $PlannedInstallQuantity == 1 and $ShieldInstallMacros.count == $TargetShieldInstalled + 1 and $InstallMacros.count == $TargetShieldInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetShieldInstalled + 1 and $InstallPlanSelectedCount == $PreCount + 1" />
+          <set_value name="$TurretInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'turrets' and $TargetTurretSlots gt 0 and $TargetTurretInstalled lt $TargetTurretSlots and @$Request.$targetturretslots == $TargetTurretSlots and @$Request.$targetturretinstalled == $TargetTurretInstalled and $PlannedInstallQuantity == 1 and $TurretInstallMacros.count == $TargetTurretInstalled + 1 and $InstallMacros.count == $TargetTurretInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetTurretInstalled + 1 and $InstallPlanSelectedCount == $PreCount + 1" />
           <set_value name="$ThrusterInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'thrusters' and $TargetThrusterInstalled == 0 and $PlannedInstallQuantity == 1 and @$Request.$targetthrusterinstalled == 0 and $InstallPlans.count == 1 and @$InstallPlans.{1}.wares.list.count == 1 and $InstallUsed.count == 1 and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == 1 and $InstallPlanSelectedCount == 1" />
           <set_value name="$InstallPlanOK" exact="$WeaponInstallPlanOK or $EngineInstallPlanOK or $ShieldInstallPlanOK or $TurretInstallPlanOK or $ThrusterInstallPlanOK" />
           <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][INSTALL] Install apply precheck target=%s, targetok=%s, inventoryok=%s, bondingcatalystok=%s, bondingcatalystcost=%s, bondingcatalysts=%s, category=%s, ware=%s, macro=%s, inventorycount=%s, plannedquantity=%s, planmode=%s, targetweapons=%s/%s, weaponmacros=%s, targetengines=%s/%s, targetshields=%s/%s, shieldmacros=%s, targetturrets=%s/%s, turretmacros=%s, targetthrusters=%s, precount=%s, totalbefore=%s, range=%s, rangelimit=%s, planok=%s, weaponplanok=%s, engineplanok=%s, shieldplanok=%s, turretplanok=%s, thrusterplanok=%s, plancount=%s, usedcount=%s, remainingcount=%s, plancategorycount=%s, planselectedcount=%s'.[
@@ -9929,10 +10083,10 @@
           </do_if>
           <set_value name="$PostCount" exact="0" />
           <set_value name="$TotalAfter" exact="0" />
-          <do_if value="$Target.exists and @$Target.loadout">
+          <do_if value="$Target.exists and @$Target.loadout.wares.list">
             <set_value name="$TotalAfter" exact="$Target.loadout.wares.list.count" />
             <do_for_each name="$CurrentWare" in="$Target.loadout.wares.list">
-              <do_if value="$CurrentWare.id == $Request.$wareid and @$CurrentWare.objectmacro.id == $Request.$macro">
+              <do_if value="$CurrentWare.id == $Request.$wareid and @$CurrentWare.objectmacro.id == $RequestMacroID">
                 <set_value name="$PostCount" operation="add" />
               </do_if>
             </do_for_each>

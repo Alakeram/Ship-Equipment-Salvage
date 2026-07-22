@@ -5,6 +5,40 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v3.70 - 2026-07-22
+
+**Gamebreaking install hotfix since public release v3.68**
+
+### Saved Equipment Identity
+
+- Fixed valid saved weapons, shields, and turrets from older or user-provided
+  saves being rejected before compatibility planning when their ware or macro
+  identity was persisted as an X4 object instead of a text ID, or vice versa.
+- Added one shared resolver that prefers the authoritative persisted ware,
+  supports legacy ID fallbacks, and canonicalizes macro objects and macro-ID
+  strings throughout dropdown publication, inventory checks, plan creation,
+  and final apply validation.
+- Kept existing inventory rows intact merely by opening the save.
+
+### Existing Matching Equipment
+
+- Fixed final installation rejecting a weapon, shield, or turret when the ship
+  already had one or more copies of that exact equipment macro installed.
+- Validated the selected equipment total as the existing count plus the
+  requested item, matching X4's regenerated complete-category loadout.
+- Preserved slot snapshots, exact plan shape, post-apply equipment gain,
+  inventory debit, and Bonding Catalyst debit safeguards.
+
+### Verification
+
+- Validated all 17 XML files and the extracted X4 9.00 Mission Director, diff,
+  and UI addon schemas.
+- Live-tested save slot 2 without saving: both planned TER beam turrets
+  installed from 2/4 to 4/4, the matching shield case succeeded, and the full
+  loadout completed 7/7 items with zero skipped rows.
+- Built and deployed v3.70 with synchronized manifest and loose-UI runtime
+  markers.
+
 ## v3.68 - 2026-07-20
 
 **Hotfix changes since public release v3.67**
