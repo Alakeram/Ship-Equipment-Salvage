@@ -41,8 +41,8 @@
       <t id="200">Aus</t>
       <t id="201">SES-Werkzeugmodus:</t>
       <t id="202">Wähle, welche Aufgabe der ausgerüstete Hand-Laser (nicht Blaster!) beim Bergen übernehmen soll. Nur Modi, für die das nötige Werkzeug mitgeführt wird, werden angezeigt.</t>
-      <t id="203">Hand Laser hits open the SES salvage flow when close enough; transactions are limited to 25 m.</t>
-      <t id="204">Hand Laser hits open the SES installation flow on valid nearby player-owned S/M ships; transactions are limited to 25 m.</t>
+      <t id="203">Treffer mit dem Hand-Laser starten den SES-Bergungsvorgang bei ausreichender Nähe; die Distanz ist auf 25 m begrenzt.</t>
+      <t id="204">Treffer mit dem Hand-Laser starten den SES-Installationsvorgang an gültigen, nahegelegenen Spielerschiffen (S/M); die Distanz ist auf 25 m begrenzt.</t>
       <t id="205">%s (fehlt im Inventar)</t>
       <t id="206">%s (benötigt einen Hand-Laser)</t>
 
@@ -87,8 +87,8 @@
       <t id="429">-- Keine ausstehende Bergung --</t>
       <t id="430">zur Zusammenfassung</t>
       <t id="431">%s (%d belegt / %d frei)</t>
-      <t id="432">Choose a saved-equipment category with inventory and open target capacity.</t>
-      <t id="433">No category currently has both saved parts and open target capacity.</t>
+      <t id="432">Wähle eine Kategorie mit eingelagerten Teilen und freier Zielkapazität.</t>
+      <t id="433">Derzeit hat keine Kategorie sowohl eingelagerte Teile als auch freie Zielkapazität.</t>
       <t id="434">Geplante Module</t>
       <t id="435">Modul geborgen</t>
       <t id="436">Wähle ein gelagertes Modul aus. Die Kompatibilität wird live geprüft.</t>
@@ -111,7 +111,7 @@
       <t id="453">Installiert: %d  |  Geplant: %d  |  benötigte Beam Catalysts: %d</t>
       <t id="454">Wähle den Slot oder die Slotgruppe aus auf der das Modul momentan installiert ist.  |  %s</t>
       <t id="455">Installiert: %d</t>
-      <t id="456">DerAvarice Bonding Regulator installiert gelagertes equipment. Das entfernen von Modulen ist mit diesem Werkzeug nicht möglich.</t>
+      <t id="456">Der Avarice Bonding Regulator installiert gelagertes Equipment. Das Entfernen von Modulen ist mit diesem Werkzeug nicht möglich.</t>
       <t id="457">Alle gelagerten Module dieses Typs sind bereits im aktuellen Auftrag verplant.</t>
       <t id="458">Kein Modul dieses Typs im Bergungslager gefunden.</t>
       <t id="459">Vorrat: %d</t>
@@ -125,7 +125,7 @@
       <t id="467">Geplante Bergung</t>
       <t id="468">Geplante Installation</t>
       <t id="469">Bergungsbestätigung geöffnet</t>
-      <t id="470">Installationsbestätigung opened</t>
+      <t id="470">Installationsbestätigung geöffnet</t>
       <t id="471">%s\nInstalliert: %d</t>
       <t id="472">%s\neingelagert: %d</t>
 
@@ -140,31 +140,31 @@
       <t id="507">Gesamt</t>
       <t id="508">Handelswert</t>
       <t id="509">Kontostand</t>
-      <t id="510">Handel anschließen</t>
+      <t id="510">Handel abschließen</t>
       <t id="511">Dein Bergungsinventar:</t>
-      <t id="512">Angebote des Schwarzmarkthänders:</t>
+      <t id="512">Angebote des Schwarzmarkthändlers:</t>
 
       <!-- Mission Director gates, operations, and results -->
       <t id="600">Der Kohäsionsstrahl kann nicht auf den Modulsockel fokussieren. Bitte nähere Dich dem Schiff weiter an.</t>
       <t id="601">Der Trennlaser kann nicht auf den Modulsockel fokussieren. Bitte nähere Dich dem Schiff weiter an.</t>
       <t id="602">Pilotentransmission: Bleib mit Deinem komischen Gerät von meinem Schiff weg!</t>
-      <t id="603">Pilotentransmission: Hau mit deinem Laser-schneider von meinem Schiff weg du verdammter Leichenfledderer!</t>
-      <t id="604">Der Kohäsionsstrahl wurde von Besitzrechtstransponder abgelehnt. Nur eigene Schiffe können ausgerüstet werden.</t>
+      <t id="603">Pilotentransmission: Hau mit deinem Laserschneider von meinem Schiff weg du verdammter Leichenfledderer!</t>
+      <t id="604">Der Kohäsionsstrahl wurde vom Besitzrechtstransponder abgelehnt. Nur eigene Schiffe können ausgerüstet werden.</t>
       <t id="605">Der Regulator wird vom Besitzrechtstransponder abgewiesen. Nur eigene oder herrenlose Schiffe können ausgeschlachtet werden.</t>
-      <t id="606">Entermannschaften sind dabei die Hülle dieses Schiffes zu durchbrechen. Aus Sicherheitsgründen ist es nicht möglich den Regulator einzuseten während ein Entervorgang stattfindet.</t>
+      <t id="606">Entermannschaften sind dabei die Hülle dieses Schiffes zu durchbrechen. Aus Sicherheitsgründen ist es nicht möglich den Regulator einzusetzen während ein Entervorgang stattfindet.</t>
       <t id="607">Das Regulatorfeld ist einzig für Modulsockel der Kategorie S und M ausgelegt. Für das Volumen eines L-Sockel-Modules mangelt es leider noch an Feldkohärenz.</t>
       <t id="608">Der Regulator kann auf diesem Wrack keinen intakten Modulsockel mehr ausmachen.</t>
       <t id="609">Die Montageklemmen befinden sich noch an der Hülle dieses Schiffes. In diesem Zustand kann der Regulator keinen Sockel erfassen.</t>
       <t id="610">Die Telemetrie dieser Hülle ist zu unbeständig um einen sicheren Weg zu finden die Komponente zu bewegen.</t>
       <t id="611">Kein Bergungsgut vorhanden</t>
       <t id="612">Alle Slots sind belegt.</t>
-      <t id="613">Der Anzug kannn den "Avarice Bonding Regulator" nicht initialisieren, da Du wohl vergessen hast ihn einzupacken.</t>
+      <t id="613">Der Anzug kann den "Avarice Bonding Regulator" nicht initialisieren, da Du wohl vergessen hast ihn einzupacken.</t>
       <t id="614">Bevor du den "Avarice Beam Regulator" nutzen kannst, musst du ihn erstmal dabei haben.</t>
       <t id="615">Der Regulator wird vom Raumanzug aus bedient.</t>
       <t id="616">Der Bonding Regulator muss erst abkühlen</t>
-      <t id="617">Der Beam Regulator arbeitet noch am aktuellen Bergunsvorgang.</t>
-      <t id="618">Bergung unterbrochen: Der Regulator konnte den Fokus auf das Ziel nicht halten, da die Entfernung zu groß geworden ist.(100m) Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Equipment entfernt und keine Catalysts verbraucht.</t>
-      <t id="619">Installation unterbrochen: Der Kohäsionsstrahl konnte das Kohäsionsfeld um das Ziel nicht aufrechterhalten, da die Entfernung zu groß geworden ist.(100m) Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Modul montiert und keine Catalysts verbraucht</t>
+      <t id="617">Der Beam Regulator arbeitet noch am aktuellen Bergungsvorgang.</t>
+      <t id="618">Bergung unterbrochen: Der Regulator konnte den Fokus auf das Ziel nicht halten, da die Entfernung zu groß geworden ist (100m). Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Equipment entfernt und keine Catalysts verbraucht.</t>
+      <t id="619">Installation unterbrochen: Der Kohäsionsstrahl konnte das Kohäsionsfeld um das Ziel nicht aufrechterhalten, da die Entfernung zu groß geworden ist (100m). Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Modul montiert und keine Catalysts verbraucht.</t>
       <t id="621">Mit Bergungsgütern handeln</t>
       <t id="622">Handel mit Bergungsgut nicht verfügbar</t>
       <t id="623">Montagearbeiten abgeschlossen an %s.%s</t>
@@ -174,7 +174,7 @@
       <t id="627">\n- Keine Module wurden angebracht.</t>
       <t id="628">Geborgene Ausrüstung</t>
       <t id="629">Avarice Beam Regulator - Bergung bestätigen</t>
-      <t id="630">%s Modul(e) von %s bergen?\n\ngeplante Module: %s\nbenötigte Beam Catalysts: %s (%s verfügbar)\n\n Nach Abschluss der Bergung werden die Catalysts verbraucht, unabhängig davon ob die Bergung erfolgreich war oder nicht. Die jeweiligen Chancen sind in der Planungsphase einsehbar.</t>
+      <t id="630">%s Modul(e) von %s bergen?\n\ngeplante Module: %s\nbenötigte Beam Catalysts: %s (%s verfügbar)\n\nNach Abschluss der Bergung werden die Catalysts verbraucht, unabhängig davon ob die Bergung erfolgreich war oder nicht. Die jeweiligen Chancen sind in der Planungsphase einsehbar.</t>
 
       <!-- Salvage result statuses and flavor text -->
       <t id="700">Blockiert</t>
@@ -185,20 +185,20 @@
       <t id="705">Protokollüberprüfung fehlgeschlagen</t>
       <t id="706">Du hast das falsche Kabel durchtrennt! Pfuscher!</t>
       <t id="707">Erst erden, dann arbeiten! Ein Lichtbogen hat das Interface verschmurgelt.</t>
-      <t id="708">Éin Drucksiegel ist gerissen und hat die Leiterbahnen mit Nanobots berieselt. Ein totaler Kurzschluss!</t>
+      <t id="708">Ein Drucksiegel ist gerissen und hat die Leiterbahnen mit Nanobots berieselt. Ein totaler Kurzschluss!</t>
       <t id="709">Da lag dann wohl doch ein wenig zu viel Spannung an. Aber hey: Feuerwerk!</t>
       <t id="710">Ein schwer zu erreichender Kondensator hat sich verabschiedet. Das Modul ist hin!</t>
-      <t id="711">Die Verschalung des Moduls löste sich sehr gut vom Schiff, der rest kam weniger intakt runter...</t>
-      <t id="712">Nach kurzem aufbegehren entschied sich das Modul in Zukunft ein Leben als Elektroschrott führen zu wollen.</t>
+      <t id="711">Die Verschalung des Moduls löste sich sehr gut vom Schiff, der Rest kam weniger intakt runter...</t>
+      <t id="712">Nach kurzem Aufbegehren entschied sich das Modul in Zukunft ein Leben als Elektroschrott führen zu wollen.</t>
       <t id="713">Einmal nicht aufgepasst und schwupp: Alle Pins verbogen!</t>
-      <t id="714">Ein kleiner Sonnensturm und schon werden aus teuren Modulen die ungeschirmt und frei im All schweben ein extrem teuerer Briefbeschwerer.</t>
-      <t id="715">Der Berungslaser war den ganzen Vorgang durch zuverlässig und stabil. Das Modul auch, zumindest bis es das plötzlich nicht mehr war.</t>
+      <t id="714">Ein kleiner Sonnensturm und schon werden aus teuren Modulen, die ungeschirmt und frei im All schweben, ein extrem teurer Briefbeschwerer.</t>
+      <t id="715">Der Bergungslaser war den ganzen Vorgang durch zuverlässig und stabil. Das Modul auch, zumindest bis es das plötzlich nicht mehr war.</t>
       <t id="716">Der FULL-BRIDGE-RECTIFIER hat vollkommen versagt!</t>
-      <t id="717">Jedes Modul hat eine Schwachstelle! Und der Bergungslaser hat den diesem Moduls leider gefunden bevor er seine Arbeit vollenden konnte.</t>
-      <t id="718">Einiges davon kann man gebrauchen, den Rest...leider nur entsorgen!</t>
-      <t id="719">Du hast das wichtigste an diesem Modul retten können, aber "funktionsfähig" sieht leider anders aus.</t>
+      <t id="717">Jedes Modul hat eine Schwachstelle! Und der Bergungslaser hat die dieses Moduls leider gefunden bevor er seine Arbeit vollenden konnte.</t>
+      <t id="718">Einiges davon kann man gebrauchen, den Rest... leider nur entsorgen!</t>
+      <t id="719">Du hast das Wichtigste an diesem Modul retten können, aber "funktionsfähig" sieht leider anders aus.</t>
       <t id="720">Der Regulator kann immer nur ein Objekt gleichzeitig erfassen. Das Modul entschied sich jedoch, sobald der Regulator aktiviert wurde, von nun an lieber als Gruppe zu agieren. Du kriegst aber auch alles kaputt!</t>
-      <t id="721">So viel Rauch, und dennoch kann man noch was davon gebrauchen</t>
+      <t id="721">So viel Rauch, und dennoch kann man noch was davon gebrauchen.</t>
       <t id="722">Nutzbare Module wurden geborgen</t>
       <t id="723">Abbruch durch Spieler</t>
     </page>
