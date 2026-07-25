@@ -85,7 +85,7 @@
       <t id="427">Bereits geplant, nicht verfügbar oder zu wenige Catalysts verfügbar</t>
       <t id="428">Keine Ausrüstung gewählt</t>
       <t id="429">-- Keine ausstehende Bergung --</t>
-      <t id="430">Bergung inspizieren</t>
+      <t id="430">zur Zusammenfassung</t>
       <t id="431">%s (%d belegt / %d frei)</t>
       <t id="432">Choose a saved-equipment category with inventory and open target capacity.</t>
       <t id="433">No category currently has both saved parts and open target capacity.</t>
@@ -100,7 +100,7 @@
       <t id="442">Ausrüstung installieren</t>
       <t id="443">-- Keine ausstehende Ausrüstungsänderung --</t>
       <t id="444">+ %d mehr geplante(s) Modul(e)</t>
-      <t id="445">Catalysts\ngeplant: %d  gesamt: %d</t>
+      <t id="445">Catalysts\nBenötigt: %d  Vorrat: %d</t>
       <t id="446">Beam Catalysts\ngeplant: %d  gesamt: %d</t>
       <t id="447">Lösche alle Teile aus dem ausstehenden Bergungsplan und setze die Vorschau zurück.</t>
       <t id="448">Lösche alle zu installierenden Teile aus dem ausstehenden Installationsplan.</t>
