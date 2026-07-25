@@ -559,7 +559,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v370. Final apply validation preserves pre-existing copies of the selected equipment macro.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v371. GalNet announcement source, titles, and article bodies now resolve through the SES localization catalog.'" />
       </actions>
     </cue>
 
@@ -651,7 +651,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v370-existing-selection-validation',
+              $version = 'v371-galnet-localization',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -665,7 +665,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v370-existing-selection-validation',
+              $version = 'v371-galnet-localization',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -1109,10 +1109,10 @@
         <do_if value="not @global.$SES_Black_Market_Special_Stock_Message_V4">
           <set_value name="global.$SES_Black_Market_Special_Stock_Message_V4" exact="true" />
           <write_incoming_message
-            source="'Galaxy Network'"
+            source="readtext.{1171361}.{631}"
             highpriority="true"
-            title="'GalNet - Shipyards Warn Against Unlicensed Salvage Crews'"
-            text="'Across the known systems, shipyard operators are reporting a sharp increase in unauthorized salvage work around repair berths, construction queues, and abandoned holding yards.\n\nThe incidents appear to follow a similar pattern. Small EVA crews approach disabled or ownerless ships, use compact cutting beams to free valuable components, and depart before yard security can establish ownership, liability, or even a repair ticket. In several reported cases, technicians claim the same crews later returned with bonding rigs to refit recovered parts onto privately owned vessels.\n\nMora Tilen, a spokesperson for an independent shipyard consortium, spoke to GalNet about the growing concern.\n\n&quot;This is not salvage in any responsible sense. It is unlicensed shipbuilding in a pressure suit. These crews are bypassing certification, warranty records, safety checks, and every fee that keeps a yard operational. The fact that some of them appear unusually well supplied only makes the matter more troubling.&quot;\n\nPort authorities have stopped short of naming a single supplier, but several investigations now point to anonymous dockside dealers moving compact industrial tools and volatile field catalysts through black-market channels. Yard officials insist this trade is limited and dangerous. Independent captains, predictably, are less convinced.\n\nGalNet can only note that the argument is unlikely to fade while damaged hulls continue to outnumber available repair crews. For pilots willing to trust a dealer over a dockmaster, the warning may read less like a prohibition and more like a shopping list.\n\nRalen Voss\nIndustrial Affairs Correspondent, GalNet'" />
+            title="readtext.{1171361}.{632}"
+            text="readtext.{1171361}.{633}" />
           <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Galaxy Network high-priority black-market GalNet article written via write_incoming_message. flag=%s'.[
             global.$SES_Black_Market_Special_Stock_Message_V4
           ]" />
@@ -6342,7 +6342,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v370-existing-selection-validation',
+            $version = 'v371-galnet-localization',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -7769,7 +7769,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v370-existing-selection-validation',
+            $version = 'v371-galnet-localization',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,
