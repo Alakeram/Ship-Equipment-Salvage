@@ -6,7 +6,7 @@
 local ffi = require("ffi")
 
 local ses = {
-	version = "v370-existing-selection-validation",
+	version = "v371-galnet-localization",
 	screen = "SES_Salvage_Inventory_UI",
 	category = "ses_salvage",
 	patchid = "ship_equipment_salvaging",
