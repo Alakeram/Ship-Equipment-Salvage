@@ -12,4 +12,8 @@
   <dependency id="kuerteeUIExtensionsAndHUD" optional="false" />
   <dependency id="ws_2042901274" optional="false" />
   <dependency id="ws_3715253556" optional="false" name="Options Helper" version="110" />
+  <text
+    language="49"
+    name="Ship Equipment Salvaging - Deutsch"
+    description="Ship Equipment Salvaging mod mit deutschen Texten" />
 </content>
