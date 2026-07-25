@@ -5,13 +5,13 @@
       <t id="1">Ausrüstungsbergung</t>
       <t id="2">Berge montierte Module von eigenen oder aufgegebenen Schiffen und nutze sie, wenn du sie brauchst.</t>
       <t id="10">Avarice Beam Regulator</t>
-      <t id="11">Ein nur auf dem Schwarzmarkt zu findender Nachrüstsatz für den Hand-Laser, welcher durch Bergungsteams und Werkstätten der Sturmflutstreicher bekannt wurde. Der Laser wird starker fokussiert und ist so in der Lage, beschädigte Hüllenpanzerung, montierte Ausrüstung und externe Komponenten vom Schiff zu bergen. Aufgrund der Tatsache, dass dieses Modul das illegale Bergen oder Stehlen von Ausrüstung sowie die gezielte Sabotage von Schiffen ermöglicht, ist dieses Modul in den meisten regulierten Systemen illegal.</t>
+      <t id="11">Ein nur auf dem Schwarzmarkt zu findender Nachrüstsatz für den Handlaser, welcher durch Bergungsteams und Werkstätten der Sturmflutstreicher bekannt wurde. Der Laser wird stärker fokussiert und ist so in der Lage, beschädigte Hüllenpanzerung, montierte Ausrüstung und externe Komponenten vom Schiff zu bergen. Aufgrund der Tatsache, dass dieses Modul das illegale Bergen oder Stehlen von Ausrüstung sowie die gezielte Sabotage von Schiffen ermöglicht, ist dieses Modul in den meisten regulierten Systemen illegal.</t>
       <t id="12">Ein illegaler, nur auf dem Schwarzmarkt erhältlicher Regulator, der durch Fokussierung des Lasers einen dünnen, instabilen Schneidestrahl zum unautorisierten Entfernen von Modulen sowie zu deren Bergung bereitstellt.</t>
       <t id="20">Avarice Bonding Regulator</t>
-      <t id="21">Ein illegaler, nur auf dem Schwarzmarkt erhältlicher Regulator, der auf denselben improvisierten Prinzipien beruht wie der Avarice Beam Regulator. Der Strahl des Hand-Lasers wird hierbei allerdings in ein, wenn auch etwas primitives, Schweißgerät verwandelt, um zuvor geborgene Module wieder auf kompatiblen Schiffen zu montieren. Aufgrund der Tatsache, dass der Avarice Bonding Regulator befähigt, unautorisierte Modifikationen und unsichere Reparaturen im offenen Feld durchzuführen sowie unbemerkt Schiffe zu bewaffnen, ist er in zivilisierten Systemen illegal.</t>
+      <t id="21">Ein illegaler, nur auf dem Schwarzmarkt erhältlicher Regulator, der auf denselben improvisierten Prinzipien beruht wie der Avarice Beam Regulator. Der Strahl des Handlasers wird hierbei allerdings in ein, wenn auch etwas primitives, Schweißgerät verwandelt, um zuvor geborgene Module wieder auf kompatiblen Schiffen zu montieren. Aufgrund der Tatsache, dass der Avarice Bonding Regulator befähigt, unautorisierte Modifikationen und unsichere Reparaturen im offenen Feld durchzuführen, sowie unbemerkt Schiffe zu bewaffnen, ist er in zivilisierten Systemen illegal.</t>
       <t id="22">Ein illegaler, nur auf dem Schwarzmarkt erhältlicher Regulator, der den Laser befähigt, grobe Schweißarbeiten zu bewältigen und so zuvor geborgene Module auf kompatiblen Schiffen zu befestigen.</t>
       <t id="30">Avarice Beam Catalyst</t>
-      <t id="31">Ein Einwegartikel zum Betrieb des Avarice Beam Regulators, der nur auf dem Schwarzmarkt zu finden ist. Er liefert genug Energie, um den Laserstrahl des Hand-Lasers kurzfristig weit über das Limit ziviler Lizenzen zu erhöhen und so Schiffsmodule vom Schiff zu lösen, ohne das Modul dabei sicher zu zerstören. In den meisten regulierten Systemen illegal, da das Modul dem Diebstahl von Modulen sowie der illegalen Plünderung anderer Schiffe Vorschub leistet.</t>
+      <t id="31">Ein Einwegartikel zum Betrieb des Avarice Beam Regulators, der nur auf dem Schwarzmarkt zu finden ist. Er liefert genug Energie, um den Laserstrahl des Handlasers kurzfristig weit über das Limit ziviler Lizenzen zu erhöhen und so Schiffsmodule vom Schiff zu lösen, ohne das Modul dabei sicher zu zerstören. Er ist in den meisten regulierten Systemen illegal, da das Modul dem Diebstahl von Modulen sowie der illegalen Plünderung anderer Schiffe Vorschub leistet.</t>
       <t id="40">Avarice Bonding Catalyst</t>
       <t id="41">Ein Einwegartikel zum Betrieb des Avarice Bonding Regulators, der nur auf dem Schwarzmarkt zu finden ist. Wenn er durch den Regulator erhitzt wird, bildet er ein improvisiertes Leitungsnetz zwischen einem zuvor geborgenen Modul und einer kompatiblen Aufhängung an einem Schiff. Aufgrund der Möglichkeit, mit diesem Modul unlizenzierte Schiffsmodifikationen durchzuführen und illegal geborgene Module am Schiff zu befestigen, ist dieser Gegenstand in den meisten regulierten Systemen illegal.</t>
 
@@ -31,7 +31,7 @@
       <t id="112">Geplant</t>
       <t id="113">Entfernen</t>
       <t id="114">Abbruch</t>
-      <t id="115">Plan zurücksetzen</t>
+      <t id="115">Plan zurücksetzen</t> 
       <t id="116">Bereit</t>
       <t id="117">Unbekannt</t>
       <t id="118">Abgeschlossen</t>
@@ -40,9 +40,9 @@
       <!-- Tool-mode selector -->
       <t id="200">Aus</t>
       <t id="201">SES-Werkzeugmodus:</t>
-      <t id="202">Wähle, welche Aufgabe der ausgerüstete Hand-Laser (nicht Blaster!) beim Bergen übernehmen soll. Nur Modi, für die das nötige Werkzeug mitgeführt wird, werden angezeigt.</t>
-      <t id="203">Hand Laser hits open the SES salvage flow when close enough; transactions are limited to 25 m.</t>
-      <t id="204">Hand Laser hits open the SES installation flow on valid nearby player-owned S/M ships; transactions are limited to 25 m.</t>
+      <t id="202">Wähle, welche Aufgabe der ausgerüstete Handlaser (nicht Blaster!) beim Bergen übernehmen soll. Nur Modi, für die das nötige Werkzeug mitgeführt wird, werden angezeigt.</t>
+      <t id="203">Der Handlaser startet den Bergungsvorgang sobald das Ziel in Reichweite ist: Die Maximalreichweite zum Starten beträgt 25 m.</t>
+      <t id="204">Der Handlaser startet den Montagevorgang auf dem Spieler gehörenden Schiffen der größen S/M sobald es in Reichweite ist: Die Maximalreichweite zum Starten beträgt 25 m.</t>
       <t id="205">%s (fehlt im Inventar)</t>
       <t id="206">%s (benötigt einen Hand-Laser)</t>
 
@@ -87,13 +87,13 @@
       <t id="429">-- Keine ausstehende Bergung --</t>
       <t id="430">zur Zusammenfassung</t>
       <t id="431">%s (%d belegt / %d frei)</t>
-      <t id="432">Choose a saved-equipment category with inventory and open target capacity.</t>
-      <t id="433">No category currently has both saved parts and open target capacity.</t>
+      <t id="432">Bitte wähle eine Kategorie aus, von der Module im Bergungsinventar verfügbar sind. Achte darauf, dass das Schiff für dieses Modul freie Slots verfügbar hat.</t>
+      <t id="433">Keine der Kategorien hat sowohl kompatible Module, als auch freie Slots auf dem gewählten Schiff.</t>
       <t id="434">Geplante Module</t>
       <t id="435">Modul geborgen</t>
       <t id="436">Wähle ein gelagertes Modul aus. Die Kompatibilität wird live geprüft.</t>
-      <t id="437">Kein kompatibles Modul für diese Kategorie im Inventar gefunden</t>
-      <t id="438">Erwarte Daten zur Kompatibilität der Kategorie</t>
+      <t id="437">Kein kompatibles Modul für diese Kategorie im Inventar gefunden.</t>
+      <t id="438">Erwarte Daten zur Kompatibilität der Kategorie.</t>
       <t id="439">Installationspreis</t>
       <t id="440">Keine kompatiblen Module ausgewählt.</t>
       <t id="441">-- Keine ausstehenden Installationen --</t>
@@ -106,12 +106,12 @@
       <t id="448">Lösche alle zu installierenden Teile aus dem ausstehenden Installationsplan.</t>
       <t id="449">Öffne die Auftragszusammenfassung</t>
       <t id="450">Öffne die Auftragszusammenfassung</t>
-      <t id="451">Wähle die installierte Ausrüstung die du zum Bergungsauftrag hinzufügen möchtest.</t>
+      <t id="451">Wähle die installierte Ausrüstung, die du zum Bergungsauftrag hinzufügen möchtest.</t>
       <t id="452">Dieses installierte Modul kann nicht geborgen werden.</t>
       <t id="453">Installiert: %d  |  Geplant: %d  |  benötigte Beam Catalysts: %d</t>
       <t id="454">Wähle den Slot oder die Slotgruppe aus auf der das Modul momentan installiert ist.  |  %s</t>
       <t id="455">Installiert: %d</t>
-      <t id="456">DerAvarice Bonding Regulator installiert gelagertes equipment. Das entfernen von Modulen ist mit diesem Werkzeug nicht möglich.</t>
+      <t id="456">Der Avarice Bonding Regulator installiert gelagertes Equipment. Das Entfernen von Modulen ist mit diesem Werkzeug nicht möglich.</t>
       <t id="457">Alle gelagerten Module dieses Typs sind bereits im aktuellen Auftrag verplant.</t>
       <t id="458">Kein Modul dieses Typs im Bergungslager gefunden.</t>
       <t id="459">Vorrat: %d</t>
@@ -125,9 +125,9 @@
       <t id="467">Geplante Bergung</t>
       <t id="468">Geplante Installation</t>
       <t id="469">Bergungsbestätigung geöffnet</t>
-      <t id="470">Installationsbestätigung opened</t>
+      <t id="470">Installationsbestätigung geöffnet</t>
       <t id="471">%s\nInstalliert: %d</t>
-      <t id="472">%s\neingelagert: %d</t>
+      <t id="472">%s\nEingelagert: %d</t>
 
       <!-- Black Market trade UI -->
       <t id="500">Schiffsteil</t>
@@ -140,7 +140,7 @@
       <t id="507">Gesamt</t>
       <t id="508">Handelswert</t>
       <t id="509">Kontostand</t>
-      <t id="510">Handel anschließen</t>
+      <t id="510">Handel abschließen</t>
       <t id="511">Dein Bergungsinventar:</t>
       <t id="512">Angebote des Schwarzmarkthänders:</t>
 
@@ -148,25 +148,25 @@
       <t id="600">Der Kohäsionsstrahl kann nicht auf den Modulsockel fokussieren. Bitte nähere Dich dem Schiff weiter an.</t>
       <t id="601">Der Trennlaser kann nicht auf den Modulsockel fokussieren. Bitte nähere Dich dem Schiff weiter an.</t>
       <t id="602">Pilotentransmission: Bleib mit Deinem komischen Gerät von meinem Schiff weg!</t>
-      <t id="603">Pilotentransmission: Hau mit deinem Laser-schneider von meinem Schiff weg du verdammter Leichenfledderer!</t>
-      <t id="604">Der Kohäsionsstrahl wurde von Besitzrechtstransponder abgelehnt. Nur eigene Schiffe können ausgerüstet werden.</t>
+      <t id="603">Pilotentransmission: Hau mit deinem Laserschneider von meinem Schiff ab, Du verdammter Leichenfledderer!</t>
+      <t id="604">Der Kohäsionsstrahl wurde vom Besitzrechtstransponder abgelehnt. Nur eigene Schiffe können ausgerüstet werden.</t>
       <t id="605">Der Regulator wird vom Besitzrechtstransponder abgewiesen. Nur eigene oder herrenlose Schiffe können ausgeschlachtet werden.</t>
-      <t id="606">Entermannschaften sind dabei die Hülle dieses Schiffes zu durchbrechen. Aus Sicherheitsgründen ist es nicht möglich den Regulator einzuseten während ein Entervorgang stattfindet.</t>
+      <t id="606">Entermannschaften sind dabei die Hülle dieses Schiffes zu durchbrechen. Aus Sicherheitsgründen ist es nicht möglich den Regulator einzusetzen während ein Entervorgang stattfindet.</t>
       <t id="607">Das Regulatorfeld ist einzig für Modulsockel der Kategorie S und M ausgelegt. Für das Volumen eines L-Sockel-Modules mangelt es leider noch an Feldkohärenz.</t>
       <t id="608">Der Regulator kann auf diesem Wrack keinen intakten Modulsockel mehr ausmachen.</t>
       <t id="609">Die Montageklemmen befinden sich noch an der Hülle dieses Schiffes. In diesem Zustand kann der Regulator keinen Sockel erfassen.</t>
-      <t id="610">Die Telemetrie dieser Hülle ist zu unbeständig um einen sicheren Weg zu finden die Komponente zu bewegen.</t>
+      <t id="610">Die Telemetrie dieser Hülle ist zu unbeständig, um einen sicheren Weg zu finden die Komponente zu bewegen.</t>
       <t id="611">Kein Bergungsgut vorhanden</t>
       <t id="612">Alle Slots sind belegt.</t>
-      <t id="613">Der Anzug kannn den "Avarice Bonding Regulator" nicht initialisieren, da Du wohl vergessen hast ihn einzupacken.</t>
-      <t id="614">Bevor du den "Avarice Beam Regulator" nutzen kannst, musst du ihn erstmal dabei haben.</t>
+      <t id="613">Der Anzug kann den "Avarice Bonding Regulator" nicht initialisieren, da Du wohl vergessen hast, ihn einzupacken.</t>
+      <t id="614">Bevor Du den "Avarice Beam Regulator" nutzen kannst, musst du ihn erstmal dabei haben.</t>
       <t id="615">Der Regulator wird vom Raumanzug aus bedient.</t>
-      <t id="616">Der Bonding Regulator muss erst abkühlen</t>
+      <t id="616">Der Bonding Regulator muss erst abkühlen.</t>
       <t id="617">Der Beam Regulator arbeitet noch am aktuellen Bergunsvorgang.</t>
-      <t id="618">Bergung unterbrochen: Der Regulator konnte den Fokus auf das Ziel nicht halten, da die Entfernung zu groß geworden ist.(100m) Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Equipment entfernt und keine Catalysts verbraucht.</t>
-      <t id="619">Installation unterbrochen: Der Kohäsionsstrahl konnte das Kohäsionsfeld um das Ziel nicht aufrechterhalten, da die Entfernung zu groß geworden ist.(100m) Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Modul montiert und keine Catalysts verbraucht</t>
+      <t id="618">Bergung unterbrochen: Der Regulator konnte den Fokus auf das Ziel nicht halten, da die Entfernung zu groß geworden ist.( >100m) Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Equipment entfernt und keine Catalysts verbraucht.</t>
+      <t id="619">Installation unterbrochen: Der Kohäsionsstrahl konnte das Kohäsionsfeld um das Ziel nicht aufrechterhalten, da die Entfernung zu groß geworden ist.( >100m) Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Modul montiert und keine Catalysts verbraucht</t>
       <t id="621">Mit Bergungsgütern handeln</t>
-      <t id="622">Handel mit Bergungsgut nicht verfügbar</t>
+      <t id="622">Handel mit Bergungsgut nicht verfügbar.</t>
       <t id="623">Montagearbeiten abgeschlossen an %s.%s</t>
       <t id="624">Avarice Bonding Regulator - Montage abgeschlossen</t>
       <t id="625">Montage abgeschlossen auf %s.\nMontierte Module:%s</t>
@@ -175,6 +175,13 @@
       <t id="628">Geborgene Ausrüstung</t>
       <t id="629">Avarice Beam Regulator - Bergung bestätigen</t>
       <t id="630">%s Modul(e) von %s bergen?\n\ngeplante Module: %s\nbenötigte Beam Catalysts: %s (%s verfügbar)\n\n Nach Abschluss der Bergung werden die Catalysts verbraucht, unabhängig davon ob die Bergung erfolgreich war oder nicht. Die jeweiligen Chancen sind in der Planungsphase einsehbar.</t>
+
+      <!-- GalNet announcements -->
+      <t id="631">Galaxy Network</t>
+      <t id="632">GalNet - Werften warnen vor unlizensierten Bergungsmannschaften.</t>
+      <t id="633">In nahezu allen bekannten Systemen melden Werftbetreiber einen starken Anstieg unbefugter Bergungsarbeiten in der Nähe von Reparaturdocks, Bauwarteschlangen und verlassenen Schifflagern.\n\nDie Vorfälle scheinen alle einem ähnlichen Muster zu folgen: Kleine Gruppen in Raumanzügen nähern sich manövrierunfähigen oder herrenlosen Schiffen, verwenden kompakte Schneidlaser, um wertvolle Bauteile zu entfernen, und verschwinden, bevor die Stationssicherheit sie zur Rede stellen oder die Frage nach Eigentumsverhältnisse oder Reparaturkosten mit ihnen klären kann. In mehreren dieser Fälle wollen Techniker weiterhin beobachtet haben, wie dieselben Teams, mit Schweißgeräten ähnelnden Werkzeugen, zurückkehrten, um die geborgenen Teile an Schiffen in Privatbesitz wieder einzubauen.\n\nMora Tilen, Sprecherin eines unabhängigen Werftkonsortiums, sprach mit GalNet über die wachsende Besorgnis.\n\n„Das sind ja keine Bergungen im herkömmlichen Sinne. Es ist nicht lizenzierter Schiffbau im Druckanzug! Diese Leute umgehen Zertifizierungen und Sicherheitsüberprüfungen auf Kosten der Sicherheit aller, um jene Gebühren zu sparen, die den sicheren Betrieb einer Werft gewährleisten. Die Tatsache, dass einige von ihnen ungewöhnlich gut ausgerüstet erscheinen, macht die Angelegenheit nur noch beunruhigender.“\n\nDie Hafenbehörden haben davon abgesehen, eine Quelle für diese illegalen Bergungswerkzeuge zu benennen, doch mehrere Ermittlungen deuten nun auf nicht lizensierte Händler auf Stationen hin, die neben Schwarzmarktprodukten auch diese kompakten Industriewerkzeuge und die dazu gehörigen "Field Catalysts" vertreiben. Werftverantwortliche betonen, dass dieser Handel unkontrolliert und eine Gefahr sei. Die Sorge unabhängiger Kapitäne scheint jedoch weitaus geringer zu sein.\n\nGalNet kann nur feststellen, dass die Debatte wohl nicht abklingen wird, solange die Zahl der beschädigten Schiffe weiterhin die der verfügbaren Reparaturplätze an Werften so massiv übersteigt wie bisher. Für Piloten, die dem freien Markt mehr vertrauen als Mitgliedern eines großen Konsortiums, mag die Warnung eher wie eine Chance als ein Problem erscheinen.\n\nRalen Voss\nKorrespondent für Industrieangelegenheiten, GalNet</t>
+      <t id="634">GalNet - Immer mehr unregistrierte Schiffsmodule im Privatverkauf</t>
+      <t id="635">Behörden entlang mehrerer wichtiger Handelsrouten im Tornetzwerk untersuchen einen plötzlichen Anstieg nicht registrierter Schiffskomponenten, die im privaten Handel auftauchen. Im Gegensatz zu gewöhnlichem Schrott umfassen die beschlagnahmten Waren intakte Triebwerke, Schilde, Waffengehäuse und Waffentürme, welche Seriennummern von Schiffen tragen, die als aufgegeben oder abgewrackt gelten, sowie Schiffen die, den Meldungen zugelassener Reparaturwerften nach, gestohlen wurden.\n\nVertreter der Werften betonen, dass seriöse Einrichtungen nicht für das neue Angebot verantwortlich sind. Mehrere betroffene Betreiber geben an, dass sich die neuen Gegebenheiten nicht nennenswert auf ihren Profit auswirken, während unabhängige Reparaturteams berichten, mehrfach von zwielichtigen Gestalten angesprochen worden zu sein, die komplette Komponenten ohne umständlichen Papierkram zu verkaufen hätten.\n\nEin Handelsgutachter der Teladi, der sich gegenüber GalNet anonym zu Wort meldete, bezeichnete die Entwicklung als unvermeidliche Konsequenz des überlasteten Reparaturmarktes.\n\n„Piloten haben schon immer für Bequemlichkeit bezahlt. Der einzige Unterschied ist, dass endlich jemand herausgefunden hat, wie man Bequemlichkeit in eine Kiste packt und durch die Hintertür an den Autoritäten vorbeischmuggelt.“\n\nDie Hafenbehörden haben eine allgemeine Warnung herausgegeben, in der sie Kapitäne darauf hinweisen, dass außerhalb einer akkreditierten Werft gekaufte Ausrüstung veränderte Identifikationsmerkmale, erloschene Garantien oder Verbindungen zu ungeklärten Bergungsansprüchenaufweisen kann. Dennoch deuten Berichte darauf hin, dass Kontakte auf dem Schwarzmarkt bereits ständig aktualisierte Angebotslisten in Umlauf bringen, wobei die Verfügbarkeit von Station zu Station stark variiert. Hochwertige Komponenten sind nach wie vor knapp, doch Ermittler gehen davon aus, dass sich das Angebot ebenso schnell ändern wird, wie beschädigte Schiffe aus umkämpften Sektoren verschwinden.\n\nFür lizenzierte Werften ist dies ein Beleg für eine organisierte kriminelle Organisation. Für unabhängige Kapitäne könnte es einfach bedeuten, dass ein vertrauter Kontakt nun etwas Handfesteres zu verkaufen hat, als er offiziell zugeben würde.\n\nRalen Voss\nKorrespondent für Industrieangelegenheiten, GalNet</t>
 
       <!-- Salvage result statuses and flavor text -->
       <t id="700">Blockiert</t>
@@ -185,21 +192,21 @@
       <t id="705">Protokollüberprüfung fehlgeschlagen</t>
       <t id="706">Du hast das falsche Kabel durchtrennt! Pfuscher!</t>
       <t id="707">Erst erden, dann arbeiten! Ein Lichtbogen hat das Interface verschmurgelt.</t>
-      <t id="708">Éin Drucksiegel ist gerissen und hat die Leiterbahnen mit Nanobots berieselt. Ein totaler Kurzschluss!</t>
+      <t id="708">Ein Drucksiegel ist gerissen und hat die Leiterbahnen mit Nanobots berieselt. Ein totaler Kurzschluss!</t>
       <t id="709">Da lag dann wohl doch ein wenig zu viel Spannung an. Aber hey: Feuerwerk!</t>
       <t id="710">Ein schwer zu erreichender Kondensator hat sich verabschiedet. Das Modul ist hin!</t>
-      <t id="711">Die Verschalung des Moduls löste sich sehr gut vom Schiff, der rest kam weniger intakt runter...</t>
+      <t id="711">Die Verschalung des Moduls löste sich sehr gut vom Schiff, der Rest kam weniger intakt runter...</t>
       <t id="712">Nach kurzem aufbegehren entschied sich das Modul in Zukunft ein Leben als Elektroschrott führen zu wollen.</t>
       <t id="713">Einmal nicht aufgepasst und schwupp: Alle Pins verbogen!</t>
       <t id="714">Ein kleiner Sonnensturm und schon werden aus teuren Modulen die ungeschirmt und frei im All schweben ein extrem teuerer Briefbeschwerer.</t>
-      <t id="715">Der Berungslaser war den ganzen Vorgang durch zuverlässig und stabil. Das Modul auch, zumindest bis es das plötzlich nicht mehr war.</t>
+      <t id="715">Der Bergungslaser war den ganzen Vorgang durch zuverlässig und stabil. Das Modul auch, zumindest bis es das plötzlich nicht mehr war.</t>
       <t id="716">Der FULL-BRIDGE-RECTIFIER hat vollkommen versagt!</t>
-      <t id="717">Jedes Modul hat eine Schwachstelle! Und der Bergungslaser hat den diesem Moduls leider gefunden bevor er seine Arbeit vollenden konnte.</t>
-      <t id="718">Einiges davon kann man gebrauchen, den Rest...leider nur entsorgen!</t>
-      <t id="719">Du hast das wichtigste an diesem Modul retten können, aber "funktionsfähig" sieht leider anders aus.</t>
+      <t id="717">Jedes Modul hat eine Schwachstelle! Und der Bergungslaser hat den dieses Moduls leider gefunden bevor er seine Arbeit vollenden konnte.</t>
+      <t id="718">Einiges davon kann man gebrauchen, den Rest... leider nur entsorgen!</t>
+      <t id="719">Du hast das Wichtigste an diesem Modul retten können, aber "funktionsfähig" sieht leider anders aus.</t>
       <t id="720">Der Regulator kann immer nur ein Objekt gleichzeitig erfassen. Das Modul entschied sich jedoch, sobald der Regulator aktiviert wurde, von nun an lieber als Gruppe zu agieren. Du kriegst aber auch alles kaputt!</t>
-      <t id="721">So viel Rauch, und dennoch kann man noch was davon gebrauchen</t>
-      <t id="722">Nutzbare Module wurden geborgen</t>
-      <t id="723">Abbruch durch Spieler</t>
+      <t id="721">So viel Rauch und dennoch kann man noch was davon gebrauchen.</t>
+      <t id="722">Nutzbare Module wurden geborgen!</t>
+      <t id="723">Abbruch durch Spieler!</t>
     </page>
 </language>
