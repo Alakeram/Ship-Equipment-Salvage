@@ -5,6 +5,35 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v3.72 - 2026-07-26
+
+**Localization update since public release v3.70**
+
+### German Localization
+
+- Added a complete German translation for all 191 SES text entries, covering
+  the native salvage and welding planners, saved-parts inventory, Black Market,
+  regulator tools and feedback, confirmations, results, and GalNet reports.
+- Credited **TheSylance** for the community translation contribution.
+- Normalized the contributed file to SES's required X4 diff-catalog structure
+  and restored the one text entry added after the translation was started.
+
+### GalNet Localization
+
+- Added five localized GalNet announcements introduced after v3.70, including
+  the initial salvaging report and the later Black Market parts-network story.
+- Kept the announcement timing, unlock conditions, inventory, economy, and
+  equipment behavior unchanged.
+
+### Verification
+
+- Validated all 18 XML files and the extracted X4 9.00 Mission Director, diff,
+  and UI addon schemas.
+- Confirmed exact English/German parity across 191 IDs, with no missing,
+  duplicate, unknown, placeholder, or intentional-line-break mismatches.
+- Built v3.72 and verified the packaged catalog against the canonical source
+  and deployed runtime.
+
 ## v3.70 - 2026-07-22
 
 **Gamebreaking install hotfix since public release v3.68**

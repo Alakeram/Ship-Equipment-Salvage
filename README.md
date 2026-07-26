@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.70<br>
+**Release:** v3.72<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -14,6 +14,18 @@ through a dedicated Black Market parts network.
 
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
+
+## What Was Added in v3.72
+
+- Added a complete German translation covering all 191 SES text entries,
+  including the native planners, inventory, Black Market, regulator feedback,
+  results, and GalNet reports.
+- Added the new GalNet announcement text introduced after v3.70 to both the
+  English and German catalogs without changing gameplay behavior.
+- Normalized and validated the contributed catalog against SES's X4 diff-file
+  format, restored one missing text entry, and preserved every runtime format
+  token and intentional line break.
+- German translation contributed by **TheSylance**.
 
 ## What Was Fixed in v3.70
 
@@ -240,8 +252,9 @@ For a clean update, fully close X4 before replacing the existing
 ## Translations
 
 SES reserves X4 text page `1171361` and ships an English fallback catalog at
-`t/0001.xml`. Community translators can add a language file without editing
-gameplay code; German uses `t/0001-l049.xml`.
+`t/0001.xml`. The included German translation uses `t/0001-l049.xml`.
+Community translators can add another language file without editing gameplay
+code.
 
 See [TRANSLATING.md](TRANSLATING.md) for the file naming convention,
 placeholder rules, validation requirements, and test checklist. Translation
@@ -263,6 +276,7 @@ files must preserve all text IDs and `%s`/`%d` format tokens.
 ## Credits
 
 - **Alakeram** - design and development.
+- **TheSylance** - German translation.
 - **Kuertee** and UI Extensions contributors - shared UI callback framework.
 - **SirNukes** - Mod Support APIs.
 - **JLPH / Options Helper contributors** - extension options framework.

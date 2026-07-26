@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff>
+  <add sel="/language">
+    <page id="1171361" title="Ship Equipment Salvaging" descr="Ship Equipment Salvaging player-facing text" voice="no">
+      <!-- Reference metadata strings and localized equipment -->
+      <t id="1">Ausrüstungsbergung</t>
+      <t id="2">Berge montierte Module von eigenen oder aufgegebenen Schiffen und nutze sie, wenn du sie brauchst.</t>
+      <t id="10">Avarice Beam Regulator</t>
+      <t id="11">Ein nur auf dem Schwarzmarkt zu findender Nachrüstsatz für den Handlaser, welcher durch Bergungsteams und Werkstätten der Sturmflutstreicher bekannt wurde. Der Laser wird stärker fokussiert und ist so in der Lage, beschädigte Hüllenpanzerung, montierte Ausrüstung und externe Komponenten vom Schiff zu bergen. Aufgrund der Tatsache, dass dieses Modul das illegale Bergen oder Stehlen von Ausrüstung sowie die gezielte Sabotage von Schiffen ermöglicht, ist dieses Modul in den meisten regulierten Systemen illegal.</t>
+      <t id="12">Ein illegaler, nur auf dem Schwarzmarkt erhältlicher Regulator, der durch Fokussierung des Lasers einen dünnen, instabilen Schneidestrahl zum unautorisierten Entfernen von Modulen sowie zu deren Bergung bereitstellt.</t>
+      <t id="20">Avarice Bonding Regulator</t>
+      <t id="21">Ein illegaler, nur auf dem Schwarzmarkt erhältlicher Regulator, der auf denselben improvisierten Prinzipien beruht wie der Avarice Beam Regulator. Der Strahl des Handlasers wird hierbei allerdings in ein, wenn auch etwas primitives, Schweißgerät verwandelt, um zuvor geborgene Module wieder auf kompatiblen Schiffen zu montieren. Aufgrund der Tatsache, dass der Avarice Bonding Regulator befähigt, unautorisierte Modifikationen und unsichere Reparaturen im offenen Feld durchzuführen, sowie unbemerkt Schiffe zu bewaffnen, ist er in zivilisierten Systemen illegal.</t>
+      <t id="22">Ein illegaler, nur auf dem Schwarzmarkt erhältlicher Regulator, der den Laser befähigt, grobe Schweißarbeiten zu bewältigen und so zuvor geborgene Module auf kompatiblen Schiffen zu befestigen.</t>
+      <t id="30">Avarice Beam Catalyst</t>
+      <t id="31">Ein Einwegartikel zum Betrieb des Avarice Beam Regulators, der nur auf dem Schwarzmarkt zu finden ist. Er liefert genug Energie, um den Laserstrahl des Handlasers kurzfristig weit über das Limit ziviler Lizenzen zu erhöhen und so Schiffsmodule vom Schiff zu lösen, ohne das Modul dabei sicher zu zerstören. Er ist in den meisten regulierten Systemen illegal, da das Modul dem Diebstahl von Modulen sowie der illegalen Plünderung anderer Schiffe Vorschub leistet.</t>
+      <t id="40">Avarice Bonding Catalyst</t>
+      <t id="41">Ein Einwegartikel zum Betrieb des Avarice Bonding Regulators, der nur auf dem Schwarzmarkt zu finden ist. Wenn er durch den Regulator erhitzt wird, bildet er ein improvisiertes Leitungsnetz zwischen einem zuvor geborgenen Modul und einer kompatiblen Aufhängung an einem Schiff. Aufgrund der Möglichkeit, mit diesem Modul unlizenzierte Schiffsmodifikationen durchzuführen und illegal geborgene Module am Schiff zu befestigen, ist dieser Gegenstand in den meisten regulierten Systemen illegal.</t>
+
+      <!-- Common labels -->
+      <t id="100">Waffen</t>
+      <t id="101">Schildgeneratoren</t>
+      <t id="102">Hauptantriebe</t>
+      <t id="103">Steuerdüsen</t>
+      <t id="104">Türme</t>
+      <t id="105">Sonstige Ausrüstung</t>
+      <t id="106">Ausrüstung</t>
+      <t id="107">Kategorie</t>
+      <t id="108">Ausgewählt</t>
+      <t id="109">Verfügbar</t>
+      <t id="110">Anzahl</t>
+      <t id="111">Installiert</t>
+      <t id="112">Geplant</t>
+      <t id="113">Entfernen</t>
+      <t id="114">Abbruch</t>
+      <t id="115">Plan zurücksetzen</t> 
+      <t id="116">Bereit</t>
+      <t id="117">Unbekannt</t>
+      <t id="118">Abgeschlossen</t>
+      <t id="119">Gegenstand</t>
+
+      <!-- Tool-mode selector -->
+      <t id="200">Aus</t>
+      <t id="201">SES-Werkzeugmodus:</t>
+      <t id="202">Wähle, welche Aufgabe der ausgerüstete Handlaser (nicht Blaster!) beim Bergen übernehmen soll. Nur Modi, für die das nötige Werkzeug mitgeführt wird, werden angezeigt.</t>
+      <t id="203">Der Handlaser startet den Bergungsvorgang sobald das Ziel in Reichweite ist: Die Maximalreichweite zum Starten beträgt 25 m.</t>
+      <t id="204">Der Handlaser startet den Montagevorgang auf dem Spieler gehörenden Schiffen der Größen S/M, sobald es in Reichweite ist: Die Maximalreichweite zum Starten beträgt 25 m.</t>
+      <t id="205">%s (fehlt im Inventar)</t>
+      <t id="206">%s (benötigt einen Hand-Laser)</t>
+
+      <!-- Salvage inventory -->
+      <t id="300">Bergungsinventar</t>
+      <t id="301">Lade SES-Verwaltung...</t>
+      <t id="302">-- Leer --</t>
+      <t id="303">Sicherheitscontainer</t>
+      <t id="304">Lege einen ausgewählten Stapel an Bergungsgut in eine neue, sichere Lockbox neben dem Spieler.</t>
+      <t id="305">Stapel: %d</t>
+
+      <!-- Native weld/salvage planners -->
+      <t id="400">Avarice Beam Regulator - Bergung</t>
+      <t id="401">Avarice Bonding Regulator - Ausrüsten</t>
+      <t id="402">VERFÜGBARE AUSRÜSTUNG</t>
+      <t id="403">AUSSTEHENDE BERGUNG</t>
+      <t id="404">Beam Catalysts</t>
+      <t id="405">INVENTAR FÜR GEBORGENES</t>
+      <t id="406">AUSSTEHENDE INSTALLATION</t>
+      <t id="407">Bonding Catalysts</t>
+      <t id="408">Installierte Ausrüstung</t>
+      <t id="409">Geborgene Ausrüstung</t>
+      <t id="410">Kompatibilität prüfen</t>
+      <t id="411">Avarice Beam Regulator - Bergungsergebnisse</t>
+      <t id="412">Unbekanntes Ziel</t>
+      <t id="413">Ziel: %s\nGeborgen: %d / %d    Erfolg: %d    Teilweise: %d    Fehlgeschlagen: %d    Blockiert: %d</t>
+      <t id="414">Ergebnis</t>
+      <t id="415">Geborgen</t>
+      <t id="416">Chance</t>
+      <t id="417">Grund</t>
+      <t id="418">Zielschiff: %s</t>
+      <t id="419">Erwarte Kontext vom Missionsdirektor</t>
+      <t id="420">Wähle aus, welche installierten Module dem Bergungsplan hinzugefügt werden sollen.</t>
+      <t id="421">Keine unterstützten Module verbleibend.</t>
+      <t id="422">Anzahl</t>
+      <t id="423">Preis d. Plans</t>
+      <t id="424">Preis hinzufügen</t>
+      <t id="425">%d hinzufügen</t>
+      <t id="426">Ausgewählte hinzufügen</t>
+      <t id="427">Bereits geplant, nicht verfügbar oder zu wenige Catalysts verfügbar</t>
+      <t id="428">Keine Ausrüstung gewählt</t>
+      <t id="429">-- Keine ausstehende Bergung --</t>
+      <t id="430">zur Zusammenfassung</t>
+      <t id="431">%s (%d belegt / %d frei)</t>
+      <t id="432">Bitte wähle eine Kategorie aus, von der Module im Bergungsinventar verfügbar sind. Achte darauf, dass das Schiff für dieses Modul freie Slots verfügbar hat.</t>
+      <t id="433">Keine der Kategorien hat sowohl kompatible Module, als auch freie Slots auf dem gewählten Schiff.</t>
+      <t id="434">Geplante Module</t>
+      <t id="435">Modul geborgen</t>
+      <t id="436">Wähle ein gelagertes Modul aus. Die Kompatibilität wird live geprüft.</t>
+      <t id="437">Kein kompatibles Modul für diese Kategorie im Inventar gefunden.</t>
+      <t id="438">Erwarte Daten zur Kompatibilität der Kategorie.</t>
+      <t id="439">Installationspreis</t>
+      <t id="440">Keine kompatiblen Module ausgewählt.</t>
+      <t id="441">-- Keine ausstehenden Installationen --</t>
+      <t id="442">Ausrüstung installieren</t>
+      <t id="443">-- Keine ausstehende Ausrüstungsänderung --</t>
+      <t id="444">+ %d mehr geplante(s) Modul(e)</t>
+      <t id="445">Catalysts\nBenötigt: %d  Vorrat: %d</t>
+      <t id="446">Beam Catalysts\ngeplant: %d  gesamt: %d</t>
+      <t id="447">Lösche alle Teile aus dem ausstehenden Bergungsplan und setze die Vorschau zurück.</t>
+      <t id="448">Lösche alle zu installierenden Teile aus dem ausstehenden Installationsplan.</t>
+      <t id="449">Öffne die Auftragszusammenfassung</t>
+      <t id="450">Öffne die Auftragszusammenfassung</t>
+      <t id="451">Wähle die installierte Ausrüstung, die du zum Bergungsauftrag hinzufügen möchtest.</t>
+      <t id="452">Dieses installierte Modul kann nicht geborgen werden.</t>
+      <t id="453">Installiert: %d  |  Geplant: %d  |  benötigte Beam Catalysts: %d</t>
+      <t id="454">Wähle den Slot oder die Slotgruppe aus auf der das Modul momentan installiert ist.  |  %s</t>
+      <t id="455">Installiert: %d</t>
+      <t id="456">Der Avarice Bonding Regulator installiert gelagertes Equipment. Das Entfernen von Modulen ist mit diesem Werkzeug nicht möglich.</t>
+      <t id="457">Alle gelagerten Module dieses Typs sind bereits im aktuellen Auftrag verplant.</t>
+      <t id="458">Kein Modul dieses Typs im Bergungslager gefunden.</t>
+      <t id="459">Vorrat: %d</t>
+      <t id="460">Vorrat: %d  |  Benötigt: %d</t>
+      <t id="461">Dieses Modul ist bereits auf diesem Slot installiert.  |  %s</t>
+      <t id="462">Dieser Slot ist bereits anderweitig belegt. Bitte das Modul entfernen bevor ein neues an dieser Stelle angebracht wird.  |  %s</t>
+      <t id="463">Für diesen Slot befindet sich bereits ein Auftrag in Bearbeitung. |  %s</t>
+      <t id="464">Warte auf vorhergehende Auswahl  |  %s</t>
+      <t id="465">Mit diesem Slot nicht kompatibel  |  %s</t>
+      <t id="466">Es fehlen %d Catalysts zum Fortfahren.  |  %s</t>
+      <t id="467">Geplante Bergung</t>
+      <t id="468">Geplante Installation</t>
+      <t id="469">Bergungsbestätigung geöffnet</t>
+      <t id="470">Installationsbestätigung geöffnet</t>
+      <t id="471">%s\nInstalliert: %d</t>
+      <t id="472">%s\nEingelagert: %d</t>
+
+      <!-- Black Market trade UI -->
+      <t id="500">Schiffsteil</t>
+      <t id="501">Preis</t>
+      <t id="502">Verkaufen</t>
+      <t id="503">Kaufen</t>
+      <t id="504">Anzahl</t>
+      <t id="505">Geborgene Module</t>
+      <t id="506">-- Kein Bergungsgut verfügbar --</t>
+      <t id="507">Gesamt</t>
+      <t id="508">Handelswert</t>
+      <t id="509">Kontostand</t>
+      <t id="510">Handel abschließen</t>
+      <t id="511">Dein Bergungsinventar:</t>
+      <t id="512">Angebote des Schwarzmarkthändlers:</t>
+
+      <!-- Mission Director gates, operations, and results -->
+      <t id="600">Der Kohäsionsstrahl kann nicht auf den Modulsockel fokussieren. Bitte nähere Dich dem Schiff weiter an.</t>
+      <t id="601">Der Trennlaser kann nicht auf den Modulsockel fokussieren. Bitte nähere Dich dem Schiff weiter an.</t>
+      <t id="602">Pilotentransmission: Bleib mit Deinem komischen Gerät von meinem Schiff weg!</t>
+      <t id="603">Pilotentransmission: Hau mit deinem Laserschneider von meinem Schiff ab, Du verdammter Leichenfledderer!</t>
+      <t id="604">Der Kohäsionsstrahl wurde vom Besitzrechtstransponder abgelehnt. Nur eigene Schiffe können ausgerüstet werden.</t>
+      <t id="605">Der Regulator wird vom Besitzrechtstransponder abgewiesen. Nur eigene oder herrenlose Schiffe können ausgeschlachtet werden.</t>
+      <t id="606">Entermannschaften sind dabei die Hülle dieses Schiffes zu durchbrechen. Aus Sicherheitsgründen ist es nicht möglich den Regulator einzusetzen während ein Entervorgang stattfindet.</t>
+      <t id="607">Das Regulatorfeld ist einzig für Modulsockel der Kategorie S und M ausgelegt. Für das Volumen eines L-Sockel-Modules mangelt es leider noch an Feldkohärenz.</t>
+      <t id="608">Der Regulator kann auf diesem Wrack keinen intakten Modulsockel mehr ausmachen.</t>
+      <t id="609">Die Montageklemmen befinden sich noch an der Hülle dieses Schiffes. In diesem Zustand kann der Regulator keinen Sockel erfassen.</t>
+      <t id="610">Die Telemetrie dieser Hülle ist zu unbeständig, um einen sicheren Weg zu finden die Komponente zu bewegen.</t>
+      <t id="611">Kein Bergungsgut vorhanden</t>
+      <t id="612">Alle Slots sind belegt.</t>
+      <t id="613">Der Anzug kann den "Avarice Bonding Regulator" nicht initialisieren, da Du wohl vergessen hast, ihn einzupacken.</t>
+      <t id="614">Bevor Du den "Avarice Beam Regulator" nutzen kannst, musst du ihn erstmal dabei haben.</t>
+      <t id="615">Der Regulator wird vom Raumanzug aus bedient.</t>
+      <t id="616">Der Bonding Regulator muss erst abkühlen.</t>
+      <t id="617">Der Beam Regulator arbeitet noch am aktuellen Bergungsvorgang.</t>
+      <t id="618">Bergung unterbrochen: Der Regulator konnte den Fokus auf das Ziel nicht halten, da die Entfernung zu groß geworden ist (&gt; 100 m). Bitte aus geringerer Distanz erneut versuchen. Es wurde keine Ausrüstung entfernt und es wurden keine Catalysts verbraucht.</t>
+      <t id="619">Installation unterbrochen: Der Kohäsionsstrahl konnte das Kohäsionsfeld um das Ziel nicht aufrechterhalten, da die Entfernung zu groß geworden ist (&gt; 100 m). Bitte aus geringerer Distanz erneut versuchen. Es wurde kein Modul montiert und es wurden keine Catalysts verbraucht.</t>
+      <t id="620">Ein unterbrochener Regulatorzyklus wurde sicher zurückgesetzt. Es wurde keine Ausrüstung verändert; begib dich wieder in Reichweite und starte den Vorgang erneut.</t>
+      <t id="621">Mit Bergungsgütern handeln</t>
+      <t id="622">Handel mit Bergungsgut nicht verfügbar.</t>
+      <t id="623">Montagearbeiten abgeschlossen an %s.%s</t>
+      <t id="624">Avarice Bonding Regulator - Montage abgeschlossen</t>
+      <t id="625">Montage abgeschlossen auf %s.\nMontierte Module:%s</t>
+      <t id="626">\n- %s x %s</t>
+      <t id="627">\n- Keine Module wurden angebracht.</t>
+      <t id="628">Geborgene Ausrüstung</t>
+      <t id="629">Avarice Beam Regulator - Bergung bestätigen</t>
+      <t id="630">%s Modul(e) von %s bergen?\n\ngeplante Module: %s\nbenötigte Beam Catalysts: %s (%s verfügbar)\n\n Nach Abschluss der Bergung werden die Catalysts verbraucht, unabhängig davon ob die Bergung erfolgreich war oder nicht. Die jeweiligen Chancen sind in der Planungsphase einsehbar.</t>
+
+      <!-- GalNet announcements -->
+      <t id="631">Galaxy Network</t>
+      <t id="632">GalNet - Werften warnen vor unlizenzierten Bergungsmannschaften.</t>
+      <t id="633">In nahezu allen bekannten Systemen melden Werftbetreiber einen starken Anstieg unbefugter Bergungsarbeiten in der Nähe von Reparaturdocks, Bauwarteschlangen und verlassenen Schifflagern.\n\nDie Vorfälle scheinen alle einem ähnlichen Muster zu folgen: Kleine Gruppen in Raumanzügen nähg�t��$z{-���jם by the native
+  planner but silently omitted by X4's authoritative loadout generation.
+- Resolved persisted ware and macro ID strings to typed X4 objects at every
+  preflight and apply boundary, and compare stable IDs instead of macro-object
+  identity.
+- Generate complete weapon, shield, and turret category plans containing the
+  existing loadout plus the requested item, preventing an empty-slot install
+  from replacing equipment already mounted in that category.
+- Preserve the transaction safety gate: salvaged inventory and Bonding
+  Catalysts are spent only after exact selected-item and total-loadout gains.
+
+### Localization and UI Feedback
+
+- Added the production English text catalog on X4 page `1171361` and the
+  framework for community translations.
+- Fixed formatted welding-completion, salvage-confirmation, and installed-item
+  text appearing as unresolved references such as `{1171361,625}`.
+- Resolve localized format templates through X4 `readtext` before substituting
+  ship names, equipment names, quantities, and result lists.
+
+### Verification
+
+- Reproduced the reported failure with save slot 16 without overwriting it.
+  A TER M Shield Generator Mk3 and SPL M Neutron Gatling Mk2 both installed,
+  existing weapon and shield rows remained, inventory changed from one to zero
+  for each item, and Bonding Catalysts changed from 20 to 16.
+- Turrets use the same repaired category path. The test save had no stored
+  turret for an independent mutation test, so turret coverage is schema-checked
+  and shares the weapon/shield logic validated in game.
+
+## v3.61 - 2026-07-15
+
+**Changes since public release v3.13**
+
+### Native Salvage and Welding
+
+- Replaced the player-facing salvage and welding planners with X4's native Ship
+  Configuration interface through Kuertee UI Extensions.
+- Added native equipment categories, physical slot tabs, filters, component
+  tiles, 3D ship presentation, Overview changes, category gauges, icons, and
+  Ship Statistics previews.
+- Added immediate per-click previews for accepted salvage removals and weld
+  installations without mutating the ship until final confirmation.
+- Added live saved-stock quantities, exact inventory reservations, catalyst
+  totals, pending-plan summaries, Clear Plan controls, and remaining-count
+  updates.
+- Replaced the extra weld review stage with one **Install Loadout** action that
+  opens the final detailed Apply Plan dialog.
+- Replaced the salvage confirmation table with X4's compact native question
+  window and a safe **Back to Plan** choice.
+
+### Compatibility and Plan Safety
+
+- Enforced exact native compatibility for weapons, launchers, shields,
+  turrets, engines, and thrusters, including missile-only and conventional-gun
+  slot restrictions.
+- Corrected grouped weapon, shield, turret, and engine presentation so planned
+  quantities match physical ship slots and displayed previews.
+- Prevented duplicate inventory reservations, stock-one overbooking, stale
+  preview acceptance, occupied-slot replacements, and plans beyond the ship's
+  installed-plus-pending capacity.
+- Corrected mounted-weapon classification so mines and other ammunition wares
+  are not treated as installable ship weapons.
+- Preserved Mission Director authority for target validation, inventory and
+  catalyst spending, recovery credit, loadout mutation, and exact post-change
+  verification.
+
+### Work Phase and Feedback
+
+- Added simulated salvage and welding work phases lasting one second per
+  planned item, with a three-second minimum and fifteen-second maximum.
+- Kept normal player movement during work while requiring the player to remain
+  in EVA, in the same sector, and within 100 m until completion.
+- Added safe cancellation before mutation if the player leaves range, changes
+  sector, exits EVA, loses the target, or the target becomes invalid.
+- Blocked both regulators while a confirmed work phase or verified mutation is
+  already active.
+- Added weld-completion notifications and an exact list of successfully
+  attached components.
+- Added lore-friendly HUD feedback for range, ownership, foreign pilots,
+  boarding, unsupported ship sizes, wrecks, construction frames, invalid
+  targets, missing tools, and active work.
+- Added distinct terminal messages for fully equipped weld targets and stripped
+  salvage targets: **Equipment slots are full.** and **No items left to
+  salvage.**
+
+### Reliability and Release Cleanup
+
+- Moved work timing into Mission Director so closing a native menu cannot
+  strand the regulator busy state or prevent final range validation.
+- Added startup recovery for interrupted uncommitted work state without
+  changing ship equipment, salvage inventory, or catalysts.
+- Restricted development logbook diagnostics to the debug option while keeping
+  intentional player-facing completion and shortage records.
+- Graduated the complete native workflow from its experimental gate into the
+  always-on public release path.
+- Kept all SES-specific UI behavior inside the SES extension and consumed the
+  published Kuertee callback surfaces without patching the installed UIX
+  package.
