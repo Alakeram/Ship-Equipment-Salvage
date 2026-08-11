@@ -559,7 +559,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v371. GalNet announcement source, titles, and article bodies now resolve through the SES localization catalog.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v374. Native salvage equipment tiles display only the authoritative extraction chance beneath the module name.'" />
       </actions>
     </cue>
 
@@ -628,12 +628,23 @@
               <run_actions ref="SES_Get_Equipment_Category_V1" result="$M5NativeWareCategory">
                 <param name="Ware" value="$M5NativeWare" />
               </run_actions>
+              <set_value name="$M5NativeExtractionChance" exact="94" />
+              <do_if value="@global.$SES_Extraction_MK4_WareIds.indexof.{$M5NativeWare.id}">
+                <set_value name="$M5NativeExtractionChance" exact="64" />
+              </do_if>
+              <do_elseif value="@global.$SES_Extraction_MK3_WareIds.indexof.{$M5NativeWare.id}">
+                <set_value name="$M5NativeExtractionChance" exact="80" />
+              </do_elseif>
+              <do_elseif value="@global.$SES_Extraction_MK2_WareIds.indexof.{$M5NativeWare.id}">
+                <set_value name="$M5NativeExtractionChance" exact="86" />
+              </do_elseif>
               <append_to_list name="$M5NativeAvailable" exact="table[
                 $index = $M5NativeWareIndex,
                 $wareid = $M5NativeWare.id,
                 $macro = if @$M5NativeWare.objectmacro then '%s'.[$M5NativeWare.objectmacro] else '',
                 $name = if @$M5NativeWare.name then $M5NativeWare.name else $M5NativeWare.id,
-                $category = $M5NativeWareCategory
+                $category = $M5NativeWareCategory,
+                $extractionchance = $M5NativeExtractionChance
               ]" />
             </do_for_each>
             <set_value name="$M5NativePlan" exact="[]" />
@@ -646,12 +657,13 @@
                   $name = if @$M5NativePlanEntry.$name then $M5NativePlanEntry.$name else 'Installed equipment',
                   $category = if @$M5NativePlanEntry.$category then $M5NativePlanEntry.$category else '',
                   $plannedquantity = if @$M5NativePlanEntry.$plannedquantity then $M5NativePlanEntry.$plannedquantity else 1,
-                  $beamcatalystcost = if @$M5NativePlanEntry.$beamcatalystcost then $M5NativePlanEntry.$beamcatalystcost else 1
+                  $beamcatalystcost = if @$M5NativePlanEntry.$beamcatalystcost then $M5NativePlanEntry.$beamcatalystcost else 1,
+                  $extractionchance = if @$M5NativePlanEntry.$extractionchance then $M5NativePlanEntry.$extractionchance else 94
                 ]" />
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v371-galnet-localization',
+              $version = 'v374-salvage-chance-only-tiles',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -665,7 +677,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v371-galnet-localization',
+              $version = 'v374-salvage-chance-only-tiles',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -6342,7 +6354,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v371-galnet-localization',
+            $version = 'v374-salvage-chance-only-tiles',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -7769,7 +7781,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v371-galnet-localization',
+            $version = 'v374-salvage-chance-only-tiles',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,

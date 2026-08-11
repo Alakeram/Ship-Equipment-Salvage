@@ -5,6 +5,34 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v3.74 - 2026-08-10
+
+**Native salvage chance presentation since public release v3.72**
+
+### Salvage Module Chances
+
+- Added each module's authoritative extraction chance directly to its native
+  Ship Configuration salvage card before it is added to the pending plan.
+- Displayed the existing grade-based chances used by the recovery transaction:
+  Mk1/default 94%, Mk2 86%, Mk3 80%, and Mk4 64%.
+- Kept every salvage card within X4's two-line layout: the fitted module name
+  remains on the first line and `Chance NN%` occupies the second line.
+- Removed the redundant installed-count receipt from salvage cards. Welding
+  cards are unchanged and continue to show their live `Saved: N` inventory.
+
+### Localization and Verification
+
+- Updated the English and German salvage-card formats with matching
+  placeholders and intentional line breaks.
+- Restored the GitHub source copy of the German catalog after the earlier
+  contribution merge contaminated its final section. The validated packaged
+  translation was unaffected; v3.74 republishes that clean source with only
+  the intended chance-label change.
+- Validated all 18 XML files and the extracted X4 9.00 Mission Director, diff,
+  and UI addon schemas.
+- Confirmed the deployed v3.74 planner matches source and preserves the
+  separate welding-card format.
+
 ## v3.72 - 2026-07-26
 
 **Localization update since public release v3.70**

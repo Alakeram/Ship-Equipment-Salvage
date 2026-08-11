@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.72<br>
+**Release:** v3.74<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -14,6 +14,17 @@ through a dedicated Black Market parts network.
 
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
+
+## What Was Added in v3.74
+
+- Added the authoritative extraction chance directly to every module card in
+  the native salvage menu: Mk1/default 94%, Mk2 86%, Mk3 80%, and Mk4 64%.
+- Kept salvage cards within X4's two-line layout, with the fitted module name
+  on the first line and `Chance NN%` on the second.
+- Removed the redundant installed-count receipt from salvage cards while
+  leaving welding cards unchanged at `Saved: N`.
+- Updated and validated the English and German card formats with matching
+  placeholders and line breaks.
 
 ## What Was Added in v3.72
 
@@ -59,8 +70,8 @@ demand.
 - Added compact maker prefixes such as `ARG`, `BOR`, `PAR`, `SPL`, `TEL`, and
   `TER` to equipment captions without duplicating prefixes already supplied by
   X4.
-- Kept equipment tiles inside their native two-line layout: the fitted X4 name
-  stays on the first line and `Saved: N` or `Installed: N` stays on the second.
+- Kept equipment tiles inside their native two-line layout. The current v3.74
+  presentation uses `Saved: N` for welding and `Chance NN%` for salvage.
 - Restored literal extension name and description metadata so the Extensions
   menu no longer displays unresolved localization references.
 

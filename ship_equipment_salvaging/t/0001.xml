@@ -127,7 +127,7 @@
       <t id="468">Planned Installation</t>
       <t id="469">Salvage confirmation opened</t>
       <t id="470">Installation confirmation opened</t>
-      <t id="471">%s\nInstalled: %d</t>
+      <t id="471">%s\nChance %d%%</t>
       <t id="472">%s\nSaved: %d</t>
 
       <!-- Black Market trade UI -->

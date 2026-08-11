@@ -45,7 +45,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v371-galnet-localization",
+	version = "v374-salvage-chance-only-tiles",
 	salvageMode = "custom_ses_m5_salvage",
 	salvageResultMode = "custom_ses_m5_salvage_result",
 	weldMode = "custom_ses_m5_weld",
@@ -465,6 +465,7 @@ local function salvageRows()
 					installed = 0,
 					planned = 0,
 					cost = 0,
+					chance = numeric(itemField(item, "extractionchance")),
 				}
 				byKey[key] = row
 				table.insert(rows, row)
@@ -479,6 +480,10 @@ local function salvageRows()
 		local row = byKey[table.concat({ category, wareid, macro }, "|")]
 		if row then
 			row.planned = row.planned + math.max(1, numeric(itemField(item, "plannedquantity")))
+			local plannedChance = numeric(itemField(item, "extractionchance"))
+			if plannedChance > 0 then
+				row.chance = plannedChance
+			end
 		end
 	end
 	local perPiece = numeric(plannerData and itemField(plannerData, "catalystperpiece"))
@@ -1673,7 +1678,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 			active = canAddFromSelectedSlot,
 			useable = canAddFromSelectedSlot,
 			mouseovertext = status,
-			extratext = sesFormat(471, "%s\nInstalled: %d", nativeTileName(button, salvageItem, macro), math.max(0, salvageItem.installed - salvageItem.planned)),
+			extratext = sesFormat(471, "%s\nChance %d%%", nativeTileName(button, salvageItem, macro), salvageItem.chance),
 			onclick = canAddFromSelectedSlot and function()
 				selectedSalvageIndex = salvageItem.index
 				weldResultText = ""
