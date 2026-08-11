@@ -20,18 +20,13 @@ under the final public version rather than listed individually.
 - Removed the redundant installed-count receipt from salvage cards. Welding
   cards are unchanged and continue to show their live `Saved: N` inventory.
 
-### Localization and Verification
+### Localization
 
 - Updated the English and German salvage-card formats with matching
   placeholders and intentional line breaks.
 - Restored the GitHub source copy of the German catalog after the earlier
-  contribution merge contaminated its final section. The validated packaged
-  translation was unaffected; v3.74 republishes that clean source with only
-  the intended chance-label change.
-- Validated all 18 XML files and the extracted X4 9.00 Mission Director, diff,
-  and UI addon schemas.
-- Confirmed the deployed v3.74 planner matches source and preserves the
-  separate welding-card format.
+  contribution merge contaminated its final section. The v3.74 source
+  republishes the clean catalog with only the intended chance-label change.
 
 ## v3.72 - 2026-07-26
 
