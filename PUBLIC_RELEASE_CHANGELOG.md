@@ -5,6 +5,42 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v3.78 - 2026-08-22
+
+**Stock rotation, paired launcher safety, and optional save dependency since
+public release v3.74**
+
+### Shady Guy SES Stock
+
+- Reduced generated salvaged-component rotation from a randomized 3-5
+  in-game hours to 1-2 in-game hours.
+- Added a separate 1-2-hour lazy refresh for both Avarice regulators and both
+  catalysts in the Shady Guy's ordinary inventory.
+- Limited the ordinary refresh to those four SES items. Vanilla inventory,
+  other mods' wares, and unrelated player-sold stock remain untouched.
+- Fixed the ordinary SES-item refresh failing because its injected cue could
+  not access the active conversation actor and ware list.
+
+### Paired Missile Launchers
+
+- Made X4's merged missile-launcher banks atomic in both native planners.
+- A complete two-slot bank now requires two saved launchers for welding and
+  queues both fitted launchers for salvage.
+- A partially filled bank uses only the exact fitted or missing launcher
+  quantity, while ordinary weapons and other equipment retain their existing
+  behavior.
+
+### Save Independence and Removal
+
+- New saves made with v3.78 no longer record SES as a hard extension
+  dependency.
+- Vanilla and DLC equipment already installed on ships remains ordinary X4
+  equipment after SES is removed.
+- SES regulators, catalysts, salvage inventory, progression, and Black Market
+  state remain mod-owned. Players who may reinstall should retain their last
+  save made with SES enabled; a save written while SES is absent may return
+  with an empty SES salvage inventory.
+
 ## v3.74 - 2026-08-10
 
 **Native salvage chance presentation since public release v3.72**

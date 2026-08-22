@@ -6,7 +6,7 @@
   <cues>
     <cue name="SES_Black_Market_Random_Stock_V1_Startup">
       <actions>
-        <set_value name="global.$SES_Black_Market_Random_Stock_Version" exact="1" />
+        <set_value name="global.$SES_Black_Market_Random_Stock_Version" exact="2" />
         <do_if value="not @global.$SES_Black_Market_Random_Stock_State">
           <set_value name="global.$SES_Black_Market_Random_Stock_State" exact="table[]" />
         </do_if>
@@ -111,14 +111,16 @@
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}" exact="table[
               $nextrefresh = 0s,
               $generation = 0,
-              $debugforcegeneration = 0
+              $debugforcegeneration = 0,
+              $refreshpolicyversion = 0
             ]" />
           </do_if>
           <set_value name="$ContactState" exact="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}" />
           <set_value name="$DebugForceGeneration" exact="if @global.$SES_Black_Market_Debug_Force_Rotation_Generation then global.$SES_Black_Market_Debug_Force_Rotation_Generation else 0" />
           <set_value name="$DebugForceDue" exact="$DebugForceGeneration gt (if @$ContactState.$debugforcegeneration then $ContactState.$debugforcegeneration else 0)" />
           <set_value name="$FastRotation" exact="@global.$SES_Black_Market_Debug_Fast_Rotation_Enabled and @global.$SES_Debug_Keys_Enabled" />
-          <set_value name="$RefreshDue" exact="not @$ContactState.$nextrefresh or player.age ge $ContactState.$nextrefresh or $DebugForceDue" />
+          <set_value name="$RefreshPolicyChanged" exact="not @$ContactState.$refreshpolicyversion or $ContactState.$refreshpolicyversion lt 2" />
+          <set_value name="$RefreshDue" exact="not @$ContactState.$nextrefresh or player.age ge $ContactState.$nextrefresh or $DebugForceDue or $RefreshPolicyChanged" />
           <do_if value="$RefreshDue">
             <!-- Migrate legacy player-sold rows and clear only the generated
                  portion. Empty generated rows become reusable slots. -->
@@ -229,15 +231,16 @@
                 ]" />
               </do_if>
             </do_all>
-            <set_value name="$RefreshDelay" min="if $FastRotation then 1min else 3h" max="if $FastRotation then 2min else 5h" />
+            <set_value name="$RefreshDelay" min="if $FastRotation then 1min else 1h" max="if $FastRotation then 2min else 2h" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$lastrefresh" exact="player.age" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$nextrefresh" exact="player.age + $RefreshDelay" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$generation" operation="add" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$rows" exact="$GeneratedRows" />
+            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$refreshpolicyversion" exact="2" />
             <do_if value="$DebugForceGeneration gt 0">
               <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$debugforcegeneration" exact="$DebugForceGeneration" />
             </do_if>
-            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Contact stock rotation complete actor=%s, station=%s, generation=%s, rows=%s, nextrefresh=%s, announced=%s, debugforced=%s, debugforcegeneration=%s, fastrotation=%s, refreshdelay=%s'.[
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Contact stock rotation complete actor=%s, station=%s, generation=%s, rows=%s, nextrefresh=%s, announced=%s, debugforced=%s, debugforcegeneration=%s, fastrotation=%s, policychanged=%s, refreshdelay=%s'.[
               $ShopActor,
               $ShopStation,
               global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$generation,
@@ -247,6 +250,7 @@
               $DebugForceDue,
               $DebugForceGeneration,
               $FastRotation,
+              $RefreshPolicyChanged,
               $RefreshDelay
             ]" />
           </do_if>

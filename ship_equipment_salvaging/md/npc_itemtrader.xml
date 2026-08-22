@@ -1,6 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
 <diff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="diff.xsd">
   <add sel="/mdscript/cues/cue[@name='OnPlatformPopulation_Itemtrader']/cues">
+    <cue name="SES_ShadyGuy_Item_Stock_Refresh_V1" instantiate="true">
+      <conditions>
+        <check_any>
+          <event_conversation_started actor="$actor" />
+          <event_conversation_returned_to_section actor="$actor" />
+        </check_any>
+        <check_value value="event.param == 'default' and $actor.exists and @$actor.isshadyguy" />
+      </conditions>
+      <actions>
+        <do_if value="not @global.$SES_ShadyGuy_Item_Stock_State">
+          <set_value name="global.$SES_ShadyGuy_Item_Stock_State" exact="table[]" />
+        </do_if>
+        <do_if value="not @global.$SES_ShadyGuy_Item_Stock_State.{$actor}">
+          <set_value name="global.$SES_ShadyGuy_Item_Stock_State.{$actor}" exact="table[
+            $nextrefresh = 0s,
+            $generation = 0
+          ]" />
+        </do_if>
+        <set_value name="$SESItemStockState" exact="global.$SES_ShadyGuy_Item_Stock_State.{$actor}" />
+        <do_if value="not @$SESItemStockState.$nextrefresh or player.age ge $SESItemStockState.$nextrefresh">
+          <!-- Refresh only SES-owned ordinary inventory. Vanilla wares, story
+               inventory, other mods' wares, and player-sold non-SES items are
+               intentionally untouched. -->
+          <set_value name="$SESItemStockWares" exact="[
+            ware.ses_equipment_salvager,
+            ware.ses_equipment_welder,
+            ware.ses_avarice_beam_catalyst,
+            ware.ses_avarice_bonding_catalyst
+          ]" />
+          <do_for_each name="$SESItemStockWare" in="$SESItemStockWares">
+            <set_value name="$SESItemStockOldCount" exact="$actor.inventory.{$SESItemStockWare}.count" />
+            <do_if value="$SESItemStockOldCount gt 0">
+              <remove_inventory entity="$actor" ware="$SESItemStockWare" exact="$SESItemStockOldCount" />
+            </do_if>
+            <set_value name="$SESItemStockRoll" min="1" max="100" />
+            <set_value name="$SESItemStockChance" exact="if $SESItemStockWare == ware.ses_equipment_salvager or $SESItemStockWare == ware.ses_equipment_welder then 70 else 82" />
+            <set_value name="$SESItemStockAmount" exact="1" />
+            <do_if value="$SESItemStockWare == ware.ses_avarice_beam_catalyst or $SESItemStockWare == ware.ses_avarice_bonding_catalyst">
+              <set_value name="$SESItemStockAmount" min="8" max="12" />
+            </do_if>
+            <do_if value="$SESItemStockRoll le $SESItemStockChance">
+              <add_inventory entity="$actor" ware="$SESItemStockWare" exact="$SESItemStockAmount" />
+            </do_if>
+          </do_for_each>
+
+          <!-- Preserve every non-SES cached trader entry and price. Replace
+               only the four SES entries so newly rolled stock is always known
+               to the vanilla inventory-trader conversation. -->
+          <set_value name="$SESItemStockOldWareList" exact="$WareList" />
+          <set_value name="$WareList" exact="[]" />
+          <do_for_each name="$SESItemStockOldWareEntry" in="$SESItemStockOldWareList">
+            <set_value name="$SESItemStockOldCachedWare" exact="$SESItemStockOldWareEntry.{1}" />
+            <do_if value="$SESItemStockWares.indexof.{$SESItemStockOldCachedWare} == 0">
+              <append_to_list name="$WareList" exact="$SESItemStockOldWareEntry" />
+            </do_if>
+          </do_for_each>
+          <do_for_each name="$SESItemStockWare" in="$SESItemStockWares">
+            <set_value name="$SESItemStockPrice" min="$SESItemStockWare.minprice" max="$SESItemStockWare.maxprice" />
+            <append_to_list name="$WareList" exact="[$SESItemStockWare, $SESItemStockPrice]" />
+          </do_for_each>
+
+          <set_value name="$SESItemStockRefreshDelay" min="1h" max="2h" />
+          <set_value name="global.$SES_ShadyGuy_Item_Stock_State.{$actor}.$lastrefresh" exact="player.age" />
+          <set_value name="global.$SES_ShadyGuy_Item_Stock_State.{$actor}.$nextrefresh" exact="player.age + $SESItemStockRefreshDelay" />
+          <set_value name="global.$SES_ShadyGuy_Item_Stock_State.{$actor}.$generation" operation="add" />
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][ITEM STOCK] Shady-guy SES item refresh complete. actor=%s, station=%s, generation=%s, beamtool=%s, weldtool=%s, beamcatalyst=%s, bondingcatalyst=%s, nextrefresh=%s, refreshdelay=%s'.[
+            $actor,
+            $actor.station,
+            global.$SES_ShadyGuy_Item_Stock_State.{$actor}.$generation,
+            $actor.inventory.{ware.ses_equipment_salvager}.count,
+            $actor.inventory.{ware.ses_equipment_welder}.count,
+            $actor.inventory.{ware.ses_avarice_beam_catalyst}.count,
+            $actor.inventory.{ware.ses_avarice_bonding_catalyst}.count,
+            global.$SES_ShadyGuy_Item_Stock_State.{$actor}.$nextrefresh,
+            $SESItemStockRefreshDelay
+          ]" />
+        </do_if>
+      </actions>
+    </cue>
+
     <cue name="SES_Debug_Reroll_ShadyGuy_Item_Stock_V1" instantiate="true">
       <conditions>
         <event_object_signalled object="$actor" param="'ses_debug_reroll_shadyguy_item_stock'" />

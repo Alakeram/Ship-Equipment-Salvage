@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.74<br>
+**Release:** v3.78<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -14,6 +14,22 @@ through a dedicated Black Market parts network.
 
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
+
+## What Changed in v3.78
+
+- Reduced the Shady Guy's lazy SES stock rotation from 3-5 in-game hours to a
+  randomized 1-2 in-game hours when the conversation is visited.
+- Added the same 1-2-hour lazy refresh to the four ordinary SES shop items:
+  both Avarice regulators and both catalysts. Vanilla inventory, other mods'
+  wares, and unrelated player-sold stock are left alone.
+- Fixed that ordinary SES-item refresh failing when its conversation actor was
+  unavailable to the injected cue.
+- Made merged missile-launcher banks atomic in the native salvage and welding
+  planners. A two-launcher bank now salvages or installs the exact fitted or
+  missing quantity instead of accepting an unsafe single-launcher plan.
+- Removed SES as a hard dependency for saves created or rewritten with v3.78.
+  Existing installed vanilla/DLC equipment remains normal X4 equipment after
+  SES is removed. See **Uninstallation** before disabling the mod.
 
 ## What Was Added in v3.74
 
@@ -216,7 +232,9 @@ changed.
 - Black Market sales pay 60% of average ware value.
 - Dealer purchases and buybacks cost 120% of average ware value.
 - Each eligible contact carries 4-10 generated equipment rows that refresh
-  every 3-5 in-game hours.
+  every 1-2 in-game hours when the contact is revisited after the timer expires.
+- SES regulators and catalysts in ordinary Shady Guy inventory reroll on the
+  same 1-2 hour lazy schedule; non-SES inventory is left untouched.
 - Player-sold buyback quantities persist independently of generated-stock
   rotation.
 
@@ -237,6 +255,7 @@ salvage and welding planners themselves use the native Ship Configuration UI.
 
 1. Install and enable every requirement listed above.
 2. Extract the release archive into the X4 `extensions` directory.
+
 3. Confirm the final path is:
    `X4 Foundations/extensions/ship_equipment_salvaging/content.xml`
 4. Enable **Ship Equipment Salvaging** in X4's Extensions menu.
@@ -244,6 +263,27 @@ salvage and welding planners themselves use the native Ship Configuration UI.
 
 For a clean update, fully close X4 before replacing the existing
 `ship_equipment_salvaging` folder. Keep Kuertee's Protected UI mode enabled.
+
+## Uninstallation
+
+SES v3.78 and later does not create a hard save-game dependency. For an
+existing save that previously used an older SES version:
+
+1. Update to v3.78 or later and start X4 with SES still enabled.
+2. Load the save and create a new manual save so X4 records the new
+   save-independent manifest state.
+3. Exit X4, then disable or remove SES before loading that new save.
+
+Salvaged vanilla or DLC equipment already installed on ships remains ordinary
+X4 equipment. SES regulators and catalysts are unavailable without their ware
+definitions. The salvage ledger, planner state, progression, and Black Market
+stock belong to SES Mission Director state and should not be expected to survive
+a save written while SES is absent.
+
+If you may reinstall SES later, retain the last save made with SES enabled.
+Reinstalling SES and loading that SES-enabled save should restore its salvage
+inventory. Reinstalling after continuing from a save written without SES may
+start with an empty salvage inventory.
 
 ## Compatibility and Scope
 
@@ -257,8 +297,8 @@ For a clean update, fully close X4 before replacing the existing
 - Deployables, countermeasures, mines, satellites, probes, beacons, internal
   wares, restricted ship-specific equipment, and L/XL dealer equipment are not
   treated as normal recoverable S/M components.
-- The extension stores persistent state in saves. Back up important saves
-  before installing or removing save-persistent mods.
+- The extension stores SES state while active but does not mark the save as
+  requiring SES as of v3.78. Keep a backup when first removing any gameplay mod.
 
 ## Translations
 

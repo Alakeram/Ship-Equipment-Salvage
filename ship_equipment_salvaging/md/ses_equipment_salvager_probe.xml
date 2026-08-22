@@ -559,7 +559,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v374. Native salvage equipment tiles display only the authoritative extraction chance beneath the module name.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v378. Native salvage equipment tiles retain the two-line chance display, merged missile banks use exact bank quantities, and the extension no longer creates a hard save dependency.'" />
       </actions>
     </cue>
 
@@ -663,7 +663,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v374-salvage-chance-only-tiles',
+              $version = 'v378-save-independent',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -677,7 +677,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v374-salvage-chance-only-tiles',
+              $version = 'v378-save-independent',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -713,7 +713,7 @@
     <cue name="SES_M5_Native_UI_Action_V1" instantiate="true" namespace="this">
       <conditions>
         <event_ui_triggered screen="'SES_M5_Native_UI'" />
-        <check_value value="[ 'native_salvage_select', 'native_salvage_add', 'native_salvage_remove', 'native_salvage_clear', 'native_salvage_begin', 'native_weld_category', 'native_weld_select', 'native_weld_add', 'native_weld_remove', 'native_weld_clear', 'native_weld_confirm' ].indexof.{event.param2}" />
+        <check_value value="[ 'native_salvage_select', 'native_salvage_quantity', 'native_salvage_add', 'native_salvage_remove', 'native_salvage_clear', 'native_salvage_begin', 'native_weld_category', 'native_weld_select', 'native_weld_quantity', 'native_weld_add', 'native_weld_remove', 'native_weld_clear', 'native_weld_confirm' ].indexof.{event.param2}" />
       </conditions>
       <actions>
         <set_value name="$Action" exact="event.param2" />
@@ -725,6 +725,9 @@
             <param name="Ware" value="global.$SES_Selection_Menu_Request.$wares.{$Index}" />
           </run_actions>
         </do_if>
+        <do_elseif value="@global.$SES_M5_Native_Planners_Experimental_Enabled and @global.$SES_Selection_Menu_Request and $Action == 'native_salvage_quantity' and $Index ge 1">
+          <set_value name="global.$SES_Selection_Menu_Request.$nativebankquantity" exact="$Index" />
+        </do_elseif>
         <do_elseif value="@global.$SES_M5_Native_Planners_Experimental_Enabled and @global.$SES_Selection_Menu_Request and $Action == 'native_salvage_add' and $Index ge 1 and $Index le global.$SES_Selection_Menu_Request.$wares.count">
           <set_value name="global.$SES_Selection_Menu_Request.$selectedindex" exact="$Index" />
           <set_value name="global.$SES_Selection_Menu_Request.$index" exact="$Index" />
@@ -755,6 +758,9 @@
         <do_elseif value="@global.$SES_M5_Native_Planners_Experimental_Enabled and @global.$SES_Inventory_View_Open and $Action == 'native_weld_select' and $Index gt 0">
           <set_value name="global.$SES_Weld_UI_SelectedInventoryIndex" exact="$Index" />
           <signal_cue_instantly cue="SES_Open_Simple_Menu_Inventory_View_V1" param="'m5_native_data'" />
+        </do_elseif>
+        <do_elseif value="@global.$SES_M5_Native_Planners_Experimental_Enabled and @global.$SES_Inventory_View_Open and $Action == 'native_weld_quantity' and $Index ge 1">
+          <set_value name="global.$SES_M5_Native_Weld_Request_Quantity" exact="$Index" />
         </do_elseif>
         <do_elseif value="@global.$SES_M5_Native_Planners_Experimental_Enabled and @global.$SES_Inventory_View_Open and $Action == 'native_weld_add' and $Index gt 0">
           <set_value name="global.$SES_Weld_UI_SelectedInventoryIndex" exact="$Index" />
@@ -1104,11 +1110,11 @@
 
     <cue name="SES_Economy_Black_Market_V1_Startup">
       <actions>
-        <set_value name="global.$SES_Economy_Black_Market_Version" exact="12" />
+        <set_value name="global.$SES_Economy_Black_Market_Version" exact="13" />
         <do_if value="not @global.$SES_Black_Market_Shop_Stock">
           <set_value name="global.$SES_Black_Market_Shop_Stock" exact="[]" />
         </do_if>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v41 initialized for v310 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated stock uses 4-10 rows and the developer-gated fast rotation switch selects 1-2 minute refreshes instead of the production 3-5 hour window. No gameplay or debug system requires an experimental flag. forcegeneration=%s fastrotation=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v42 initialized for v378 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated component stock and SES-owned shady-guy item stock both use lazy 1-2 hour production refresh windows; the developer-gated fast component rotation switch selects 1-2 minute refreshes. No gameplay or debug system requires an experimental flag. forcegeneration=%s fastrotation=%s'.[
           @global.$SES_Black_Market_Debug_Force_Rotation_Generation,
           @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled
         ]" />
@@ -3216,7 +3222,7 @@
 
     <cue name="SES_Production_Features_Startup_V1">
       <actions>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v313. S/M salvage, refit, persistent inventory, delayed Black Market progression, and rotating dealer stock are active. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated stock supports 4-10 rows on the production 3-5 hour rotation.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v378. S/M salvage, refit, persistent inventory, delayed Black Market progression, rotating dealer stock, atomic merged missile-bank salvage/refit, and a removable save-independent manifest are active. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated component stock plus SES-owned shady-guy item stock refresh lazily on randomized 1-2 hour production windows.'" />
       </actions>
     </cue>
 
@@ -5637,6 +5643,11 @@
         <set_value name="$Action" exact="@event.param.$echo" />
         <set_value name="$Request" exact="global.$SES_Selection_Menu_Request" />
         <do_if value="$Action == 1">
+          <set_value name="$NativeRequestedSalvageQuantity" exact="0" />
+          <do_if value="@global.$SES_M5_Native_Action_Active == 'salvage_add' and @$Request.$nativebankquantity and $Request.$nativebankquantity ge 1">
+            <set_value name="$NativeRequestedSalvageQuantity" exact="$Request.$nativebankquantity" />
+          </do_if>
+          <remove_value name="global.$SES_Selection_Menu_Request.$nativebankquantity" />
           <set_value name="$SelectedIndex" exact="if @$Request.$selectedindex then $Request.$selectedindex else if @$Request.$index then $Request.$index else 0" />
           <do_if value="$SelectedIndex ge 1 and $SelectedIndex le $Request.$wares.count">
             <set_value name="$SelectedWare" exact="$Request.$wares.{$SelectedIndex}" />
@@ -5686,6 +5697,9 @@
             <do_if value="$SelectedInstalledCount gt 1 and $SelectedCategoryOtherCount == 0 and $SelectedGroup == 'engines'">
               <set_value name="$SelectedPlanAddQuantity" exact="$SelectedInstalledCount" />
             </do_if>
+            <do_elseif value="$SelectedGroup == 'weapons' and $NativeRequestedSalvageQuantity ge 1">
+              <set_value name="$SelectedPlanAddQuantity" exact="$NativeRequestedSalvageQuantity" />
+            </do_elseif>
             <set_value name="$SelectedBeamCatalystCost" exact="$SelectedPlanAddQuantity * $BeamCatalystPerPiece" />
             <set_value name="$SelectedBeamCatalystAvailable" exact="$BeamCatalystInventoryCount - $ExistingBeamCatalystPlanCost" />
             <do_if value="$SelectedBeamCatalystAvailable lt 0">
@@ -6354,7 +6368,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v374-salvage-chance-only-tiles',
+            $version = 'v378-save-independent',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -6784,14 +6798,16 @@
               </do_if>
               <set_value name="$ReplacementMacros" exact="[]" />
               <set_value name="$ReplacementSkippedSelected" exact="false" />
+              <set_value name="$ReplacementSkippedSelectedCount" exact="0" />
               <do_for_each name="$CurrentWare" in="$Request.$target.loadout.wares.list">
                 <run_actions ref="SES_Get_Equipment_Category_V1" result="$CurrentGroup">
                   <param name="Ware" value="$CurrentWare" />
                 </run_actions>
                 <set_value name="$CurrentExcluded" exact="[ 'countermeasure_flares_01', 'ship_gen_xs_lasertower_01_a', 'ship_gen_s_lasertower_01_a', 'weapon_gen_mine_01', 'weapon_gen_mine_02', 'weapon_gen_mine_03', 'satellite_mk1', 'satellite_mk2', 'resourceprobe_01', 'waypointmarker_01' ].indexof.{$CurrentWare.id}" />
                 <do_if value="$CurrentGroup == $SelectedGroup and not $CurrentExcluded and @$CurrentWare.objectmacro">
-                  <do_if value="not $ReplacementSkippedSelected and $CurrentWare.id == $SelectedWare.id and @$CurrentWare.objectmacro == $SelectedMacro">
+                  <do_if value="$ReplacementSkippedSelectedCount lt $QueuedPlanQuantity and $CurrentWare.id == $SelectedWare.id and @$CurrentWare.objectmacro == $SelectedMacro">
                     <set_value name="$ReplacementSkippedSelected" exact="true" />
+                    <set_value name="$ReplacementSkippedSelectedCount" operation="add" />
                   </do_if>
                   <do_else>
                     <append_to_list name="$ReplacementMacros" exact="$CurrentWare.objectmacro" />
@@ -6891,7 +6907,7 @@
               <set_value name="$SmallMediumReplacementOK" exact="not ($Request.$target.isclass.ship_l or $Request.$target.isclass.ship_xl)" />
               <set_value name="$ReplacementCategoryAllowed" exact="[ 'engines', 'shields', 'thrusters', 'turrets', 'weapons' ].indexof.{$SelectedGroup}" />
               <set_value name="$ReplacementFinalCategoryOK" exact="$ReplacementMacros.count gt 0 or [ 'engines', 'shields', 'thrusters', 'turrets', 'weapons' ].indexof.{$SelectedGroup}" />
-              <set_value name="$ReplacementRecoveryPlanOK" exact="$SmallMediumReplacementOK and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $PreCount gt 0 and $ReplacementFinalCategoryOK and $ReplacementPlanCount == 1 and $ReplacementUsedCount == $ReplacementMacros.count and $ReplacementRemainingCount == 0 and $ReplacementPlanCategoryCount == $CategoryCount - 1 and $ReplacementPlanSelectedCount == $PreCount - 1" />
+              <set_value name="$ReplacementRecoveryPlanOK" exact="$QueuedPlanMatchesSelection and $QueuedPlanQuantity ge 1 and $QueuedPlanQuantity le $PreCount and $SmallMediumReplacementOK and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $ReplacementSkippedSelectedCount == $QueuedPlanQuantity and $PreCount gt 0 and $ReplacementFinalCategoryOK and $ReplacementMacros.count == $CategoryCount - $QueuedPlanQuantity and $ReplacementPlanCount == 1 and $ReplacementUsedCount == $ReplacementMacros.count and $ReplacementRemainingCount == 0 and $ReplacementPlanCategoryCount == $CategoryCount - $QueuedPlanQuantity and $ReplacementPlanSelectedCount == $PreCount - $QueuedPlanQuantity" />
               <set_value name="$EngineGroupBundleRecoveryOK" exact="$QueuedFullBundleAllowed and $SmallMediumReplacementOK and $SelectedGroup == 'engines' and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $PreCount gt 1 and $CategoryCount == $PreCount and $CategoryOtherCount == 0 and $ReplacementMacros.count == $PreCount - 1 and $ReplacementPlanCount == 1 and $ReplacementUsedCount == 0 and $ReplacementRemainingCount == $ReplacementMacros.count and $ReplacementPlanCategoryCount == 0 and $ReplacementPlanSelectedCount == 0" />
               <set_value name="$CategoryBundleRecoveryOK" exact="$QueuedFullBundleAllowed and $SmallMediumReplacementOK and [ 'shields', 'turrets', 'weapons' ].indexof.{$SelectedGroup} and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $PreCount gt 1 and $CategoryCount == $PreCount and $CategoryOtherCount == 0 and $ReplacementMacros.count == $PreCount - 1 and $ReplacementPlanCount == 1 and $ReplacementUsedCount == $ReplacementMacros.count and $ReplacementRemainingCount == 0 and $ReplacementPlanCategoryCount == $PreCount and $ReplacementPlanSelectedCount == $PreCount" />
               <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][REPLACE] Simple Menu S/M category replacement plan target=%s, category=%s, ware=%s, macro=%s, precount=%s, categorycount=%s, replacementmacros=%s, skippedselected=%s, plancount=%s, usedcount=%s, remainingcount=%s, plancategorycount=%s, planselectedcount=%s, queuedquantity=%s, queuedmatches=%s, queuedfullbundleallowed=%s, replacementok=%s, enginegroupbundleok=%s, categorybundleok=%s'.[
@@ -6951,9 +6967,12 @@
                 ]" />
               </do_if>
               <set_value name="$RecoveryPlannedQuantity" exact="1" />
-              <do_if value="$EngineGroupBundleRecoveryOK or $CategoryBundleRecoveryOK">
-                <set_value name="$RecoveryPlannedQuantity" exact="$PreCount" />
+              <do_if value="$ReplacementRecoveryPlanOK">
+                <set_value name="$RecoveryPlannedQuantity" exact="$QueuedPlanQuantity" />
               </do_if>
+              <do_elseif value="$EngineGroupBundleRecoveryOK or $CategoryBundleRecoveryOK">
+                <set_value name="$RecoveryPlannedQuantity" exact="$PreCount" />
+              </do_elseif>
               <set_value name="$RecoveryBeamCatalystPerPiece" exact="1" />
               <do_if value="@$Request.$salvagebeamcatalystperpiece">
                 <set_value name="$RecoveryBeamCatalystPerPiece" exact="$Request.$salvagebeamcatalystperpiece" />
@@ -7781,7 +7800,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v374-salvage-chance-only-tiles',
+            $version = 'v378-save-independent',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,
@@ -8739,6 +8758,11 @@
       <delay exact="1ms" />
       <actions>
         <set_value name="$InventoryIndex" exact="@event.param.$echo" />
+        <set_value name="$NativeRequestedInstallQuantity" exact="0" />
+        <do_if value="@global.$SES_M5_Native_Action_Active == 'weld_add' and @global.$SES_M5_Native_Weld_Request_Quantity and global.$SES_M5_Native_Weld_Request_Quantity ge 1">
+          <set_value name="$NativeRequestedInstallQuantity" exact="global.$SES_M5_Native_Weld_Request_Quantity" />
+        </do_if>
+        <remove_value name="global.$SES_M5_Native_Weld_Request_Quantity" />
         <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][INSTALL] Inventory install button clicked index=%s, entries=%s, target=%s'.[
           $InventoryIndex,
           if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory.count else 0,
@@ -8831,6 +8855,10 @@
             <set_value name="$PlannedInstallQuantity" exact="$InstallTargetEngineSlots" />
             <set_value name="$InstallPlanMode" exact="'weld plan engine group install'" />
           </do_if>
+          <do_elseif value="$InventoryCategory == 'weapons' and $NativeRequestedInstallQuantity ge 1">
+            <set_value name="$PlannedInstallQuantity" exact="$NativeRequestedInstallQuantity" />
+            <set_value name="$InstallPlanMode" exact="if $NativeRequestedInstallQuantity gt 1 then 'weld plan merged missile bank install' else 'weld plan weapon install'" />
+          </do_elseif>
           <do_elseif value="$InventoryCategory == 'shields'">
             <set_value name="$InstallPlanMode" exact="'weld plan shield install'" />
           </do_elseif>
@@ -8847,7 +8875,7 @@
             <set_value name="$BondingCatalystAvailableForPlan" exact="0" />
           </do_if>
           <set_value name="$BondingCatalystOK" exact="$BondingCatalystAvailableForPlan ge $BondingCatalystCost" />
-          <set_value name="$WeaponInstallRequestOK" exact="$InventoryCategory == 'weapons' and $InventoryEntryAvailableCount gt 0 and $InstallTargetWeaponSlots gt 0 and ($InstallTargetWeaponInstalled + $WeldPlanWeaponCount) lt $InstallTargetWeaponSlots and @$InventoryEntry.$wareid and @$InventoryEntry.$macro" />
+          <set_value name="$WeaponInstallRequestOK" exact="$InventoryCategory == 'weapons' and $InventoryEntryAvailableCount ge $PlannedInstallQuantity and $InstallTargetWeaponSlots gt 0 and ($InstallTargetWeaponInstalled + $WeldPlanWeaponCount + $PlannedInstallQuantity) le $InstallTargetWeaponSlots and @$InventoryEntry.$wareid and @$InventoryEntry.$macro" />
           <set_value name="$EngineInstallRequestOK" exact="$InventoryCategory == 'engines' and $InventoryEntryAvailableCount ge $InstallTargetEngineSlots and $InstallTargetEngineSlots gt 0 and $InstallTargetEngineInstalled == 0 and $WeldPlanEngineCount == 0 and @$InventoryEntry.$wareid and @$InventoryEntry.$macro" />
           <set_value name="$ShieldInstallRequestOK" exact="$InventoryCategory == 'shields' and $InventoryEntryAvailableCount gt 0 and $InstallTargetShieldSlots gt 0 and ($InstallTargetShieldInstalled + $WeldPlanShieldCount) lt $InstallTargetShieldSlots and @$InventoryEntry.$wareid and @$InventoryEntry.$macro" />
           <set_value name="$TurretInstallRequestOK" exact="$InventoryCategory == 'turrets' and $InventoryEntryAvailableCount gt 0 and $InstallTargetTurretSlots gt 0 and ($InstallTargetTurretInstalled + $WeldPlanTurretCount) lt $InstallTargetTurretSlots and @$InventoryEntry.$wareid and @$InventoryEntry.$macro" />
@@ -8906,9 +8934,11 @@
                   </do_if>
                 </do_if>
               </do_for_each>
-              <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestMacro" />
-              <set_value name="$InstallRequestExpectedCategoryCount" exact="$InstallTargetWeaponInstalled + $WeldPlanWeaponCount + 1" />
-              <set_value name="$InstallRequestExpectedSelectedCount" exact="$InstallRequestPreflightPreCount + $InventoryEntryPlannedSelectedCount + 1" />
+              <do_all exact="$PlannedInstallQuantity" counter="$InstallRequestPreflightWeaponCounter">
+                <append_to_list name="$InstallRequestPreflightMacros" exact="$InstallRequestMacro" />
+              </do_all>
+              <set_value name="$InstallRequestExpectedCategoryCount" exact="$InstallTargetWeaponInstalled + $WeldPlanWeaponCount + $PlannedInstallQuantity" />
+              <set_value name="$InstallRequestExpectedSelectedCount" exact="$InstallRequestPreflightPreCount + $InventoryEntryPlannedSelectedCount + $PlannedInstallQuantity" />
               <generate_loadout
                 macro="$InstallTarget.macro"
                 macros="$InstallRequestPreflightMacros"
@@ -9077,6 +9107,7 @@
               $bondingcatalystcost = $BondingCatalystCost,
               $bondingcatalystperpiece = $BondingCatalystPerPiece,
               $installplanmode = $InstallPlanMode,
+              $nativeweaponbank = $InventoryCategory == 'weapons' and $NativeRequestedInstallQuantity ge 1,
               $source = 'weld_plan_add_v1',
               $token = player.age
             ]" />
@@ -9431,6 +9462,7 @@
               $bondingcatalystcost = $PlanBondingCatalystCost,
               $bondingcatalystperpiece = $PlanBondingCatalystPerPiece,
               $installplanmode = if @$PlanEntry.$installplanmode then $PlanEntry.$installplanmode else 'weld plan install',
+              $nativeweaponbank = @$PlanEntry.$nativeweaponbank,
               $targetweaponslots = $TargetWeaponSlots,
               $targetweaponinstalled = $TargetWeaponInstalled,
               $targetengineslots = $TargetEngineSlots,
@@ -9947,8 +9979,10 @@
           <set_value name="$InstallMacros" exact="[]" />
           <set_value name="$InstallPlanCategoryCount" exact="0" />
           <set_value name="$InstallPlanSelectedCount" exact="0" />
-          <do_if value="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'weapons' and $TargetWeaponSlots gt 0 and $TargetWeaponInstalled lt $TargetWeaponSlots and $PlannedInstallQuantity == 1 and @$Request.$targetweaponslots == $TargetWeaponSlots and @$Request.$targetweaponinstalled == $TargetWeaponInstalled">
-            <append_to_list name="$WeaponInstallMacros" exact="$RequestedMacro" />
+          <do_if value="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'weapons' and $TargetWeaponSlots gt 0 and $PlannedInstallQuantity ge 1 and $TargetWeaponInstalled + $PlannedInstallQuantity le $TargetWeaponSlots and ($PlannedInstallQuantity == 1 or @$Request.$nativeweaponbank) and @$Request.$targetweaponslots == $TargetWeaponSlots and @$Request.$targetweaponinstalled == $TargetWeaponInstalled">
+            <do_all exact="$PlannedInstallQuantity" counter="$WeaponInstallCounter">
+              <append_to_list name="$WeaponInstallMacros" exact="$RequestedMacro" />
+            </do_all>
             <set_value name="$InstallMacros" exact="$WeaponInstallMacros" />
             <generate_loadout
               macro="$Target.macro"
@@ -10029,7 +10063,7 @@
               </do_if>
             </do_for_each>
           </do_if>
-          <set_value name="$WeaponInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'weapons' and $TargetWeaponSlots gt 0 and $TargetWeaponInstalled lt $TargetWeaponSlots and @$Request.$targetweaponslots == $TargetWeaponSlots and @$Request.$targetweaponinstalled == $TargetWeaponInstalled and $PlannedInstallQuantity == 1 and $WeaponInstallMacros.count == $TargetWeaponInstalled + 1 and $InstallMacros.count == $TargetWeaponInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetWeaponInstalled + 1 and $InstallPlanSelectedCount == $PreCount + 1" />
+          <set_value name="$WeaponInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'weapons' and $TargetWeaponSlots gt 0 and $PlannedInstallQuantity ge 1 and $TargetWeaponInstalled + $PlannedInstallQuantity le $TargetWeaponSlots and ($PlannedInstallQuantity == 1 or @$Request.$nativeweaponbank) and @$Request.$targetweaponslots == $TargetWeaponSlots and @$Request.$targetweaponinstalled == $TargetWeaponInstalled and $WeaponInstallMacros.count == $TargetWeaponInstalled + $PlannedInstallQuantity and $InstallMacros.count == $TargetWeaponInstalled + $PlannedInstallQuantity and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetWeaponInstalled + $PlannedInstallQuantity and $InstallPlanSelectedCount == $PreCount + $PlannedInstallQuantity" />
           <set_value name="$EngineInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'engines' and $TargetEngineSlots gt 0 and $TargetEngineInstalled == 0 and $PlannedInstallQuantity == $TargetEngineSlots and @$Request.$targetengineslots == $TargetEngineSlots and @$Request.$targetengineinstalled == 0 and $InstallMacros.count == $PlannedInstallQuantity and $InstallPlans.count == 1 and $InstallUsed.count == $PlannedInstallQuantity and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $PlannedInstallQuantity and $InstallPlanSelectedCount == $PlannedInstallQuantity" />
           <set_value name="$ShieldInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'shields' and $TargetShieldSlots gt 0 and $TargetShieldInstalled lt $TargetShieldSlots and @$Request.$targetshieldslots == $TargetShieldSlots and @$Request.$targetshieldinstalled == $TargetShieldInstalled and $PlannedInstallQuantity == 1 and $ShieldInstallMacros.count == $TargetShieldInstalled + 1 and $InstallMacros.count == $TargetShieldInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetShieldInstalled + 1 and $InstallPlanSelectedCount == $PreCount + 1" />
           <set_value name="$TurretInstallPlanOK" exact="$TargetOK and $InventoryEntryOK and $RequestedIdentityOK and $Request.$category == 'turrets' and $TargetTurretSlots gt 0 and $TargetTurretInstalled lt $TargetTurretSlots and @$Request.$targetturretslots == $TargetTurretSlots and @$Request.$targetturretinstalled == $TargetTurretInstalled and $PlannedInstallQuantity == 1 and $TurretInstallMacros.count == $TargetTurretInstalled + 1 and $InstallMacros.count == $TargetTurretInstalled + 1 and $InstallPlans.count == 1 and $InstallUsed.count == $InstallMacros.count and $InstallRemaining.count == 0 and $InstallPlanCategoryCount == $TargetTurretInstalled + 1 and $InstallPlanSelectedCount == $PreCount + 1" />
@@ -11011,14 +11045,16 @@
             </do_elseif>
             <set_value name="$ReplacementMacros" exact="[]" />
             <set_value name="$ReplacementSkippedSelected" exact="false" />
+            <set_value name="$ReplacementSkippedSelectedCount" exact="0" />
             <do_for_each name="$CurrentWare" in="$Request.$target.loadout.wares.list">
               <run_actions ref="SES_Get_Equipment_Category_V1" result="$CurrentGroup">
                 <param name="Ware" value="$CurrentWare" />
               </run_actions>
               <set_value name="$CurrentExcluded" exact="[ 'countermeasure_flares_01', 'ship_gen_xs_lasertower_01_a', 'ship_gen_s_lasertower_01_a', 'weapon_gen_mine_01', 'weapon_gen_mine_02', 'weapon_gen_mine_03', 'satellite_mk1', 'satellite_mk2', 'resourceprobe_01', 'waypointmarker_01' ].indexof.{$CurrentWare.id}" />
               <do_if value="$CurrentGroup == $Request.$category and not $CurrentExcluded and @$CurrentWare.objectmacro">
-                <do_if value="not $ReplacementSkippedSelected and $CurrentWare.id == $Request.$wareid and @$CurrentWare.objectmacro == $Request.$macro">
+                <do_if value="$ReplacementSkippedSelectedCount lt $Request.$plannedquantity and $CurrentWare.id == $Request.$wareid and @$CurrentWare.objectmacro == $Request.$macro">
                   <set_value name="$ReplacementSkippedSelected" exact="true" />
+                  <set_value name="$ReplacementSkippedSelectedCount" operation="add" />
                 </do_if>
                 <do_else>
                   <append_to_list name="$ReplacementMacros" exact="$CurrentWare.objectmacro" />
@@ -11118,7 +11154,7 @@
             <set_value name="$SmallMediumReplacementOK" exact="not ($Request.$target.isclass.ship_l or $Request.$target.isclass.ship_xl)" />
             <set_value name="$ReplacementCategoryAllowed" exact="[ 'engines', 'shields', 'thrusters', 'turrets', 'weapons' ].indexof.{$Request.$category}" />
             <set_value name="$ReplacementFinalCategoryOK" exact="$ReplacementMacros.count gt 0 or [ 'engines', 'shields', 'thrusters', 'turrets', 'weapons' ].indexof.{$Request.$category}" />
-            <set_value name="$ReplacementRecoveryPlanOK" exact="$SmallMediumReplacementOK and @$Request.$replacementplan and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $PreCount == $Request.$precount and $PreCount gt 0 and $CategoryCount == $Request.$categorycount and $CategoryOtherCount == $Request.$categoryothercount and $ReplacementFinalCategoryOK and $ReplacementMacros.count == @$Request.$replacementmacros and $ReplacementPlanCount == 1 and $ReplacementUsedCount == $ReplacementMacros.count and $ReplacementRemainingCount == 0 and $ReplacementPlanCategoryCount == $CategoryCount - 1 and $ReplacementPlanCategoryCount == @$Request.$replacementcategorycount and $ReplacementPlanSelectedCount == $PreCount - 1 and $ReplacementPlanSelectedCount == @$Request.$replacementselectedcount" />
+            <set_value name="$ReplacementRecoveryPlanOK" exact="$SmallMediumReplacementOK and @$Request.$replacementplan and @$Request.$plannedquantity ge 1 and $Request.$plannedquantity le $PreCount and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $ReplacementSkippedSelectedCount == $Request.$plannedquantity and $PreCount == $Request.$precount and $PreCount gt 0 and $CategoryCount == $Request.$categorycount and $CategoryOtherCount == $Request.$categoryothercount and $ReplacementFinalCategoryOK and $ReplacementMacros.count == $CategoryCount - $Request.$plannedquantity and $ReplacementMacros.count == @$Request.$replacementmacros and $ReplacementPlanCount == 1 and $ReplacementUsedCount == $ReplacementMacros.count and $ReplacementRemainingCount == 0 and $ReplacementPlanCategoryCount == $CategoryCount - $Request.$plannedquantity and $ReplacementPlanCategoryCount == @$Request.$replacementcategorycount and $ReplacementPlanSelectedCount == $PreCount - $Request.$plannedquantity and $ReplacementPlanSelectedCount == @$Request.$replacementselectedcount" />
             <set_value name="$EngineGroupBundlePlanOK" exact="$SmallMediumReplacementOK and @$Request.$enginegroupbundle and $Request.$category == 'engines' and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $PreCount == $Request.$precount and $PreCount gt 1 and $CategoryCount == $Request.$categorycount and $CategoryOtherCount == $Request.$categoryothercount and $CategoryCount == $PreCount and $CategoryOtherCount == 0 and $ReplacementMacros.count == $PreCount - 1 and $ReplacementPlanCount == 1 and $ReplacementUsedCount == 0 and $ReplacementRemainingCount == $ReplacementMacros.count and $ReplacementPlanCategoryCount == 0 and $ReplacementPlanSelectedCount == 0 and @$Request.$plannedquantity == $PreCount" />
             <set_value name="$CategoryBundlePlanOK" exact="$SmallMediumReplacementOK and @$Request.$categorybundle and [ 'shields', 'turrets', 'weapons' ].indexof.{$Request.$category} and $ReplacementCategoryAllowed and $ReplacementSkippedSelected and $PreCount == $Request.$precount and $PreCount gt 1 and $CategoryCount == $Request.$categorycount and $CategoryOtherCount == $Request.$categoryothercount and $CategoryCount == $PreCount and $CategoryOtherCount == 0 and $ReplacementMacros.count == $PreCount - 1 and $ReplacementMacros.count == @$Request.$replacementmacros and $ReplacementPlanCount == 1 and $ReplacementUsedCount == $ReplacementMacros.count and $ReplacementRemainingCount == 0 and $ReplacementPlanCategoryCount == $PreCount and $ReplacementPlanCategoryCount == @$Request.$replacementcategorycount and $ReplacementPlanSelectedCount == $PreCount and $ReplacementPlanSelectedCount == @$Request.$replacementselectedcount and @$Request.$plannedquantity == $PreCount" />
             <set_value name="$CountGateOK" exact="[ 'shields', 'turrets', 'weapons' ].indexof.{$Request.$category} and $PreCount == 2" />
@@ -11342,10 +11378,10 @@
               <set_value name="$CreditQuantity" exact="1" />
               <set_value name="$SelectedLoadoutDeltaOK" exact="$SelectedLoadoutDelta == 1" />
               <set_value name="$TotalLoadoutDeltaOK" exact="$TotalLoadoutDelta == 1" />
-              <do_if value="$EngineGroupBundlePlanOK or $CategoryBundlePlanOK">
-                <set_value name="$CreditQuantity" exact="$PreCount" />
-                <set_value name="$SelectedLoadoutDeltaOK" exact="$SelectedLoadoutDelta == $PreCount" />
-                <set_value name="$TotalLoadoutDeltaOK" exact="$TotalLoadoutDelta == $PreCount" />
+              <do_if value="$ReplacementRecoveryPlanOK or $EngineGroupBundlePlanOK or $CategoryBundlePlanOK">
+                <set_value name="$CreditQuantity" exact="if $ReplacementRecoveryPlanOK then $Request.$plannedquantity else $PreCount" />
+                <set_value name="$SelectedLoadoutDeltaOK" exact="$SelectedLoadoutDelta == $CreditQuantity" />
+                <set_value name="$TotalLoadoutDeltaOK" exact="$TotalLoadoutDelta == $CreditQuantity" />
               </do_if>
               <do_if value="$Request.$category == 'turrets' and $RecoveryPlanFlagSet == 'turretgroups' and $SurfaceSlotPreCount gt 1">
                 <set_value name="$CreditQuantity" exact="$SurfaceSlotPreCount" />

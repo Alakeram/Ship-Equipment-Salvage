@@ -45,7 +45,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v374-salvage-chance-only-tiles",
+	version = "v378-save-independent",
 	salvageMode = "custom_ses_m5_salvage",
 	salvageResultMode = "custom_ses_m5_salvage_result",
 	weldMode = "custom_ses_m5_weld",
@@ -465,6 +465,7 @@ local function salvageRows()
 					installed = 0,
 					planned = 0,
 					cost = 0,
+					perPiece = 1,
 					chance = numeric(itemField(item, "extractionchance")),
 				}
 				byKey[key] = row
@@ -492,6 +493,7 @@ local function salvageRows()
 	end
 	local catalystsAvailable = math.max(0, state.catalysts - state.catalystCost)
 	for _, row in ipairs(rows) do
+		row.perPiece = perPiece
 		row.addQuantity = 1
 		if row.category == "engines" and row.installed > 1 then
 			local otherEngines = false
@@ -595,9 +597,61 @@ local function weldItemKey(macro, category)
 	return safeString(category or "") .. "|" .. safeString(macro or "")
 end
 
+-- Vanilla presents compatible missile-launcher connections as one merged bank,
+-- even though the native callback still identifies one physical weapon slot.
+-- Return the whole bank plus the number of matching launchers it currently
+-- contains. Ordinary weapon slots (and all other equipment) return bank size 0.
+local function nativeMergedWeaponBank(button, macro, usePlanned)
+	if type(button) ~= "table" or safeString(button.upgradetype or "") ~= "weapon" then
+		return 0, 0, false, {}
+	end
+	local slots = shipConfigurationMenu and type(shipConfigurationMenu.slots) == "table"
+		and shipConfigurationMenu.slots[button.upgradetype] or nil
+	local merged = type(slots) == "table" and slots.mergedslotindices or nil
+	local selectedSlot = numeric(button.slot)
+	if type(merged) ~= "table" or selectedSlot <= 0 or not merged[selectedSlot] then
+		return 0, 0, false, {}
+	end
+	local indices = {}
+	for slot, isMerged in pairs(merged) do
+		if isMerged and tonumber(slot) and tonumber(slot) > 0 then
+			table.insert(indices, tonumber(slot))
+		end
+	end
+	table.sort(indices)
+	if #indices <= 1 then
+		return 0, 0, false, {}
+	end
+	local matching = 0
+	local occupiedOther = false
+	local wanted = safeString(macro or "")
+	for _, slot in ipairs(indices) do
+		local slotMacro = ""
+		if usePlanned then
+			local typeplan = shipConfigurationMenu and type(shipConfigurationMenu.upgradeplan) == "table"
+				and shipConfigurationMenu.upgradeplan[button.upgradetype] or nil
+			local slotplan = type(typeplan) == "table" and typeplan[slot] or nil
+			slotMacro = type(slotplan) == "table" and safeString(slotplan.macro or "") or ""
+		else
+			local slotData = type(slots[slot]) == "table" and slots[slot] or nil
+			slotMacro = type(slotData) == "table" and safeString(slotData.currentmacro or "") or ""
+		end
+		if wanted ~= "" and slotMacro == wanted then
+			matching = matching + 1
+		elseif slotMacro ~= "" then
+			occupiedOther = true
+		end
+	end
+	return #indices, matching, occupiedOther, indices
+end
+
 local function weldSlotKey(button)
 	if type(button) ~= "table" then
 		return ""
+	end
+	local bankSize, _, _, bankSlots = nativeMergedWeaponBank(button, "", false)
+	if bankSize > 1 then
+		return safeString(button.upgradetype or "") .. "|mergedmissile|" .. table.concat(bankSlots, ",")
 	end
 	return safeString(button.upgradetype or "") .. "|" .. tostring(numeric(button.slot))
 end
@@ -745,7 +799,15 @@ local function previewWeldEquipment(button, item)
 		elseif shipConfigurationMenu.setSlotMacro then
 			local upgradetype = Helper and Helper.findUpgradeType and Helper.findUpgradeType(button.upgradetype) or nil
 			local slots = shipConfigurationMenu.slots and shipConfigurationMenu.slots[button.upgradetype] or nil
-			if upgradetype and upgradetype.mergeslots and type(slots) == "table" and item.quantity > 1 then
+			local missileBankSize, _, _, missileBankSlots = nativeMergedWeaponBank(button, item.macro, false)
+			if missileBankSize > 1 then
+				-- A missile bank is one native selection backed by multiple physical
+				-- launcher connections. Fill the whole bank (or its missing member)
+				-- so the preview matches the quantity accepted by MD.
+				for _, slot in ipairs(missileBankSlots) do
+					shipConfigurationMenu.setSlotMacro(button.upgradetype, slot, button.macro)
+				end
+			elseif upgradetype and upgradetype.mergeslots and type(slots) == "table" and item.quantity > 1 then
 				-- S/M engines are exposed through native individual-slot callbacks even
 				-- though X4 treats them as one merged selection. Mirror vanilla's merged
 				-- behavior so all physical engine slots, the category gauge, the required
@@ -831,7 +893,18 @@ local function previewSalvageEquipment(button, item, rememberSelection, refresh)
 		elseif shipConfigurationMenu.setSlotMacro then
 			local upgradetype = Helper and Helper.findUpgradeType and Helper.findUpgradeType(button.upgradetype) or nil
 			local slots = shipConfigurationMenu.slots and shipConfigurationMenu.slots[button.upgradetype] or nil
-			if upgradetype and upgradetype.mergeslots and type(slots) == "table" and numeric(item.addQuantity) > 1 then
+			local missileBankSize, _, _, missileBankSlots = nativeMergedWeaponBank(button, item.macro, true)
+			if missileBankSize > 1 then
+				local remaining = math.max(1, numeric(item.addQuantity))
+				for _, slot in ipairs(missileBankSlots) do
+					local typeplan = shipConfigurationMenu.upgradeplan and shipConfigurationMenu.upgradeplan[button.upgradetype] or nil
+					local slotplan = type(typeplan) == "table" and typeplan[slot] or nil
+					if remaining > 0 and type(slotplan) == "table" and safeString(slotplan.macro or "") == safeString(item.macro) then
+						shipConfigurationMenu.setSlotMacro(button.upgradetype, slot, "")
+						remaining = remaining - 1
+					end
+				end
+			elseif upgradetype and upgradetype.mergeslots and type(slots) == "table" and numeric(item.addQuantity) > 1 then
 				-- Native S/M engine tiles can arrive through the individual-slot callback
 				-- even though the category is one merged selection. Clear every physical
 				-- slot so the model, Overview, category gauge and quantity all show the
@@ -1662,6 +1735,21 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 		if not salvageItem then
 			return { active = false, useable = false, mouseovertext = sesText(452, "This installed item is not salvageable.") }
 		end
+		local missileBankSize, missileBankMatching, missileBankOccupiedOther = nativeMergedWeaponBank(button, macro, true)
+		if missileBankSize > 1 then
+			-- Keep the published inventory row immutable; this tile represents the
+			-- selected native missile bank and therefore carries its exact quantity.
+			local source = salvageItem
+			salvageItem = {}
+			for key, value in pairs(source) do
+				salvageItem[key] = value
+			end
+			salvageItem.addQuantity = missileBankMatching
+			salvageItem.cost = missileBankMatching * math.max(1, numeric(salvageItem.perPiece))
+			salvageItem.canAdd = missileBankMatching > 0 and not missileBankOccupiedOther
+				and salvageItem.planned + missileBankMatching <= salvageItem.installed
+				and math.max(0, state.catalysts - state.catalystCost) >= salvageItem.cost
+		end
 		-- Ship Configuration shows every compatible catalogue macro for the
 		-- selected slot. Salvage must only act on the macro that is actually in
 		-- that slot/group; otherwise selecting (for example) a Boson tile while a
@@ -1669,6 +1757,9 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 		-- from the native preview. Duplicate counts then reach zero independently
 		-- of the slot tabs and the UI can no longer represent the queued plan.
 		local isInstalledInSelectedSlot = safeString(button.plannedmacro or "") == macro
+		if missileBankSize > 1 then
+			isInstalledInSelectedSlot = missileBankMatching > 0 and not missileBankOccupiedOther
+		end
 		local canAddFromSelectedSlot = isInstalledInSelectedSlot and salvageItem.canAdd
 		local status = sesFormat(453, "Installed: %d  |  Planned: %d  |  Beam Catalyst cost: %d", salvageItem.installed, salvageItem.planned, salvageItem.cost)
 		if not isInstalledInSelectedSlot then
@@ -1690,6 +1781,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 				}
 				salvagePendingPreviewItem = salvageItem
 				salvagePreviewExpectedRows = state.pendingRows + 1
+				nativeAction("salvage_quantity", salvageItem.addQuantity)
 				nativeAction("salvage_add", salvageItem.index)
 			end or nil,
 		}
@@ -1704,6 +1796,8 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 	local nativePlanned = macro ~= "" and safeString(button.plannedmacro or "") == macro
 	local authoritativePlannedQuantity = plannedWeldQuantity(macro, category)
 	local isUngroupedWeapon = category == "weapons" and not button.grouped
+	local missileBankSize, missileBankInstalled, missileBankOccupiedOther = nativeMergedWeaponBank(button, macro, false)
+	local isMergedMissileBank = missileBankSize > 1
 	local slotKey = weldSlotKey(button)
 	local acceptedSlotMacro = safeString(weldPreviewSlots[slotKey] or "")
 	local pendingSlotMacro = pendingWeldSlotMacro(button)
@@ -1717,6 +1811,10 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 	end
 	local selectedSlotOccupied = selectedSlotCurrentMacro ~= ""
 	local isInstalledInSelectedSlot = selectedSlotCurrentMacro == macro
+	if isMergedMissileBank then
+		selectedSlotOccupied = missileBankOccupiedOther
+		isInstalledInSelectedSlot = missileBankInstalled == missileBankSize
+	end
 	-- Native plannedmacro is catalogue-wide for merged S/M weapon presentation:
 	-- once one saved macro is previewed it can appear planned on sibling tabs.
 	-- Track the exact native slot accepted by SES instead, so a macro planned in
@@ -1746,6 +1844,16 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 			extratext = sesFormat(472, "%s\nSaved: %d", nativeTileName(button, nil, macro), 0),
 		}
 	end
+	if isMergedMissileBank then
+		local source = item
+		item = {}
+		for key, value in pairs(source) do
+			item[key] = value
+		end
+		local perPiece = math.max(1, math.floor(numeric(source.cost) / math.max(1, numeric(source.quantity))))
+		item.quantity = math.max(1, missileBankSize - missileBankInstalled)
+		item.cost = item.quantity * perPiece
+	end
 	local remaining = remainingWeldQuantity(item)
 	local slotCompatible = nativeSlotCompatible(shipConfigurationMenu, button.upgradetype, button.slot, macro, button.grouped)
 	-- As on the salvage side, the native Ship Configuration slot is the
@@ -1758,7 +1866,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 	local catalystsAvailable = state.catalysts >= (state.catalystCost + item.cost)
 	local mdOrNativeEligible = item.canAdd or nativeSlotAuthority
 	local requestPending = weldPreviewExpectedRows ~= nil
-	local canAdd = slotCompatible and (not selectedSlotOccupied) and (not isPlanned)
+	local canAdd = slotCompatible and (not selectedSlotOccupied) and (not isInstalledInSelectedSlot) and (not isPlanned)
 		and (not slotReservedForPreview)
 		and (not requestPending) and mdOrNativeEligible and catalystsAvailable and remaining >= item.quantity
 	local receipt = sesFormat(472, "%s\nSaved: %d", nativeTileName(button, item, macro), remaining)
@@ -1822,6 +1930,7 @@ function ModLua.displaySlots_on_create_upgrade_button(button)
 			-- Redraw immediately so a rapid second click cannot overwrite the one
 			-- in-flight MD acknowledgement and attach its preview to the wrong slot.
 			refreshShipConfiguration()
+			nativeAction("weld_quantity", item.quantity)
 			nativeAction("weld_add", item.index)
 		end or nil,
 	}
