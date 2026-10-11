@@ -61,9 +61,15 @@ turrets) plus 21 HQ research projects.
   S/M wreck. The ship closes in, cuts the wreck and keeps the materials in
   its pilot's inventory. Ships whose turrets can't reach the wreck reposition
   on their own.
-- New "Auto-Salvage" default behaviour: the ship works through the unclaimed
-  S/M wrecks in its sector, skipping wrecks another of your salvage ships is
-  working. It shows greyed out for ships without salvage gear.
+- New "Riptide Auto-Salvage" default behaviour: the ship works through the
+  unclaimed S/M wrecks in its sector, or in an area you pick with a radius,
+  skipping wrecks another of your salvage ships is working. It shows greyed
+  out for ships without salvage gear.
+- New "Riptide Salvage in Area" order: select ships with salvage gear and
+  right-click in space. They salvage every unclaimed S/M wreck within the
+  radius, nearest first, then finish. The entry appears only when a selected
+  ship carries salvage gear.
+- Salvage ships keep cutting while you're in another sector.
 - The Bonding Regulator can weld the Riptide salvage gear onto your ships.
 
 ### Salvage Materials and Fabrication
@@ -104,11 +110,6 @@ turrets) plus 21 HQ research projects.
 - "L/XL ship salvage (BETA)" is listed under Extension Options as a disabled
   placeholder for the next major update.
 
-### Fixes
-
-- The Crafting menu's Fabrication tab now shows right after loading a save;
-  before, it could stay hidden until something refreshed the menu.
-- Fixed the wreck-salvage award notification.
 
 ### Ship Configuration Planners
 
