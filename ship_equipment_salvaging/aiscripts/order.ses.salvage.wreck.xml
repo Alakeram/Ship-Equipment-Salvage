@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<aiscript name="order.ses.salvage.wreck" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!-- SES Wreck Mining BETA: Salvage Wreck.
+       Flies into mining-turret range of an unclaimed S/M wreck and keeps a
+       heartbeat in global.$SES_Salvage_Requests. md/ses_salvage_standin.xml
+       swaps the wreck for a stand-in; this order points the ship's mining or
+       salvage turrets at it. Weapon-Grade Salvage and core fragments go to this
+       pilot's inventory (vanilla handover), never equipment. Turret targeting
+       is only processed in visible attention, like every turret order.
+       Two attention blocks, as in vanilla mining.collect.ship.medium: shoot_at
+       (aimed forward guns) is only allowed in the visible block; X4 rejects it
+       in an unknown-attention block (the cause of 0 gun hits on 2026-10-09). -->
+  <order id="SESSalvageWreck" name="{1171361,930}" description="{1171361,931}" category="salvage" allowinloop="false">
+    <params>
+      <param name="target" required="true" type="object" text="{1041,10126}" comment="Target. The S/M wreck to salvage.">
+        <input_param name="canbetowed" value="true"/>
+      </param>
+      <param name="debugchance" type="bool" default="0" advanced="true" text="{1041,10086}" comment="Print debug output">
+        <input_param name="truevalue" value="100"/>
+      </param>
+    </params>
+    <requires>
+      <match class="class.spacesuit" negate="true"/>
+    </requires>
+    <location object="$target" condition="$target.exists"/>
+  </order>
+  <interrupts>
+    <handler ref="SectorChangeHandler"/>
+    <handler ref="TargetInvalidHandler"/>
+    <handler ref="AttackHandler"/>
+    <handler ref="MissileLockHandler"/>
+    <handler ref="ScannedHandler"/>
+    <handler ref="InspectedHandler"/>
+    <handler ref="ResupplyHandler"/>
+  </interrupts>
+  <attention min="visible">
+    <actions>
+      <label name="start"/>
+      <set_value name="$gunstarget" exact="null"/>
+      <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$target.iswreck or not ($target.isrealclass.ship_s or $target.isrealclass.ship_m) or @$target.tugship or @$target.dismantlingobject or @$target.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
+        <debug_text text="'[SES][STANDIN] Salvage Wreck refused: target %s is not an eligible S/M wreck or the BETA is off.'.[$target]" chance="$debugchance"/>
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,934}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+
+      <!-- Only Avarice salvage beams count (turrets and forward weapons); ordinary
+           mining gear cannot salvage. Only these are ever set to fire at the stand-in. -->
+      <create_group groupname="$miners"/>
+      <set_value name="$turretcount" exact="0"/>
+      <do_for_each name="$gear" in="this.assignedcontrolled.turrets.operational.list">
+        <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$gear.macro.id}">
+          <add_to_group groupname="$miners" object="$gear"/>
+          <set_value name="$turretcount" operation="add"/>
+        </do_if>
+      </do_for_each>
+      <set_value name="$guncount" exact="0"/>
+      <do_for_each name="$gear" in="this.assignedcontrolled.weapons.operational.list">
+        <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$gear.macro.id} and not $gear.isclass.turret">
+          <add_to_group groupname="$miners" object="$gear"/>
+          <set_value name="$guncount" operation="add"/>
+          <!-- shoot_at only fires weapons in the active weapon group; a freshly
+               fitted salvage laser may be in none. -->
+          <do_if value="not $gear.isinactiveweapongroup">
+            <add_weapon_to_weapongroup weapon="$gear" weapongroup="1" primary="true"/>
+          </do_if>
+          <debug_text text="'[SES][STANDIN] Salvage gun %s macro=%s activegroup=%s mode=%s'.[$gear, $gear.macro, $gear.isinactiveweapongroup, $gear.mode]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+        </do_if>
+      </do_for_each>
+      <do_if value="not $miners.count">
+        <debug_text text="'[SES][STANDIN] Salvage Wreck refused: %s has no mining or salvage turret or weapon.'.[this.assignedcontrolled]" chance="$debugchance"/>
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,933}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+      <set_weapon_mode group="$miners" weaponmode="weaponmode.mining"/>
+      <!-- Close to the SHORTEST salvage range so every salvage gear can reach. -->
+      <set_value name="$range" exact="[this.assignedcontrolled.shortestmaxcombatrange.{weaponmode.mining}.all, 300m].max"/>
+      <debug_text text="'[SES][STANDIN] Salvage Wreck start. ship=%s turrets=%s weapons=%s shortestrange=%s'.[this.assignedcontrolled, $turretcount, $guncount, $range]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+
+      <label name="approach"/>
+      <do_if value="@$gunstarget">
+        <stop_shooting object="this.assignedcontrolled" missiles="false" turrets="false" weaponmode="weaponmode.mining"/>
+        <set_value name="$gunstarget" exact="null"/>
+      </do_if>
+      <do_if value="this.assignedcontrolled.sector != $target.sector or this.assignedcontrolled.distanceto.{$target} gt $range * 0.8">
+        <run_script name="'move.generic'" result="$movesuccess">
+          <param name="destination" value="$target"/>
+          <param name="position" value="position.[0m, 0m, -([$range * 0.5, $target.size].max)]"/>
+          <param name="allowwreck" value="true"/>
+          <param name="debugchance" value="$debugchance"/>
+        </run_script>
+        <do_if value="not $movesuccess">
+          <do_if value="$target.exists and @this.assignedcontrolled.order.isrunning">
+            <set_order_failed order="this.assignedcontrolled.order" text="{1045,101}" comment="Unable to reach destination."/>
+          </do_if>
+          <resume label="finish"/>
+        </do_if>
+      </do_if>
+
+      <label name="work"/>
+      <do_if value="not global.$SES_Salvage_Requests?">
+        <set_value name="global.$SES_Salvage_Requests" exact="table[]"/>
+      </do_if>
+      <set_value name="global.$SES_Salvage_Requests.{this.assignedcontrolled}" exact="table[$wreck = $target, $time = player.age]"/>
+      <set_value name="$standin" exact="@global.$SES_Salvage_Standin_Of.{$target}"/>
+      <do_if value="@$standin.exists and @global.$SES_Salvage_Active.{this.assignedcontrolled} == $standin">
+        <!-- Already in range but no salvage hit after 5 s: the wreck is probably
+             outside the turrets' firing arcs (a turret-only ship never turns).
+             Reposition once with the approach move, which faces the wreck (MCP run 38). -->
+        <do_if value="not $workstart?">
+          <set_value name="$workstart" exact="player.age"/>
+        </do_if>
+        <do_if value="not $repositioned? and player.age gt $workstart + 5s and not @global.$SES_Salvage_Standins.{$standin}.$lastsalvagehit">
+          <set_value name="$repositioned" exact="true"/>
+          <debug_text text="'[SES][STANDIN] No salvage hit after 5 s; repositioning %s to face %s.'.[this.assignedcontrolled, $target]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+          <run_script name="'move.generic'" result="$movesuccess">
+            <param name="destination" value="$target"/>
+            <param name="position" value="position.[0m, 0m, -([$range * 0.5, $target.size].max)]"/>
+            <param name="allowwreck" value="true"/>
+            <param name="debugchance" value="$debugchance"/>
+          </run_script>
+          <resume label="work"/>
+        </do_if>
+        <do_if value="$turretcount gt 0">
+          <set_turret_targets object="this.assignedcontrolled" target="[$standin]" preferredtarget="$standin" weaponmode="weaponmode.mining"/>
+        </do_if>
+        <do_if value="$guncount gt 0">
+          <!-- Forward salvage guns, as in vanilla mining.collect.ship.medium: one
+               targeted shoot_at, then the mining flight behaviour turns the nose
+               onto the stand-in. A target lets the guns track it within their
+               gimbal range; an untargeted <shoot> only fires straight ahead.
+               Only mining-mode weapons fire, and only when they can hit it. -->
+          <do_if value="@$gunstarget != $standin">
+            <shoot_at object="this.assignedcontrolled" target="$standin" missiles="false" fixedtarget="true" weaponmode="weaponmode.mining"/>
+            <set_value name="$gunstarget" exact="$standin"/>
+            <debug_text text="'[SES][STANDIN] Salvage guns targeting %s ship=%s'.[$standin, this.assignedcontrolled]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+          </do_if>
+          <move_to object="this.assignedcontrolled" destination="$standin" forcesteering="true" flightbehaviour="flightbehaviour.mining">
+            <interrupt_after_time time="1s"/>
+          </move_to>
+        </do_if>
+        <do_else>
+          <wait exact="3s"/>
+        </do_else>
+      </do_if>
+      <do_else>
+        <do_if value="@$gunstarget">
+          <stop_shooting object="this.assignedcontrolled" missiles="false" turrets="false" weaponmode="weaponmode.mining"/>
+          <set_value name="$gunstarget" exact="null"/>
+        </do_if>
+        <wait exact="3s"/>
+      </do_else>
+      <do_if value="not @$target.exists or not @global.$SES_Wreck_Mining_Beta_Enabled or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
+        <resume label="finish"/>
+      </do_if>
+      <do_if value="this.assignedcontrolled.sector != $target.sector or this.assignedcontrolled.distanceto.{$target} gt $range * 0.9">
+        <resume label="approach"/>
+      </do_if>
+      <resume label="work"/>
+
+      <label name="finish"/>
+      <do_if value="global.$SES_Salvage_Requests.{this.assignedcontrolled}?">
+        <remove_value name="global.$SES_Salvage_Requests.{this.assignedcontrolled}"/>
+      </do_if>
+      <stop_shooting object="this.assignedcontrolled" weaponmode="weaponmode.mining"/>
+      <cease_fire object="this.assignedcontrolled" weaponmode="weaponmode.mining"/>
+      <set_turret_targets object="this.assignedcontrolled" target="[]" weaponmode="weaponmode.mining"/>    </actions>
+  </attention>
+  <attention min="unknown">
+    <actions>
+      <label name="start"/>
+      <!-- Coming down from visible attention: stop any targeted gun fire. -->
+      <stop_shooting object="this.assignedcontrolled" missiles="false" turrets="false" weaponmode="weaponmode.mining"/>
+      <set_value name="$gunstarget" exact="null"/>
+      <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$target.iswreck or not ($target.isrealclass.ship_s or $target.isrealclass.ship_m) or @$target.tugship or @$target.dismantlingobject or @$target.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
+        <debug_text text="'[SES][STANDIN] Salvage Wreck refused: target %s is not an eligible S/M wreck or the BETA is off.'.[$target]" chance="$debugchance"/>
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,934}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+
+      <!-- Only Avarice salvage beams count (turrets and forward weapons); ordinary
+           mining gear cannot salvage. Only these are ever set to fire at the stand-in. -->
+      <create_group groupname="$miners"/>
+      <set_value name="$turretcount" exact="0"/>
+      <do_for_each name="$gear" in="this.assignedcontrolled.turrets.operational.list">
+        <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$gear.macro.id}">
+          <add_to_group groupname="$miners" object="$gear"/>
+          <set_value name="$turretcount" operation="add"/>
+        </do_if>
+      </do_for_each>
+      <set_value name="$guncount" exact="0"/>
+      <do_for_each name="$gear" in="this.assignedcontrolled.weapons.operational.list">
+        <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$gear.macro.id} and not $gear.isclass.turret">
+          <add_to_group groupname="$miners" object="$gear"/>
+          <set_value name="$guncount" operation="add"/>
+          <!-- shoot_at only fires weapons in the active weapon group; a freshly
+               fitted salvage laser may be in none. -->
+          <do_if value="not $gear.isinactiveweapongroup">
+            <add_weapon_to_weapongroup weapon="$gear" weapongroup="1" primary="true"/>
+          </do_if>
+          <debug_text text="'[SES][STANDIN] Salvage gun %s macro=%s activegroup=%s mode=%s'.[$gear, $gear.macro, $gear.isinactiveweapongroup, $gear.mode]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+        </do_if>
+      </do_for_each>
+      <do_if value="not $miners.count">
+        <debug_text text="'[SES][STANDIN] Salvage Wreck refused: %s has no mining or salvage turret or weapon.'.[this.assignedcontrolled]" chance="$debugchance"/>
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,933}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+      <set_weapon_mode group="$miners" weaponmode="weaponmode.mining"/>
+      <!-- Close to the SHORTEST salvage range so every salvage gear can reach. -->
+      <set_value name="$range" exact="[this.assignedcontrolled.shortestmaxcombatrange.{weaponmode.mining}.all, 300m].max"/>
+      <debug_text text="'[SES][STANDIN] Salvage Wreck start. ship=%s turrets=%s weapons=%s shortestrange=%s'.[this.assignedcontrolled, $turretcount, $guncount, $range]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+
+      <label name="approach"/>
+      <do_if value="@$gunstarget">
+        <stop_shooting object="this.assignedcontrolled" missiles="false" turrets="false" weaponmode="weaponmode.mining"/>
+        <set_value name="$gunstarget" exact="null"/>
+      </do_if>
+      <do_if value="this.assignedcontrolled.sector != $target.sector or this.assignedcontrolled.distanceto.{$target} gt $range * 0.8">
+        <run_script name="'move.generic'" result="$movesuccess">
+          <param name="destination" value="$target"/>
+          <param name="position" value="position.[0m, 0m, -([$range * 0.5, $target.size].max)]"/>
+          <param name="allowwreck" value="true"/>
+          <param name="debugchance" value="$debugchance"/>
+        </run_script>
+        <do_if value="not $movesuccess">
+          <do_if value="$target.exists and @this.assignedcontrolled.order.isrunning">
+            <set_order_failed order="this.assignedcontrolled.order" text="{1045,101}" comment="Unable to reach destination."/>
+          </do_if>
+          <resume label="finish"/>
+        </do_if>
+      </do_if>
+
+      <label name="work"/>
+      <do_if value="not global.$SES_Salvage_Requests?">
+        <set_value name="global.$SES_Salvage_Requests" exact="table[]"/>
+      </do_if>
+      <set_value name="global.$SES_Salvage_Requests.{this.assignedcontrolled}" exact="table[$wreck = $target, $time = player.age]"/>
+      <set_value name="$standin" exact="@global.$SES_Salvage_Standin_Of.{$target}"/>
+      <do_if value="@$standin.exists and @global.$SES_Salvage_Active.{this.assignedcontrolled} == $standin">
+        <do_if value="$turretcount gt 0">
+          <set_turret_targets object="this.assignedcontrolled" target="[$standin]" preferredtarget="$standin" weaponmode="weaponmode.mining"/>
+        </do_if>
+        <!-- Low attention raises no reliable hit events (the ship sat at a wreck
+             with no hits while the player was away, 2026-10-11), so MD credits
+             each salvage beam for the cutting time instead
+             (SES_Standin_Away_Tick_V1, same time-based credit as real hits). -->
+        <signal_objects object="this.assignedcontrolled" param="'SES_Salvage_Away_Tick'" param2="$standin"/>
+        <!-- Low attention: shoot_at needs visible attention, so forward guns stay
+             silent and the cutting is credited above. The ship holds the stand-off
+             spot from the approach; a move_to onto the stand-in pulled it right on
+             top of the wreck (Marek, 2026-10-11). -->
+        <wait exact="2s"/>
+      </do_if>
+      <do_else>
+        <do_if value="@$gunstarget">
+          <stop_shooting object="this.assignedcontrolled" missiles="false" turrets="false" weaponmode="weaponmode.mining"/>
+          <set_value name="$gunstarget" exact="null"/>
+        </do_if>
+        <wait exact="3s"/>
+      </do_else>
+      <do_if value="not @$target.exists or not @global.$SES_Wreck_Mining_Beta_Enabled or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
+        <resume label="finish"/>
+      </do_if>
+      <do_if value="this.assignedcontrolled.sector != $target.sector or this.assignedcontrolled.distanceto.{$target} gt $range * 0.9">
+        <resume label="approach"/>
+      </do_if>
+      <resume label="work"/>
+
+      <label name="finish"/>
+      <do_if value="global.$SES_Salvage_Requests.{this.assignedcontrolled}?">
+        <remove_value name="global.$SES_Salvage_Requests.{this.assignedcontrolled}"/>
+      </do_if>
+      <stop_shooting object="this.assignedcontrolled" weaponmode="weaponmode.mining"/>
+      <cease_fire object="this.assignedcontrolled" weaponmode="weaponmode.mining"/>
+      <set_turret_targets object="this.assignedcontrolled" target="[]" weaponmode="weaponmode.mining"/>    </actions>
+  </attention>
+  <!-- Cut off by another order (e.g. Salvage in Area replaced by Auto-Salvage):
+       run the same cleanup as "finish" so the next Salvage Wreck starts from
+       clean turret state; once the turrets kept still after such a switch while
+       the forward guns fired (Marek, 2026-10-11). As vanilla
+       mining.collect.ship.medium on_abort. -->
+  <on_abort>
+    <do_if value="this.assignedcontrolled.isoperational">
+      <stop_shooting object="this.assignedcontrolled" weaponmode="weaponmode.mining"/>
+      <cease_fire object="this.assignedcontrolled" weaponmode="weaponmode.mining"/>
+      <set_turret_targets object="this.assignedcontrolled" target="[]" weaponmode="weaponmode.mining"/>
+    </do_if>
+    <do_if value="@global.$SES_Salvage_Requests.{this.assignedcontrolled}">
+      <remove_value name="global.$SES_Salvage_Requests.{this.assignedcontrolled}"/>
+    </do_if>
+  </on_abort>
+</aiscript>

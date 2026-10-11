@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="diff.xsd">
+  <add sel="/aiscript/attention[@min='unknown']/actions/label[@name='start']" pos="after">
+    <!-- SES Wreck Mining BETA: a salvage stand-in is a wreck under salvage, not a
+         combat target. Vanilla Attack (and Attack_Player, which runs this script)
+         fails immediately; the Salvage Wreck order is the only way to work it. -->
+    <do_if value="@global.$SES_Salvage_Standins.{$primarytarget}">
+      <debug_text text="'[SES][STANDIN] Attack order on salvage stand-in %s refused for %s.'.[$primarytarget, this.assignedcontrolled]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" />
+      <do_if value="@this.assignedcontrolled.order.isrunning">
+        <set_order_failed order="this.assignedcontrolled.order" text="{1171361,932}" />
+      </do_if>
+      <return />
+    </do_if>
+  </add>
+</diff>

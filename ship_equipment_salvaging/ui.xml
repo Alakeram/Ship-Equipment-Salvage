@@ -5,6 +5,8 @@
     <file name="ui/menu_ses_m5_native_planners_uix.lua" />
     <file name="ui/menu_ses_tool_mode.lua" />
     <file name="ui/menu_ses_salvage_inventory.lua" />
+    <file name="ui/menu_ses_turret_salvage_uix.lua" />
+    <file name="ui/menu_ses_salvage_wreck_interact.lua" />
     <dependency name="kuertee_ui_extensions" />
   </environment>
 </addon>

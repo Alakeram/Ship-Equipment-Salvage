@@ -23,7 +23,7 @@ local tradeData = nil
 local tradeMenu = {}
 
 local ses = {
-	version = "v378-save-independent",
+	version = "v400",
 	mode = "custom_ses_black_market_trade",
 	blackboard = "$SES_Black_Market_BarterData",
 	tradepayloadblackboard = "$SES_Black_Market_TradePayload",
@@ -243,8 +243,11 @@ local function sellPriceFor(wareid)
 	return math.max(1, math.floor((wareAvgPrice(wareid) * 0.60) + 0.5))
 end
 
-local function buyPriceFor(wareid)
-	return math.max(1, math.floor((wareAvgPrice(wareid) * 1.20) + 0.5))
+-- MD stamps each stock row with its dealer price percentage (120 normal,
+-- 250 Terran). The same value is what MD charges.
+local function buyPriceFor(wareid, pricepct)
+	local pct = tonumber(pricepct) or 120
+	return math.max(1, math.floor((wareAvgPrice(wareid) * pct / 100) + 0.5))
 end
 
 local function addSource(row, item, isPlayer)
@@ -295,6 +298,9 @@ local function addGroupedRow(target, item, isPlayer)
 		}
 		target.bykey[key] = row
 		table.insert(target.rows, row)
+	end
+	if not isPlayer and itemField(item, "pricepct") then
+		row.buyprice = buyPriceFor(row.wareid, itemField(item, "pricepct"))
 	end
 	addSource(row, item, isPlayer)
 end

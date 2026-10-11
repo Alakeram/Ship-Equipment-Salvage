@@ -40,7 +40,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v378-save-independent",
+	version = "v400",
 	userdatakey = "ses_tool_mode",
 	controlid = "ses_tool_mode",
 	rowid = "ses_tool_mode_row",
@@ -552,10 +552,22 @@ local function modeInventoryAllowed(mode)
 	return allowed, amount, tool
 end
 
+-- The Personal Blaster (and the Timelines suit laser) share the suit's default
+-- slot and win over the Hand Laser. With a regulator mode on, MD stows them so
+-- the next EVA brings the Hand Laser (SES_Suit_Blaster_Stow_V1), so a mode may
+-- be picked while one is still mounted. Hits still require the Hand Laser.
+local function isStowableSuitBlasterMacro(macro)
+	return macro == "spacesuit_gen_laser_02_macro" or macro == "spacesuit_gen_laser_03_macro"
+end
+
+local function regulatorReady(context)
+	return (context and (context.hasHandLaser or context.hasSuitBlaster)) and true or false
+end
+
 local function getToolAvailability(context)
 	local hasSalvager, salvagerAmount = inventoryAllows("ses_equipment_salvager")
 	local hasWelder, welderAmount = inventoryAllows("ses_equipment_welder")
-	local hasHandLaser = context and context.hasHandLaser
+	local hasHandLaser = regulatorReady(context)
 	local inventoryKnown = (salvagerAmount ~= nil) and (welderAmount ~= nil)
 	local hasAnyTool = hasSalvager or hasWelder
 	return {
@@ -703,6 +715,7 @@ function getWeaponContext(defensibleid, source)
 		slots = 0,
 		weapons = {},
 		hasHandLaser = false,
+		hasSuitBlaster = false,
 		hasSalvager = false,
 		hasWelder = false,
 		handLaserGroup = nil,
@@ -758,6 +771,14 @@ function getWeaponContext(defensibleid, source)
 				for _, groupinfo in ipairs(groups) do
 					if groupinfo.primary and not context.handLaserGroup then
 						context.handLaserGroup = tonumber(groupinfo.idx)
+					end
+				end
+			elseif isStowableSuitBlasterMacro(macro) then
+				context.hasSuitBlaster = true
+				for _, groupinfo in ipairs(groups) do
+					if groupinfo.primary and not context.fallbackPrimaryGroup then
+						context.fallbackPrimaryGroup = tonumber(groupinfo.idx)
+						break
 					end
 				end
 			elseif macro == "ses_equipment_salvager_macro" then
@@ -837,7 +858,7 @@ function forceOffIfHandLaserMissing(context, source)
 			return "off"
 		end
 	end
-	if mode ~= "off" and not (context and context.hasHandLaser) then
+	if mode ~= "off" and not regulatorReady(context) then
 		setStoredMode("off")
 		emit("mode_forced_off_no_handlaser", "source=" .. safeString(source)
 			.. ", previous=" .. safeString(mode)
@@ -1056,7 +1077,7 @@ local function addModeRow(rowgroup, defensibleid, source)
 			deactivateSESToolWeapons(latestContext, source or "map_dropdown")
 			return
 		end
-		if mode ~= "off" and not latestContext.hasHandLaser then
+		if mode ~= "off" and not regulatorReady(latestContext) then
 			setStoredMode("off")
 			emit("selection_rejected_no_handlaser", "source=" .. safeString(source or "map_dropdown")
 				.. ", requested=" .. safeString(mode)
@@ -1126,7 +1147,7 @@ local function addModeRowDocked(uitable, defensibleid, source)
 			deactivateSESToolWeapons(latestContext, source or "docked_dropdown")
 			return
 		end
-		if mode ~= "off" and not latestContext.hasHandLaser then
+		if mode ~= "off" and not regulatorReady(latestContext) then
 			setStoredMode("off")
 			emit("selection_rejected_no_handlaser", "source=" .. safeString(source or "docked_dropdown")
 				.. ", requested=" .. safeString(mode)

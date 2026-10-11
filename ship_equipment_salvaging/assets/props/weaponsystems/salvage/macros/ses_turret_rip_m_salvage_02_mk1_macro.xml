@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--Exported by: Alexei (192.168.3.66) at 31.01.2022_11-04-47-->
+<macros>
+  <macro name="ses_turret_rip_m_salvage_02_mk1_macro" class="turret">
+    <component ref="ses_turret_rip_m_salvage_02_mk1" />
+    <properties>
+      <identification name="{1171361,928}" makerrace="argon" description="{1171361,922}" mk="1" basename="{1171361,923}" shortname="{1171361,924}" />
+      <bullet class="ses_bullet_rip_m_salvage_01_mk1_macro" />
+      <rotationspeed max="90" />
+      <rotationacceleration max="180" />
+      <reload />
+      <hull threshold="0.2" integrated="0" max="1200" />
+      <effects>
+        <firing start="tug_beam_start" stop="tug_beam_stop" />
+      </effects>
+      <sounds>
+        <firing ref="tug_beam_loop" />
+      </sounds>
+    </properties>
+  </macro>
+</macros>

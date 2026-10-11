@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Debug_Give_Item" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <!-- Developer helper (gated by global.$SES_Debug_Keys_Enabled): "SES Give Item"
+       options page. Pick a category, an item and an amount, then Give.
+       Inventory wares go to the player's inventory; salvage gear and Systems
+       parts go to the SES Salvage Inventory (Saved Equipment). Debug text is
+       English-only by design. -->
+  <cues>
+    <cue name="SES_Give_Item_Register_V1" instantiate="true">
+      <conditions>
+        <event_cue_signalled cue="md.Simple_Menu_API.Reloaded" />
+      </conditions>
+      <actions>
+        <signal_cue_instantly
+          cue="md.Simple_Menu_API.Register_Options_Menu"
+          param="table[
+            $id = 'ship_equipment_salvaging_give_item',
+            $columns = 12,
+            $title = 'SES Give Item',
+            $private = true,
+            $enabled = @global.$SES_Debug_Keys_Enabled,
+            $onOpen = SES_Give_Item_Build_V1
+          ]" />
+      </actions>
+    </cue>
+
+    <!-- Static ware references (dynamic ware lookups are unreliable on loaded
+         saves). Kinds: inv = player inventory, gear = Saved Equipment ware,
+         row = random distinct parts of one Systems research row. -->
+    <library name="SES_Give_Item_Catalog_V1" purpose="run_actions">
+      <actions>
+        <set_value name="$Catalog" exact="[]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'tools', $text = 'Tools and Catalysts', $kind = 'inv', $wares = [
+          ware.ses_equipment_salvager, ware.ses_equipment_welder, ware.ses_avarice_beam_catalyst, ware.ses_avarice_bonding_catalyst]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'materials', $text = 'Salvage Materials', $kind = 'inv', $wares = [
+          ware.ses_salvaged_metal, ware.ses_weapon_grade_salvage, ware.ses_turret_grade_salvage, ware.ses_shield_grade_salvage,
+          ware.ses_engine_grade_salvage, ware.ses_thruster_grade_salvage, ware.ses_functional_core_fragment]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'cores', $text = 'Cores and Casings', $kind = 'inv', $wares = [
+          ware.ses_functional_weapon_core, ware.ses_turret_ai_core, ware.ses_shield_matrix_core, ware.ses_drive_control_core,
+          ware.ses_casing_weapon, ware.ses_casing_turret, ware.ses_casing_shield, ware.ses_casing_engine, ware.ses_casing_thruster]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'comp_arg', $text = 'Components: Argon', $kind = 'inv', $wares = [
+          ware.ses_comp_arg_weapon_basic, ware.ses_comp_arg_weapon_advanced, ware.ses_comp_arg_turret_basic, ware.ses_comp_arg_turret_advanced,
+          ware.ses_comp_arg_shield_basic, ware.ses_comp_arg_shield_advanced, ware.ses_comp_arg_propulsion_basic, ware.ses_comp_arg_propulsion_advanced]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'comp_bor', $text = 'Components: Boron', $kind = 'inv', $wares = [
+          ware.ses_comp_bor_weapon_basic, ware.ses_comp_bor_weapon_advanced, ware.ses_comp_bor_turret_basic, ware.ses_comp_bor_turret_advanced,
+          ware.ses_comp_bor_shield_basic, ware.ses_comp_bor_shield_advanced, ware.ses_comp_bor_propulsion_basic, ware.ses_comp_bor_propulsion_advanced]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'comp_par', $text = 'Components: Paranid', $kind = 'inv', $wares = [
+          ware.ses_comp_par_weapon_basic, ware.ses_comp_par_weapon_advanced, ware.ses_comp_par_turret_basic, ware.ses_comp_par_turret_advanced,
+          ware.ses_comp_par_shield_basic, ware.ses_comp_par_shield_advanced, ware.ses_comp_par_propulsion_basic, ware.ses_comp_par_propulsion_advanced]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'comp_spl', $text = 'Components: Split', $kind = 'inv', $wares = [
+          ware.ses_comp_spl_weapon_basic, ware.ses_comp_spl_weapon_advanced, ware.ses_comp_spl_turret_basic, ware.ses_comp_spl_turret_advanced,
+          ware.ses_comp_spl_shield_basic, ware.ses_comp_spl_shield_advanced, ware.ses_comp_spl_propulsion_basic, ware.ses_comp_spl_propulsion_advanced]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'comp_tel', $text = 'Components: Teladi', $kind = 'inv', $wares = [
+          ware.ses_comp_tel_weapon_basic, ware.ses_comp_tel_weapon_advanced, ware.ses_comp_tel_turret_basic, ware.ses_comp_tel_turret_advanced,
+          ware.ses_comp_tel_shield_basic, ware.ses_comp_tel_shield_advanced, ware.ses_comp_tel_propulsion_basic, ware.ses_comp_tel_propulsion_advanced]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'comp_ter', $text = 'Components: Terran', $kind = 'inv', $wares = [
+          ware.ses_comp_ter_weapon_basic, ware.ses_comp_ter_weapon_advanced, ware.ses_comp_ter_turret_basic, ware.ses_comp_ter_turret_advanced,
+          ware.ses_comp_ter_shield_basic, ware.ses_comp_ter_shield_advanced, ware.ses_comp_ter_propulsion_basic, ware.ses_comp_ter_propulsion_advanced]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'schematics', $text = 'Systems Schematics', $kind = 'inv', $wares = [
+          ware.ses_schem_arg_1, ware.ses_schem_arg_2, ware.ses_schem_arg_3, ware.ses_schem_bor_1, ware.ses_schem_bor_2, ware.ses_schem_bor_3,
+          ware.ses_schem_par_1, ware.ses_schem_par_2, ware.ses_schem_par_3, ware.ses_schem_spl_1, ware.ses_schem_spl_2, ware.ses_schem_spl_3,
+          ware.ses_schem_tel_1, ware.ses_schem_tel_2, ware.ses_schem_tel_3, ware.ses_schem_ter_1, ware.ses_schem_ter_2, ware.ses_schem_ter_3,
+          ware.ses_schem_com_1, ware.ses_schem_com_2, ware.ses_schem_com_3]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'gear', $text = 'Saved Equipment: Riptide Salvage Gear', $kind = 'gear', $wares = [
+          ware.ses_weapon_s_salvage_01_mk1, ware.ses_weapon_m_salvage_01_mk1, ware.ses_turret_rip_m_salvage_01_mk1]]" />
+        <append_to_list name="$Catalog" exact="table[$id = 'rows', $text = 'Saved Equipment: Systems Research Parts', $kind = 'row', $wares = []]" />
+        <return value="$Catalog" />
+      </actions>
+    </library>
+
+    <!-- Dropdown options for one category; values are ware ids or row keys. -->
+    <library name="SES_Give_Item_Options_V1" purpose="run_actions">
+      <params><param name="Category" /></params>
+      <actions>
+        <set_value name="$GiOptions" exact="[]" />
+        <do_if value="$Category.$kind == 'row'">
+          <do_for_each name="$GiRow" in="if @global.$SES_Systems_Rows then global.$SES_Systems_Rows else []">
+            <append_to_list name="$GiOptions" exact="table[
+              $text = '%s (%s parts, %s teardowns)'.[readtext.{1171361}.{$GiRow.$nametext}, $GiRow.$wares.count, $GiRow.$teardowns],
+              $value = '%s_%s'.[$GiRow.$group, $GiRow.$tier]
+            ]" />
+          </do_for_each>
+        </do_if>
+        <do_else>
+          <do_for_each name="$GiWare" in="$Category.$wares">
+            <append_to_list name="$GiOptions" exact="table[$text = $GiWare.name, $value = $GiWare.id]" />
+          </do_for_each>
+        </do_else>
+        <return value="$GiOptions" />
+      </actions>
+    </library>
+
+    <!-- Add Count of Ware to the SES Salvage Inventory (merges into an existing row). -->
+    <library name="SES_Give_Item_Saved_V1" purpose="run_actions">
+      <params>
+        <param name="Ware" />
+        <param name="Count" />
+      </params>
+      <actions>
+        <do_if value="not @global.$SES_Salvage_Inventory">
+          <set_value name="global.$SES_Salvage_Inventory" exact="[]" />
+        </do_if>
+        <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$SvCategory">
+          <param name="Ware" value="$Ware" />
+        </run_actions>
+        <set_value name="$SvFaction" exact="if @$Ware.objectmacro.makerraces.count gt 0 then $Ware.objectmacro.makerraces.{1}.shortname else '--'" />
+        <set_value name="$SvIndex" exact="0" />
+        <do_for_each name="$SvEntry" in="global.$SES_Salvage_Inventory" counter="$SvEntryIndex">
+          <do_if value="$SvIndex == 0 and @$SvEntry.$wareid == $Ware.id">
+            <set_value name="$SvIndex" exact="$SvEntryIndex" />
+          </do_if>
+        </do_for_each>
+        <do_if value="$SvIndex gt 0">
+          <set_value name="global.$SES_Salvage_Inventory.{$SvIndex}.$count" exact="(if @global.$SES_Salvage_Inventory.{$SvIndex}.$count then global.$SES_Salvage_Inventory.{$SvIndex}.$count else 0) + $Count" />
+          <set_value name="global.$SES_Salvage_Inventory.{$SvIndex}.$lasttime" exact="player.age" />
+        </do_if>
+        <do_else>
+          <append_to_list name="global.$SES_Salvage_Inventory" exact="table[
+            $ware = $Ware, $wareid = $Ware.id, $macro = $Ware.objectmacro.id, $name = $Ware.name,
+            $faction = $SvFaction, $category = $SvCategory, $count = $Count, $lasttime = player.age,
+            $debugsource = 'give_item'
+          ]" />
+        </do_else>
+      </actions>
+    </library>
+
+    <cue name="SES_Give_Item_Build_V1" instantiate="true" namespace="this">
+      <conditions>
+        <event_cue_signalled />
+      </conditions>
+      <actions>
+        <run_actions ref="SES_Give_Item_Catalog_V1" result="$Catalog" />
+        <set_value name="$CategoryIndex" exact="1" />
+        <set_value name="$CategoryOptions" exact="[]" />
+        <do_for_each name="$Cat" in="$Catalog" counter="$CatIndex">
+          <append_to_list name="$CategoryOptions" exact="table[$text = $Cat.$text, $value = $Cat.$id]" />
+          <do_if value="$Cat.$id == @global.$SES_Give_Item_Category">
+            <set_value name="$CategoryIndex" exact="$CatIndex" />
+          </do_if>
+        </do_for_each>
+        <set_value name="global.$SES_Give_Item_Category" exact="$Catalog.{$CategoryIndex}.$id" />
+        <run_actions ref="SES_Give_Item_Options_V1" result="$ItemOptions">
+          <param name="Category" value="$Catalog.{$CategoryIndex}" />
+        </run_actions>
+        <set_value name="$ItemIndex" exact="1" />
+        <do_for_each name="$Opt" in="$ItemOptions" counter="$OptIndex">
+          <do_if value="$Opt.$value == @global.$SES_Give_Item_Value">
+            <set_value name="$ItemIndex" exact="$OptIndex" />
+          </do_if>
+        </do_for_each>
+        <do_if value="$ItemOptions.count == 0">
+          <append_to_list name="$ItemOptions" exact="table[$text = 'Nothing available (Systems rows not loaded)', $value = '']" />
+        </do_if>
+        <set_value name="global.$SES_Give_Item_Value" exact="$ItemOptions.{$ItemIndex}.$value" />
+        <set_value name="$AmountOptions" exact="[
+          table[$text = '1', $value = 1], table[$text = '5', $value = 5], table[$text = '10', $value = 10],
+          table[$text = '25', $value = 25], table[$text = '100', $value = 100]
+        ]" />
+        <set_value name="$AmountIndex" exact="1" />
+        <do_for_each name="$Opt" in="$AmountOptions" counter="$OptIndex">
+          <do_if value="$Opt.$value == @global.$SES_Give_Item_Amount">
+            <set_value name="$AmountIndex" exact="$OptIndex" />
+          </do_if>
+        </do_for_each>
+        <set_value name="global.$SES_Give_Item_Amount" exact="$AmountOptions.{$AmountIndex}.$value" />
+
+        <run_actions ref="md.Options_Helper.Add_Title_Row">
+          <param name="title" value="'Give Item'" />
+          <param name="columns" value="12" />
+        </run_actions>
+        <run_actions ref="md.Options_Helper.Add_Dropdown">
+          <param name="id" value="'giveCategory'" />
+          <param name="options" value="$CategoryOptions" />
+          <param name="currentIndex" value="$CategoryIndex" />
+          <param name="col" value="1" />
+          <param name="textColSpan" value="4" />
+          <param name="text" value="'Category'" />
+          <param name="dropdownColSpan" value="8" />
+          <param name="active" value="@global.$SES_Debug_Keys_Enabled" />
+          <param name="handle" value="SES_Give_Item_Changed_V1" />
+        </run_actions>
+        <run_actions ref="md.Options_Helper.Add_Dropdown">
+          <param name="id" value="'giveItem'" />
+          <param name="options" value="$ItemOptions" />
+          <param name="currentIndex" value="$ItemIndex" />
+          <param name="col" value="1" />
+          <param name="textColSpan" value="4" />
+          <param name="text" value="if $Catalog.{$CategoryIndex}.$kind == 'row' then 'Systems group' else 'Item'" />
+          <param name="dropdownColSpan" value="8" />
+          <param name="active" value="@global.$SES_Debug_Keys_Enabled" />
+          <param name="handle" value="SES_Give_Item_Changed_V1" />
+        </run_actions>
+        <run_actions ref="md.Options_Helper.Add_Dropdown">
+          <param name="id" value="'giveAmount'" />
+          <param name="options" value="$AmountOptions" />
+          <param name="currentIndex" value="$AmountIndex" />
+          <param name="col" value="1" />
+          <param name="textColSpan" value="4" />
+          <param name="text" value="if $Catalog.{$CategoryIndex}.$kind == 'row' then 'Distinct parts' else 'Amount'" />
+          <param name="dropdownColSpan" value="8" />
+          <param name="active" value="@global.$SES_Debug_Keys_Enabled" />
+          <param name="handle" value="SES_Give_Item_Changed_V1" />
+        </run_actions>
+        <run_actions ref="md.Options_Helper.Add_Button">
+          <param name="id" value="'giveItemNow'" />
+          <param name="col" value="1" />
+          <param name="textColSpan" value="8" />
+          <param name="text" value="if $Catalog.{$CategoryIndex}.$kind == 'inv' then 'Add to your inventory' else 'Add to Saved Equipment (SES Salvage Inventory)'" />
+          <param name="buttonColSpan" value="4" />
+          <param name="buttonText" value="'Give'" />
+          <param name="active" value="@global.$SES_Debug_Keys_Enabled and global.$SES_Give_Item_Value != ''" />
+          <param name="handle" value="SES_Give_Item_Give_V1" />
+        </run_actions>
+      </actions>
+    </cue>
+
+    <cue name="SES_Give_Item_Changed_V1" instantiate="true" namespace="this">
+      <conditions>
+        <event_cue_signalled />
+      </conditions>
+      <actions>
+        <set_value name="$GiState" exact="table[
+          $giveCategory = @global.$SES_Give_Item_Category,
+          $giveItem = @global.$SES_Give_Item_Value,
+          $giveAmount = @global.$SES_Give_Item_Amount
+        ]" />
+        <set_value name="$resultTable" exact="$GiState" />
+        <include_actions ref="md.Options_Helper.Process_Dropdown_Changed" />
+        <set_value name="global.$SES_Give_Item_Value" exact="$GiState.$giveItem" />
+        <set_value name="global.$SES_Give_Item_Amount" exact="$GiState.$giveAmount" />
+        <do_if value="$GiState.$giveCategory != @global.$SES_Give_Item_Category">
+          <!-- New category: rebuild the page so the item list matches. -->
+          <set_value name="global.$SES_Give_Item_Category" exact="$GiState.$giveCategory" />
+          <set_value name="global.$SES_Give_Item_Value" exact="''" />
+          <signal_cue_instantly cue="md.Simple_Menu_API.Refresh_Menu" />
+        </do_if>
+        <remove_value name="$resultTable" />
+      </actions>
+    </cue>
+
+    <cue name="SES_Give_Item_Give_V1" instantiate="true" namespace="this">
+      <conditions>
+        <event_cue_signalled />
+      </conditions>
+      <actions>
+        <set_value name="$Amount" exact="if @global.$SES_Give_Item_Amount then global.$SES_Give_Item_Amount else 1" />
+        <set_value name="$Value" exact="@global.$SES_Give_Item_Value" />
+        <set_value name="$Given" exact="0" />
+        <set_value name="$GivenName" exact="''" />
+        <set_value name="$Target" exact="''" />
+        <run_actions ref="SES_Give_Item_Catalog_V1" result="$Catalog" />
+        <set_value name="$Category" exact="null" />
+        <do_for_each name="$Cat" in="$Catalog">
+          <do_if value="$Cat.$id == @global.$SES_Give_Item_Category">
+            <set_value name="$Category" exact="$Cat" />
+          </do_if>
+        </do_for_each>
+        <do_if value="not @global.$SES_Debug_Keys_Enabled">
+          <show_notification text="'SES debug action blocked: enable SES developer helpers first.'" />
+        </do_if>
+        <do_elseif value="not $Category or not $Value">
+          <show_notification text="'SES Give Item: pick a category and an item first.'" />
+        </do_elseif>
+        <do_elseif value="$Category.$kind == 'row'">
+          <!-- Random distinct parts of one Systems row, so teardowns can be tested. -->
+          <set_value name="$Row" exact="null" />
+          <do_for_each name="$CandidateRow" in="if @global.$SES_Systems_Rows then global.$SES_Systems_Rows else []">
+            <do_if value="'%s_%s'.[$CandidateRow.$group, $CandidateRow.$tier] == $Value">
+              <set_value name="$Row" exact="$CandidateRow" />
+            </do_if>
+          </do_for_each>
+          <do_if value="$Row">
+            <set_value name="$Pool" exact="$Row.$wares.clone" />
+            <do_all exact="[$Amount, $Pool.count].min">
+              <set_value name="$Pick" exact="$Pool.random" />
+              <remove_from_list name="$Pool" exact="$Pick" />
+              <run_actions ref="SES_Give_Item_Saved_V1">
+                <param name="Ware" value="$Pick" />
+                <param name="Count" value="1" />
+              </run_actions>
+              <set_value name="$Given" operation="add" />
+            </do_all>
+            <set_value name="$GivenName" exact="'distinct %s parts'.[readtext.{1171361}.{$Row.$nametext}]" />
+            <set_value name="$Target" exact="'Saved Equipment'" />
+          </do_if>
+        </do_elseif>
+        <do_else>
+          <set_value name="$Ware" exact="null" />
+          <do_for_each name="$CandidateWare" in="$Category.$wares">
+            <do_if value="$CandidateWare.id == $Value">
+              <set_value name="$Ware" exact="$CandidateWare" />
+            </do_if>
+          </do_for_each>
+          <do_if value="$Ware and $Category.$kind == 'gear'">
+            <run_actions ref="SES_Give_Item_Saved_V1">
+              <param name="Ware" value="$Ware" />
+              <param name="Count" value="$Amount" />
+            </run_actions>
+            <set_value name="$Given" exact="$Amount" />
+            <set_value name="$GivenName" exact="$Ware.name" />
+            <set_value name="$Target" exact="'Saved Equipment'" />
+          </do_if>
+          <do_elseif value="$Ware">
+            <add_inventory entity="player.entity" ware="$Ware" exact="$Amount" />
+            <set_value name="$Given" exact="$Amount" />
+            <set_value name="$GivenName" exact="$Ware.name" />
+            <set_value name="$Target" exact="'your inventory (carried: %s)'.[player.entity.inventory.{$Ware}.count]" />
+          </do_elseif>
+        </do_else>
+        <do_if value="$Given gt 0">
+          <do_if value="$Target == 'Saved Equipment'">
+            <signal_cue_instantly cue="md.SES_Equipment_Salvager_Probe.SES_Salvage_Inventory_UI_Publish_V1" param="'debug_give_item'" />
+          </do_if>
+          <signal_cue_instantly cue="md.SES_Wreck_Fabrication.SES_Fabrication_Publish_V1" param="''" />
+          <show_notification text="'SES debug: gave %s x %s to %s.'.[$Given, $GivenName, $Target]" />
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][DEBUG] Give Item category=%s value=%s amount=%s given=%s target=%s'.[@global.$SES_Give_Item_Category, $Value, $Amount, $Given, $Target]" />
+      </actions>
+    </cue>
+  </cues>
+</mdscript>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff>
+  <!-- Native equipment UI requests upgrade_<macro>. S/M salvage gear reuses the
+       vanilla mining laser / mining turret thumbnails (same geometry); the
+       future L/XL turrets keep the Manticore emitter thumbnail. -->
+  <add sel="/icons">
+    <icon name="upgrade_ses_weapon_s_salvage_01_mk1_macro" texture="assets\textures\ui\upgrades\weapon_gen_s_mining_01_mk1_macro.tga" height="256" width="256" />
+    <icon name="upgrade_ses_weapon_m_salvage_01_mk1_macro" texture="assets\textures\ui\upgrades\weapon_gen_m_mining_01_mk1_macro.tga" height="256" width="256" />
+    <icon name="upgrade_ses_turret_rip_m_salvage_01_mk1_macro" texture="assets\textures\ui\upgrades\turret_arg_m_mining_01_mk1_macro.tga" height="256" width="256" />
+    <icon name="upgrade_ses_turret_rip_m_salvage_02_mk1_macro" texture="assets\textures\ui\upgrades\turret_gen_m_scrapbeam_01_mk1_macro.tga" height="256" width="256" />
+    <icon name="upgrade_ses_turret_rip_l_salvage_01_mk1_macro" texture="assets\textures\ui\upgrades\turret_gen_m_scrapbeam_01_mk1_macro.tga" height="256" width="256" />
+    <!-- The holomap requests order_<lowercase order id> for queued orders. -->
+    <icon name="order_sessalvagewreck" texture="assets\textures\ui\order\order_salvagecollect.tga" height="32" width="32" />
+    <icon name="order_sessalvageroutine" texture="assets\textures\ui\order\order_salvagecollect.tga" height="32" width="32" />
+    <icon name="order_sessalvageinradius" texture="assets\textures\ui\order\order_salvagecollect.tga" height="32" width="32" />
+  </add>
+</diff>

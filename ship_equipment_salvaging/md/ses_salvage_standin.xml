@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Salvage_Standin" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <!-- Wreck Mining BETA: salvage stand-ins.
+       Native turrets never fire at wrecks (canbeattacked excludes them), so a
+       salvage request on an S/M wreck hides that wreck and spawns a stripped,
+       ownerless, uncapturable copy at the same spot for the turrets to hit.
+       Hits are counted against the WRECK's existing harvest record, so a
+       partial salvage leaves the reduced remainder on the wreck.
+       Requests: the piloted ship (SES turret-salvage mode + targeted wreck) or a
+       player ship running the Salvage Wreck order (aiscripts/order.ses.salvage.wreck.xml).
+       - Fully salvaged: stand-in and wreck are removed, no explosion.
+       - Idle for global.$SES_Standin_Idle_Timeout (in-game time, so SETA keeps
+         the same game duration): stand-in removed, wreck restored for tugs.
+       - Destroyed with any non-salvage hit in the last 5 s: stand-in and wreck
+         removed, nothing more awarded. Hull worn down by salvage weapons alone
+         counts as a normal finish (awards kept, no extra). No hull healing.
+       Only wrecks someone requests salvage on are ever touched.
+       Registry: global.$SES_Salvage_Standins.{standin} = table[$wreck, $created, $lastwork, $lastsalvagehit, $lastdamagetime, $lastdamage]
+                 global.$SES_Salvage_Standin_Of.{wreck} = standin
+                 global.$SES_Salvage_Active.{ship} = standin
+                 global.$SES_Salvage_Requests.{ship} = table[$wreck, $time] (Salvage Wreck order heartbeat) -->
+  <cues>
+    <cue name="SES_Standin_Root_V1" namespace="this">
+      <actions>
+        <create_group groupname="$Standins" />
+        <create_group groupname="$AISalvageShips" />
+        <!-- Inline init: child cues are not listening yet during this action block. -->
+        <do_if value="not global.$SES_Salvage_Standins?"><set_value name="global.$SES_Salvage_Standins" exact="table[]" /></do_if>
+        <do_if value="not global.$SES_Salvage_Standin_Of?"><set_value name="global.$SES_Salvage_Standin_Of" exact="table[]" /></do_if>
+        <do_if value="not global.$SES_Salvage_Active?"><set_value name="global.$SES_Salvage_Active" exact="table[]" /></do_if>
+        <do_if value="not global.$SES_Salvage_Requests?"><set_value name="global.$SES_Salvage_Requests" exact="table[]" /></do_if>
+        <do_if value="not global.$SES_Salvage_Standin_Count?"><set_value name="global.$SES_Salvage_Standin_Count" exact="0" /></do_if>
+        <do_if value="not global.$SES_Standin_Idle_Timeout?"><set_value name="global.$SES_Standin_Idle_Timeout" exact="10min" /></do_if>
+        <!-- Re-collect live stand-ins and AI salvage ships (groups are rebuilt
+             here; the global registry is the saved source of truth). -->
+        <do_if value="global.$SES_Salvage_Standins?">
+          <do_for_each name="$Known" in="global.$SES_Salvage_Standins.keys.list">
+            <do_if value="@$Known.exists">
+              <add_to_group groupname="$Standins" object="$Known" />
+            </do_if>
+          </do_for_each>
+        </do_if>
+        <do_if value="global.$SES_Salvage_Requests?">
+          <do_for_each name="$Known" in="global.$SES_Salvage_Requests.keys.list">
+            <do_if value="@$Known.exists">
+              <add_to_group groupname="$AISalvageShips" object="$Known" />
+            </do_if>
+          </do_for_each>
+        </do_if>
+      </actions>
+      <cues>
+        <cue name="SES_Standin_Init_V1" instantiate="true">
+          <conditions><event_cue_signalled /></conditions>
+          <actions>
+            <do_if value="not global.$SES_Salvage_Standins?">
+              <set_value name="global.$SES_Salvage_Standins" exact="table[]" />
+            </do_if>
+            <do_if value="not global.$SES_Salvage_Standin_Of?">
+              <set_value name="global.$SES_Salvage_Standin_Of" exact="table[]" />
+            </do_if>
+            <do_if value="not global.$SES_Salvage_Active?">
+              <set_value name="global.$SES_Salvage_Active" exact="table[]" />
+            </do_if>
+            <do_if value="not global.$SES_Salvage_Requests?">
+              <set_value name="global.$SES_Salvage_Requests" exact="table[]" />
+            </do_if>
+            <do_if value="not global.$SES_Salvage_Standin_Count?">
+              <set_value name="global.$SES_Salvage_Standin_Count" exact="0" />
+            </do_if>
+            <do_if value="not global.$SES_Standin_Idle_Timeout?">
+              <set_value name="global.$SES_Standin_Idle_Timeout" exact="10min" />
+            </do_if>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][STANDIN] Initialized. beta=%s standins=%s idletimeout=%s'.[@global.$SES_Wreck_Mining_Beta_Enabled, global.$SES_Salvage_Standin_Count, global.$SES_Standin_Idle_Timeout]" />
+          </actions>
+        </cue>
+
+        <!-- Player request: the piloted ship has a salvage turret in Mining mode (shown
+             as "Salvage" per turret, or set by the All-turrets Salvage entry) and
+             targets an eligible S/M wreck in range. -->
+        <cue name="SES_Standin_Request_Tick_V1" instantiate="true" checkinterval="3s">
+          <conditions>
+            <check_value value="@global.$SES_Wreck_Mining_Beta_Enabled and @player.controlled.isclass.ship" />
+          </conditions>
+          <actions>
+            <set_value name="$Ship" exact="player.controlled" />
+            <set_value name="$MinerReady" exact="false" />
+            <do_for_each name="$Turret" in="$Ship.turrets.operational.list">
+              <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$Turret.macro.id} and $Turret.mode == weaponmode.mining">
+                <set_value name="$MinerReady" exact="true" />
+              </do_if>
+            </do_for_each>
+            <!-- Keep the ship's turret-salvage flag (AI targeting diffs, All dropdown)
+                 in step with per-turret choices (Marek, 2026-10-10). -->
+            <do_if value="not global.$SES_Turret_Salvage_Ships?">
+              <set_value name="global.$SES_Turret_Salvage_Ships" exact="table[]" />
+            </do_if>
+            <do_if value="$MinerReady and not @global.$SES_Turret_Salvage_Ships.{$Ship}">
+              <set_value name="global.$SES_Turret_Salvage_Ships.{$Ship}" exact="true" />
+              <signal_cue_instantly cue="md.SES_Turret_Salvage.SES_Turret_Salvage_Publish_V1" />
+            </do_if>
+            <do_elseif value="not $MinerReady and global.$SES_Turret_Salvage_Ships.{$Ship}?">
+              <remove_value name="global.$SES_Turret_Salvage_Ships.{$Ship}" />
+              <signal_cue_instantly cue="md.SES_Turret_Salvage.SES_Turret_Salvage_Publish_V1" />
+            </do_elseif>
+            <set_value name="$Target" exact="@player.target" />
+            <do_if value="$MinerReady and @$Target.iswreck and ($Target.isrealclass.ship_s or $Target.isrealclass.ship_m) and @$Target.sector == $Ship.sector and $Ship.distanceto.{$Target} le $Ship.maxcombatrange.{weaponmode.mining}.turrets">
+              <run_actions ref="SES_Standin_Ensure_V1" result="$Standin">
+                <param name="Wreck" value="$Target" />
+              </run_actions>
+              <do_if value="@$Standin.exists">
+                <add_to_group groupname="$Standins" object="$Standin" />
+                <!-- Watched for non-salvage weapon hits too (AI hit cue skips player.controlled). -->
+                <add_to_group groupname="$AISalvageShips" object="$Ship" />
+                <set_value name="global.$SES_Salvage_Active.{$Ship}" exact="$Standin" />
+              </do_if>
+            </do_if>
+            <set_value name="$Standin" exact="@global.$SES_Salvage_Active.{$Ship}" />
+            <do_if value="$MinerReady and @$Standin.exists and @global.$SES_Salvage_Standins.{$Standin} and $Ship.distanceto.{$Standin} le $Ship.maxcombatrange.{weaponmode.mining}.turrets">
+              <set_turret_targets object="$Ship" target="[$Standin]" preferredtarget="$Standin" weaponmode="weaponmode.mining" />
+            </do_if>
+          </actions>
+        </cue>
+
+        <!-- Right-click "Salvage Wreck" (ui/menu_ses_salvage_wreck_interact.lua,
+             Kuertee UIX interact-menu callbacks). Wire: [1, wreck, ship, ship...].
+             Every ship and the wreck are validated again here. -->
+        <cue name="SES_Standin_Menu_Order_V1" instantiate="true">
+          <conditions>
+            <event_ui_triggered screen="'SES_Salvage_Wreck'" control="'order'" />
+          </conditions>
+          <actions>
+            <set_value name="$Wire" exact="event.param3" />
+            <set_value name="$Wreck" exact="null" />
+            <do_if value="@$Wire.count ge 3 and @$Wire.{1} == 1">
+              <set_value name="$Wreck" exact="$Wire.{2}" />
+            </do_if>
+            <set_value name="$Ordered" exact="0" />
+            <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @$Wreck.iswreck and ($Wreck.isrealclass.ship_s or $Wreck.isrealclass.ship_m)">
+              <do_all exact="$Wire.count - 2" counter="$Index">
+                <set_value name="$Ship" exact="$Wire.{$Index + 2}" />
+                <!-- Only ships carrying salvage gear (Riptide lasers/turrets) get the order. -->
+                <set_value name="$ShipHasGear" exact="false" />
+                <do_for_each name="$ShipGear" in="if @$Ship.weapons.all.list then $Ship.weapons.all.list else []">
+                  <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$ShipGear.macro.id}">
+                    <set_value name="$ShipHasGear" exact="true" />
+                  </do_if>
+                </do_for_each>
+                <do_if value="$ShipHasGear and @$Ship.isclass.ship and @$Ship.isplayerowned and $Ship != player.controlled and @$Ship.assignedpilot.exists">
+                  <create_order object="$Ship" id="'SESSalvageWreck'" immediate="true">
+                    <param name="target" value="$Wreck" />
+                  </create_order>
+                  <set_value name="$Ordered" operation="add" />
+                </do_if>
+              </do_all>
+            </do_if>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][STANDIN] Salvage Wreck ordered from menu. wreck=%s ships=%s ordered=%s'.[$Wreck, [@$Wire.count - 2, 0].max, $Ordered]" />
+          </actions>
+        </cue>
+        <!-- AI request: ships running the Salvage Wreck order refresh a heartbeat
+             in global.$SES_Salvage_Requests while in range. The order itself
+             dispatches its turrets; this only provides the stand-in. -->
+        <cue name="SES_Standin_AI_Request_Tick_V1" instantiate="true" checkinterval="3s">
+          <conditions>
+            <check_value value="@global.$SES_Salvage_Requests.keys.count gt 0" />
+          </conditions>
+          <actions>
+            <do_for_each name="$Ship" in="global.$SES_Salvage_Requests.keys.list">
+              <set_value name="$Request" exact="global.$SES_Salvage_Requests.{$Ship}" />
+              <do_if value="not @$Ship.exists or player.age gt $Request.$time + 15s or not @global.$SES_Wreck_Mining_Beta_Enabled">
+                <remove_value name="global.$SES_Salvage_Requests.{$Ship}" />
+                <do_if value="global.$SES_Salvage_Active.{$Ship}?">
+                  <remove_value name="global.$SES_Salvage_Active.{$Ship}" />
+                </do_if>
+              </do_if>
+              <do_elseif value="$Ship != player.controlled and @$Request.$wreck.exists and $Ship.sector == $Request.$wreck.sector and $Ship.distanceto.{$Request.$wreck} le $Ship.maxcombatrange.{weaponmode.mining}.all">
+                <run_actions ref="SES_Standin_Ensure_V1" result="$Standin">
+                  <param name="Wreck" value="$Request.$wreck" />
+                </run_actions>
+                <do_if value="@$Standin.exists">
+                  <add_to_group groupname="$Standins" object="$Standin" />
+                  <add_to_group groupname="$AISalvageShips" object="$Ship" />
+                  <set_value name="global.$SES_Salvage_Active.{$Ship}" exact="$Standin" />
+                </do_if>
+              </do_elseif>
+            </do_for_each>
+          </actions>
+        </cue>
+
+        <!-- AI salvage hits: only Avarice salvage beams (turret or forward) on the
+             requesting ship count; materials go to that ship's pilot, never equipment. -->
+        <cue name="SES_Standin_AI_Hit_V1" instantiate="true">
+          <conditions>
+            <event_object_attacked_object group="$AISalvageShips" />
+            <check_value value="@global.$SES_Wreck_Mining_Beta_Enabled and event.object != player.controlled" />
+            <check_value value="@global.$SES_Salvage_Standins.{event.param} and @global.$SES_Salvage_Active.{event.object} == event.param" />
+            <!-- Only Avarice salvage beams count, turret or forward weapon. -->
+            <check_value value="@global.$SES_Salvage_Gear_Macros.indexof.{@event.param3.{2}.macro.id} and @event.param3.{2}.container == event.object" />
+          </conditions>
+          <actions>
+            <run_actions ref="SES_Standin_Salvage_Hit_V1">
+              <param name="Standin" value="event.param" />
+            </run_actions>
+            <do_if value="@event.object.pilot.exists">
+              <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Wreck_Mining_Apply_Hit_V1">
+                <param name="HarvestTarget" value="global.$SES_Salvage_Standins.{event.param}.$wreck" />
+                <param name="HarvestWeapon" value="event.param3.{2}" />
+                <param name="Recipient" value="event.object.pilot" />
+                <param name="Quiet" value="true" />
+              </run_actions>
+            </do_if>
+          </actions>
+        </cue>
+
+        <!-- Salvage while the player is away (low attention): the Salvage Wreck
+             order signals every ~2 s while in range of its active stand-in. Each
+             salvage beam on the ship is credited as a hit, so the time-based
+             credit in SES_Wreck_Mining_Apply_Hit_V1 gives the same speed as
+             real hits (Marek, 2026-10-11). -->
+        <cue name="SES_Standin_Away_Tick_V1" instantiate="true">
+          <conditions>
+            <event_object_signalled group="$AISalvageShips" param="'SES_Salvage_Away_Tick'" />
+            <check_value value="@global.$SES_Wreck_Mining_Beta_Enabled and event.object != player.controlled" />
+            <check_value value="@global.$SES_Salvage_Standins.{event.param2} and @global.$SES_Salvage_Active.{event.object} == event.param2" />
+          </conditions>
+          <actions>
+            <set_value name="$Ship" exact="event.object" />
+            <set_value name="$Standin" exact="event.param2" />
+            <set_value name="$Wreck" exact="global.$SES_Salvage_Standins.{$Standin}.$wreck" />
+            <run_actions ref="SES_Standin_Salvage_Hit_V1">
+              <param name="Standin" value="$Standin" />
+            </run_actions>
+            <set_value name="$Beams" exact="0" />
+            <do_if value="@$Ship.pilot.exists and @$Wreck.exists">
+              <do_for_each name="$Gear" in="$Ship.weapons.operational.list">
+                <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$Gear.macro.id} and $Ship.distanceto.{$Standin} le [@$Gear.maxfirerange, 300m].max + $Standin.size">
+                  <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Wreck_Mining_Apply_Hit_V1">
+                    <param name="HarvestTarget" value="$Wreck" />
+                    <param name="HarvestWeapon" value="$Gear" />
+                    <param name="Recipient" value="$Ship.pilot" />
+                    <param name="Quiet" value="true" />
+                  </run_actions>
+                  <set_value name="$Beams" operation="add" />
+                </do_if>
+              </do_for_each>
+            </do_if>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][STANDIN] Away tick ship=%s wreck=%s beams=%s progress=%s awarded=%s/%s'.[$Ship, $Wreck, $Beams, @global.$SES_Wreck_Harvest_State.{$Wreck}.$progress, @global.$SES_Wreck_Harvest_State.{$Wreck}.$salvageawarded, @global.$SES_Wreck_Harvest_State.{$Wreck}.$salvageplanned]" />
+          </actions>
+        </cue>
+
+        <!-- Non-salvage hits. Salvage ships are watched per weapon (anything but
+             a mining/salvage turret counts); any other attacker counts outright. -->
+        <cue name="SES_Standin_NonSalvage_Weapon_V1" instantiate="true">
+          <conditions>
+            <event_object_attacked_object group="$AISalvageShips" />
+            <check_value value="@global.$SES_Salvage_Standins.{event.param}" />
+            <check_value value="not @global.$SES_Salvage_Gear_Macros.indexof.{@event.param3.{2}.macro.id}" />
+          </conditions>
+          <actions>
+            <set_value name="global.$SES_Salvage_Standins.{event.param}.$lastnonsalvagehit" exact="player.age" />
+          </actions>
+        </cue>
+        <cue name="SES_Standin_Attacked_V1" instantiate="true">
+          <conditions>
+            <event_object_attacked group="$Standins" />
+            <check_value value="@global.$SES_Salvage_Standins.{event.object}" />
+            <check_value value="@global.$SES_Salvage_Active.{event.param} != event.object" />
+          </conditions>
+          <actions>
+            <set_value name="global.$SES_Salvage_Standins.{event.object}.$lastnonsalvagehit" exact="player.age" />
+          </actions>
+        </cue>
+
+        <!-- Destroyed by weapon fire (our own releases unregister first and are
+             ignored here): remove the stand-in remains and the wreck, award nothing. -->
+        <cue name="SES_Standin_Destroyed_V1" instantiate="true">
+          <conditions>
+            <event_object_destroyed group="$Standins" />
+            <check_value value="@global.$SES_Salvage_Standins.{event.object}" />
+          </conditions>
+          <actions>
+            <set_value name="$Wreck" exact="global.$SES_Salvage_Standins.{event.object}.$wreck" />
+            <set_value name="$LastHostile" exact="global.$SES_Salvage_Standins.{event.object}.$lastnonsalvagehit" />
+            <set_value name="$ByWeapons" exact="$LastHostile and player.age - $LastHostile le 5s" />
+            <!-- Either way the pool closes: no further awards from this wreck. -->
+            <do_if value="@global.$SES_Wreck_Harvest_State.{$Wreck}">
+              <set_value name="global.$SES_Wreck_Harvest_State.{$Wreck}.$exhausted" exact="true" />
+              <set_value name="global.$SES_Wreck_Harvest_State.{$Wreck}.$exhaustedshown" exact="true" />
+              <set_value name="global.$SES_Wreck_Harvest_State.{$Wreck}.$fragmentsettled" exact="true" />
+            </do_if>
+            <do_if value="$ByWeapons and (@event.param.isplayerowned or event.param == player.entity or event.param == player.controlled)">
+              <show_notification text="readtext.{1171361}.{935}" />
+            </do_if>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][STANDIN] Stand-in hull destroyed. standin=%s wreck=%s killer=%s method=%s byweapons=%s awarded=%s; nothing more awarded.'.[event.object, $Wreck, event.param, event.param2, $ByWeapons, @global.$SES_Wreck_Harvest_State.{$Wreck}.$salvageawarded]" />
+            <run_actions ref="SES_Standin_Release_V1">
+              <param name="Standin" value="event.object" />
+              <param name="Mode" value="if $ByWeapons then 'destroyed' else 'finish'" />
+            </run_actions>
+          </actions>
+        </cue>
+
+        <!-- Timeout and integrity sweep. Runs only while stand-ins exist. -->
+        <cue name="SES_Standin_Sweep_V1" instantiate="true" checkinterval="5s">
+          <conditions>
+            <check_value value="@global.$SES_Salvage_Standin_Count gt 0" />
+          </conditions>
+          <actions>
+            <set_value name="$Keys" exact="global.$SES_Salvage_Standins.keys.list" />
+            <do_for_each name="$Standin" in="$Keys">
+              <set_value name="$Record" exact="global.$SES_Salvage_Standins.{$Standin}" />
+              <set_value name="$Release" exact="null" />
+              <do_if value="not @$Record.$wreck.exists">
+                <set_value name="$Release" exact="'wreckmissing'" />
+              </do_if>
+              <do_elseif value="@global.$SES_Wreck_Harvest_State.{$Record.$wreck}.$exhausted">
+                <set_value name="$Release" exact="'finish'" />
+              </do_elseif>
+              <do_elseif value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$Standin.isoperational">
+                <set_value name="$Release" exact="'revert'" />
+              </do_elseif>
+              <do_elseif value="player.age ge $Record.$lastwork + global.$SES_Standin_Idle_Timeout">
+                <set_value name="$Release" exact="'revert'" />
+              </do_elseif>
+              <do_if value="$Release">
+                <run_actions ref="SES_Standin_Release_V1">
+                  <param name="Standin" value="$Standin" />
+                  <param name="Mode" value="$Release" />
+                </run_actions>
+              </do_if>
+            </do_for_each>
+          </actions>
+        </cue>
+      </cues>
+    </cue>
+
+    <!-- Called from both hit paths (player cue in ses_equipment_salvager_probe.xml
+         and SES_Standin_AI_Hit_V1) for a qualifying salvage-weapon hit. -->
+    <library name="SES_Standin_Salvage_Hit_V1" purpose="run_actions">
+      <params>
+        <param name="Standin" />
+      </params>
+      <actions>
+        <do_if value="@global.$SES_Salvage_Standins.{$Standin}">
+          <set_value name="global.$SES_Salvage_Standins.{$Standin}.$lastwork" exact="player.age" />
+          <set_value name="global.$SES_Salvage_Standins.{$Standin}.$lastsalvagehit" exact="player.age" />
+        </do_if>
+      </actions>
+    </library>
+
+
+
+    <!-- Returns the stand-in for $Wreck, creating it if the wreck is eligible.
+         Callers add the result to SES_Standin_Root_V1's $Standins group. -->
+    <library name="SES_Standin_Ensure_V1" purpose="run_actions">
+      <params>
+        <param name="Wreck" />
+      </params>
+      <actions>
+        <do_if value="@global.$SES_Salvage_Standin_Of.{$Wreck}.exists">
+          <return value="global.$SES_Salvage_Standin_Of.{$Wreck}" />
+        </do_if>
+        <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$Wreck.iswreck or not ($Wreck.isrealclass.ship_s or $Wreck.isrealclass.ship_m) or @$Wreck.tugship or @$Wreck.dismantlingobject or @$Wreck.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$Wreck}.$exhausted">
+          <return value="null" />
+        </do_if>
+        <do_if value="not global.$SES_Salvage_Standins?">
+          <signal_cue_instantly cue="SES_Standin_Init_V1" />
+        </do_if>
+        <!-- Hide first so the copy does not spawn into the wreck's collision. -->
+        <set_wreck_persistence object="$Wreck" persistent="true" />
+        <set_object_hidden object="$Wreck" hidden="true" />
+        <create_ship name="$Standin" macro="$Wreck.macro" zone="$Wreck.zone" capturable="false">
+          <owner exact="faction.ownerless" />
+          <loadout>
+            <level exact="0" />
+          </loadout>
+          <position value="$Wreck.position" />
+          <rotation value="$Wreck.rotation" />
+        </create_ship>
+        <do_if value="not @$Standin.exists">
+          <set_object_hidden object="$Wreck" hidden="false" />
+          <set_wreck_persistence object="$Wreck" persistent="false" />
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][STANDIN] Create failed; wreck restored. wreck=%s macro=%s'.[$Wreck, $Wreck.macro]" />
+          <return value="null" />
+        </do_if>
+        <!-- Strip with the same empty-loadout method as the salvage commit
+             (proven 2026-10-09: shield 0/0 stays 0, hull takes the hits). -->
+        <create_loadout result="$EmptyLoadout">
+          <macros />
+        </create_loadout>
+        <apply_loadout object="$Standin" loadout="$EmptyLoadout" flags="remove weapons" />
+        <apply_loadout object="$Standin" loadout="$EmptyLoadout" flags="remove turrets" />
+        <apply_loadout object="$Standin" loadout="$EmptyLoadout" flags="remove turretgroups" />
+        <apply_loadout object="$Standin" loadout="$EmptyLoadout" flags="remove shields" />
+        <apply_loadout object="$Standin" loadout="$EmptyLoadout" flags="remove engines" />
+        <apply_loadout object="$Standin" loadout="$EmptyLoadout" flags="remove thrusters" />
+        <set_object_shield object="$Standin" exact="0" />
+        <set_object_capturable object="$Standin" capturable="false" />
+        <set_object_relation_behaviour object="$Standin" disable="true" />
+        <!-- The real wreck keeps its map presence; the copy stays off radar.
+             No min hull: non-salvage weapons may destroy it (Destroyed_V1). -->
+        <set_object_radar_visible object="$Standin" visible="false" />
+        <set_value name="global.$SES_Salvage_Standins.{$Standin}" exact="table[$wreck = $Wreck, $created = player.age, $lastwork = player.age, $lastsalvagehit = null, $lastdamagetime = null, $lastdamage = 0]" />
+        <set_value name="global.$SES_Salvage_Standin_Of.{$Wreck}" exact="$Standin" />
+        <set_value name="global.$SES_Salvage_Standin_Count" operation="add" exact="1" />
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][STANDIN] Created. standin=%s wreck=%s macro=%s engines=%s weapons=%s shields=%s shield=%s/%s claimable=%s count=%s'.[$Standin, $Wreck, $Wreck.macro, @$Standin.engines.all.count, @$Standin.weapons.all.count, @$Standin.shields.all.count, $Standin.shield, $Standin.maxshield, @$Standin.canbeclaimed, global.$SES_Salvage_Standin_Count]" />
+        <return value="$Standin" />
+      </actions>
+    </library>
+
+    <!-- Mode: 'finish' removes stand-in and wreck; 'destroyed' removes the
+         stand-in remains and the wreck; 'revert' restores the wreck;
+         'wreckmissing' removes an orphaned stand-in. Never explodes.
+         Unregisters first so SES_Standin_Destroyed_V1 ignores our own removals. -->
+    <library name="SES_Standin_Release_V1" purpose="run_actions">
+      <params>
+        <param name="Standin" />
+        <param name="Mode" />
+      </params>
+      <actions>
+        <set_value name="$Wreck" exact="@global.$SES_Salvage_Standins.{$Standin}.$wreck" />
+        <do_if value="global.$SES_Salvage_Standins.{$Standin}?">
+          <remove_value name="global.$SES_Salvage_Standins.{$Standin}" />
+          <set_value name="global.$SES_Salvage_Standin_Count" exact="[global.$SES_Salvage_Standin_Count - 1, 0].max" />
+        </do_if>
+        <do_if value="$Wreck and global.$SES_Salvage_Standin_Of.{$Wreck}?">
+          <remove_value name="global.$SES_Salvage_Standin_Of.{$Wreck}" />
+        </do_if>
+        <set_value name="$ActiveShips" exact="global.$SES_Salvage_Active.keys.list" />
+        <do_for_each name="$ActiveShip" in="$ActiveShips">
+          <do_if value="global.$SES_Salvage_Active.{$ActiveShip} == $Standin or not @$ActiveShip.exists">
+            <do_if value="@$ActiveShip.exists">
+              <set_turret_targets object="$ActiveShip" target="[]" weaponmode="weaponmode.mining" />
+            </do_if>
+            <remove_value name="global.$SES_Salvage_Active.{$ActiveShip}" />
+          </do_if>
+        </do_for_each>
+        <!-- A destroyed stand-in becomes a wreck object itself; remove it too. -->
+        <do_if value="@$Standin.exists">
+          <destroy_object object="$Standin" explosion="false" />
+        </do_if>
+        <do_if value="@$Wreck.exists">
+          <do_if value="$Mode == 'finish' or $Mode == 'destroyed'">
+            <destroy_object object="$Wreck" explosion="false" />
+          </do_if>
+          <do_else>
+            <set_object_hidden object="$Wreck" hidden="false" />
+            <set_wreck_persistence object="$Wreck" persistent="false" />
+          </do_else>
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][STANDIN] Released. mode=%s standin=%s wreck=%s awarded=%s planned=%s count=%s'.[$Mode, $Standin, $Wreck, @global.$SES_Wreck_Harvest_State.{$Wreck}.$salvageawarded, @global.$SES_Wreck_Harvest_State.{$Wreck}.$salvageplanned, global.$SES_Salvage_Standin_Count]" />
+      </actions>
+    </library>
+  </cues>
+</mdscript>

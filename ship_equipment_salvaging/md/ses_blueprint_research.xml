@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Blueprint_Research" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <!-- Blueprint Research (Wreck Mining & Fabrication BETA, default off).
+       Design: docs/Blueprint Research Concept.md. Components are inventory wares
+       ses_comp_<race>_<type>_<grade>; this script decides who gets which. -->
+  <cues>
+    <!-- Static ware table: dynamic ware.{id} lookup is unreliable on loaded
+         saves, and static references are checked by X4 at load. -->
+    <library name="SES_Component_Ware_V1" purpose="run_actions">
+      <params>
+        <param name="Race" comment="arg/par/tel/spl/ter/bor" />
+        <param name="Type" comment="weapon/turret/shield/propulsion" />
+        <param name="Grade" comment="basic/advanced" />
+      </params>
+      <actions>
+        <set_value name="$ComponentWares" exact="table[
+              $arg_weapon_basic = ware.ses_comp_arg_weapon_basic,
+              $arg_weapon_advanced = ware.ses_comp_arg_weapon_advanced,
+              $arg_turret_basic = ware.ses_comp_arg_turret_basic,
+              $arg_turret_advanced = ware.ses_comp_arg_turret_advanced,
+              $arg_shield_basic = ware.ses_comp_arg_shield_basic,
+              $arg_shield_advanced = ware.ses_comp_arg_shield_advanced,
+              $arg_propulsion_basic = ware.ses_comp_arg_propulsion_basic,
+              $arg_propulsion_advanced = ware.ses_comp_arg_propulsion_advanced,
+              $par_weapon_basic = ware.ses_comp_par_weapon_basic,
+              $par_weapon_advanced = ware.ses_comp_par_weapon_advanced,
+              $par_turret_basic = ware.ses_comp_par_turret_basic,
+              $par_turret_advanced = ware.ses_comp_par_turret_advanced,
+              $par_shield_basic = ware.ses_comp_par_shield_basic,
+              $par_shield_advanced = ware.ses_comp_par_shield_advanced,
+              $par_propulsion_basic = ware.ses_comp_par_propulsion_basic,
+              $par_propulsion_advanced = ware.ses_comp_par_propulsion_advanced,
+              $tel_weapon_basic = ware.ses_comp_tel_weapon_basic,
+              $tel_weapon_advanced = ware.ses_comp_tel_weapon_advanced,
+              $tel_turret_basic = ware.ses_comp_tel_turret_basic,
+              $tel_turret_advanced = ware.ses_comp_tel_turret_advanced,
+              $tel_shield_basic = ware.ses_comp_tel_shield_basic,
+              $tel_shield_advanced = ware.ses_comp_tel_shield_advanced,
+              $tel_propulsion_basic = ware.ses_comp_tel_propulsion_basic,
+              $tel_propulsion_advanced = ware.ses_comp_tel_propulsion_advanced,
+              $spl_weapon_basic = ware.ses_comp_spl_weapon_basic,
+              $spl_weapon_advanced = ware.ses_comp_spl_weapon_advanced,
+              $spl_turret_basic = ware.ses_comp_spl_turret_basic,
+              $spl_turret_advanced = ware.ses_comp_spl_turret_advanced,
+              $spl_shield_basic = ware.ses_comp_spl_shield_basic,
+              $spl_shield_advanced = ware.ses_comp_spl_shield_advanced,
+              $spl_propulsion_basic = ware.ses_comp_spl_propulsion_basic,
+              $spl_propulsion_advanced = ware.ses_comp_spl_propulsion_advanced,
+              $ter_weapon_basic = ware.ses_comp_ter_weapon_basic,
+              $ter_weapon_advanced = ware.ses_comp_ter_weapon_advanced,
+              $ter_turret_basic = ware.ses_comp_ter_turret_basic,
+              $ter_turret_advanced = ware.ses_comp_ter_turret_advanced,
+              $ter_shield_basic = ware.ses_comp_ter_shield_basic,
+              $ter_shield_advanced = ware.ses_comp_ter_shield_advanced,
+              $ter_propulsion_basic = ware.ses_comp_ter_propulsion_basic,
+              $ter_propulsion_advanced = ware.ses_comp_ter_propulsion_advanced,
+              $bor_weapon_basic = ware.ses_comp_bor_weapon_basic,
+              $bor_weapon_advanced = ware.ses_comp_bor_weapon_advanced,
+              $bor_turret_basic = ware.ses_comp_bor_turret_basic,
+              $bor_turret_advanced = ware.ses_comp_bor_turret_advanced,
+              $bor_shield_basic = ware.ses_comp_bor_shield_basic,
+              $bor_shield_advanced = ware.ses_comp_bor_shield_advanced,
+              $bor_propulsion_basic = ware.ses_comp_bor_propulsion_basic,
+              $bor_propulsion_advanced = ware.ses_comp_bor_propulsion_advanced
+            ]" />
+        <return value="@$ComponentWares.{'$' + $Race + '_' + $Type + '_' + $Grade}" />
+      </actions>
+    </library>
+
+    <library name="SES_Component_Race_Tag_V1" purpose="run_actions">
+      <params><param name="Race" /></params>
+      <actions>
+        <return value="if $Race == race.argon then 'arg' else if $Race == race.paranid then 'par' else if $Race == race.teladi then 'tel' else if $Race == race.split then 'spl' else if $Race == race.terran then 'ter' else if $Race == race.boron then 'bor' else ''" />
+      </actions>
+    </library>
+
+    <!-- Hull maker race of a ship or wreck (used when no owner faction is known). -->
+    <library name="SES_Component_Hull_Race_V1" purpose="run_actions">
+      <params><param name="Object" /></params>
+      <actions>
+        <set_value name="$HullRaceTag" exact="''" />
+        <do_for_each name="$HullRace" in="if @$Object.macro.makerraces then $Object.macro.makerraces else []">
+          <do_if value="$HullRaceTag == ''">
+            <run_actions ref="SES_Component_Race_Tag_V1" result="$HullRaceTag"><param name="Race" value="$HullRace" /></run_actions>
+          </do_if>
+        </do_for_each>
+        <return value="$HullRaceTag" />
+      </actions>
+    </library>
+
+    <library name="SES_Component_Type_V1" purpose="run_actions">
+      <params><param name="Ware" /></params>
+      <actions>
+        <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$TypeCategory"><param name="Ware" value="$Ware" /></run_actions>
+        <return value="if $TypeCategory == 'weapons' then 'weapon' else if $TypeCategory == 'turrets' then 'turret' else if $TypeCategory == 'shields' then 'shield' else if $TypeCategory == 'engines' or $TypeCategory == 'thrusters' then 'propulsion' else ''" />
+      </actions>
+    </library>
+
+    <!-- Mk3+ means catalog tier 3 or 4 (the reviewed Black Market stock tiers). -->
+    <library name="SES_Component_Is_Mk3_V1" purpose="run_actions">
+      <params><param name="Ware" /></params>
+      <actions>
+        <return value="if @global.$SES_Black_Market_Stock_MK3_WareIds.indexof.{$Ware.id} or @global.$SES_Black_Market_Stock_MK4_WareIds.indexof.{$Ware.id} then true else false" />
+      </actions>
+    </library>
+
+    <!-- Equipment summary of a ship or wreck: component types it carries
+         (one entry per item, so random picks lean toward what it had) and
+         whether any item is Mk3+. -->
+    <library name="SES_Component_Loadout_Summary_V1" purpose="run_actions">
+      <params><param name="Object" /></params>
+      <actions>
+        <set_value name="$SummaryTypes" exact="[]" />
+        <set_value name="$SummaryMk3" exact="false" />
+        <do_for_each name="$SummaryWare" in="if @$Object.loadout.wares.list then $Object.loadout.wares.list else []">
+          <run_actions ref="SES_Component_Type_V1" result="$SummaryType"><param name="Ware" value="$SummaryWare" /></run_actions>
+          <do_if value="$SummaryType != ''">
+            <append_to_list name="$SummaryTypes" exact="$SummaryType" />
+            <run_actions ref="SES_Component_Is_Mk3_V1" result="$SummaryIsMk3"><param name="Ware" value="$SummaryWare" /></run_actions>
+            <do_if value="$SummaryIsMk3"><set_value name="$SummaryMk3" exact="true" /></do_if>
+          </do_if>
+        </do_for_each>
+        <return value="table[$types = $SummaryTypes, $mk3 = $SummaryMk3]" />
+      </actions>
+    </library>
+
+    <!-- Give one component and tell the player (pilots get it silently). -->
+    <library name="SES_Component_Give_V1" purpose="run_actions">
+      <params>
+        <param name="Recipient" />
+        <param name="Race" />
+        <param name="Type" />
+        <param name="Grade" />
+        <param name="Source" />
+      </params>
+      <actions>
+        <run_actions ref="SES_Component_Ware_V1" result="$GiveWare">
+          <param name="Race" value="$Race" />
+          <param name="Type" value="$Type" />
+          <param name="Grade" value="$Grade" />
+        </run_actions>
+        <do_if value="$GiveWare and @$Recipient.exists">
+          <add_inventory entity="$Recipient" ware="$GiveWare" exact="1" />
+          <do_if value="$Recipient == player.entity">
+            <set_value name="$GiveMessage" exact="readtext.{1171361}.{1060}" />
+            <show_notification text="$GiveMessage.[$GiveWare.name]" />
+          </do_if>
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][COMPONENT] Awarded ware=%s source=%s recipient=%s carried=%s'.[$GiveWare.id, $Source, $Recipient, $Recipient.inventory.{$GiveWare}.count]" />
+        </do_if>
+        <do_else>
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][COMPONENT] No component for race=%s type=%s grade=%s source=%s recipient=%s'.[$Race, $Type, $Grade, $Source, $Recipient]" />
+        </do_else>
+        <return value="if $GiveWare and @$Recipient.exists then $GiveWare else null" />
+      </actions>
+    </library>
+
+    <!-- EVA salvage with the Avarice Beam Regulator. Race = hull maker race.
+         Per attempted unit: success 25 % Basic; failure (part broke) always a
+         component, 40 % Advanced if the part was Mk3+. Returns table[ware = count]
+         of what was given (for the salvage results window). -->
+    <library name="SES_Component_EVA_Award_V1" purpose="run_actions">
+      <params>
+        <param name="Target" />
+        <param name="Ware" />
+        <param name="Attempted" />
+        <param name="Recovered" />
+      </params>
+      <actions>
+        <set_value name="$EvaGiven" exact="table[]" />
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and $Ware">
+          <run_actions ref="SES_Component_Hull_Race_V1" result="$EvaRace"><param name="Object" value="$Target" /></run_actions>
+          <run_actions ref="SES_Component_Type_V1" result="$EvaType"><param name="Ware" value="$Ware" /></run_actions>
+          <run_actions ref="SES_Component_Is_Mk3_V1" result="$EvaMk3"><param name="Ware" value="$Ware" /></run_actions>
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][COMPONENT] EVA salvage target=%s race=%s ware=%s type=%s mk3=%s attempted=%s recovered=%s'.[$Target, $EvaRace, $Ware.id, $EvaType, $EvaMk3, $Attempted, $Recovered]" />
+          <do_if value="$EvaRace != '' and $EvaType != ''">
+            <do_all exact="[$Recovered, 0].max">
+              <set_value name="$EvaRoll" min="1" max="100" />
+              <do_if value="$EvaRoll le 25">
+                <run_actions ref="SES_Component_Give_V1" result="$EvaGivenWare">
+                  <param name="Recipient" value="player.entity" />
+                  <param name="Race" value="$EvaRace" />
+                  <param name="Type" value="$EvaType" />
+                  <param name="Grade" value="'basic'" />
+                  <param name="Source" value="'eva_success'" />
+                </run_actions>
+                <do_if value="$EvaGivenWare">
+                  <set_value name="$EvaGiven.{$EvaGivenWare}" exact="(if $EvaGiven.{$EvaGivenWare}? then $EvaGiven.{$EvaGivenWare} else 0) + 1" />
+                </do_if>
+              </do_if>
+            </do_all>
+            <do_all exact="[$Attempted - $Recovered, 0].max">
+              <set_value name="$EvaRoll" min="1" max="100" />
+              <run_actions ref="SES_Component_Give_V1" result="$EvaGivenWare">
+                <param name="Recipient" value="player.entity" />
+                <param name="Race" value="$EvaRace" />
+                <param name="Type" value="$EvaType" />
+                <param name="Grade" value="if $EvaMk3 and $EvaRoll le 40 then 'advanced' else 'basic'" />
+                <param name="Source" value="'eva_failure'" />
+              </run_actions>
+              <do_if value="$EvaGivenWare">
+                <set_value name="$EvaGiven.{$EvaGivenWare}" exact="(if $EvaGiven.{$EvaGivenWare}? then $EvaGiven.{$EvaGivenWare} else 0) + 1" />
+              </do_if>
+            </do_all>
+          </do_if>
+        </do_if>
+        <return value="$EvaGiven" />
+      </actions>
+    </library>
+
+    <!-- Kills by the player or player-owned ships: remember the victim's owner
+         faction while it still has one. The wreck may be the same object; if
+         not, it is matched by macro and sector shortly after the kill. -->
+    <cue name="SES_Component_Kill_Record_V1" instantiate="true">
+      <conditions>
+        <event_player_owned_killed_object />
+        <check_value value="@global.$SES_Wreck_Mining_Beta_Enabled" />
+        <check_value value="@event.param2.isclass.ship_s or @event.param2.isclass.ship_m" />
+      </conditions>
+      <actions>
+        <set_value name="$Victim" exact="event.param2" />
+        <run_actions ref="SES_Component_Race_Tag_V1" result="$KillRace"><param name="Race" value="@$Victim.owner.primaryrace" /></run_actions>
+        <run_actions ref="SES_Component_Loadout_Summary_V1" result="$KillSummary"><param name="Object" value="$Victim" /></run_actions>
+        <do_if value="not @global.$SES_Component_Kill_Records">
+          <set_value name="global.$SES_Component_Kill_Records" exact="table[]" />
+        </do_if>
+        <!-- Records only matter for fresh kills; drop anything older than 2 h. -->
+        <do_for_each name="$OldKey" in="global.$SES_Component_Kill_Records.keys.list">
+          <do_if value="player.age gt @global.$SES_Component_Kill_Records.{$OldKey}.$time + 2h">
+            <remove_value name="global.$SES_Component_Kill_Records.{$OldKey}" />
+          </do_if>
+        </do_for_each>
+        <set_value name="global.$SES_Component_Kill_Records.{$Victim}" exact="table[
+          $race = $KillRace,
+          $faction = @$Victim.owner,
+          $size = if $Victim.isclass.ship_s then 's' else 'm',
+          $types = $KillSummary.$types,
+          $mk3 = $KillSummary.$mk3,
+          $macro = $Victim.macro,
+          $sector = $Victim.sector,
+          $time = player.age,
+          $used = false
+        ]" />
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][COMPONENT] Kill recorded victim=%s macro=%s owner=%s race=%s size=%s types=%s mk3=%s killer=%s method=%s'.[$Victim, $Victim.macro, @$Victim.owner, $KillRace, if $Victim.isclass.ship_s then 's' else 'm', $KillSummary.$types.count, $KillSummary.$mk3, event.param, event.param3]" />
+      </actions>
+    </cue>
+
+    <!-- A wreck has been fully beam-salvaged. Recorded kills give random
+         components of the killed owner's race; other wrecks give fewer, by hull. -->
+    <library name="SES_Component_Wreck_Award_V1" purpose="run_actions">
+      <params>
+        <param name="Target" />
+        <param name="Recipient" />
+      </params>
+      <actions>
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @$Target.exists and @$Recipient.exists">
+          <set_value name="$WreckRecord" exact="null" />
+          <set_value name="$WreckRecordKey" exact="null" />
+          <do_if value="@global.$SES_Component_Kill_Records.{$Target} and not global.$SES_Component_Kill_Records.{$Target}.$used">
+            <set_value name="$WreckRecordKey" exact="$Target" />
+          </do_if>
+          <do_elseif value="@global.$SES_Component_Kill_Records">
+            <!-- Different object: oldest unused fresh kill of the same hull in this sector. -->
+            <do_for_each name="$CandidateKey" in="global.$SES_Component_Kill_Records.keys.list">
+              <set_value name="$Candidate" exact="global.$SES_Component_Kill_Records.{$CandidateKey}" />
+              <do_if value="not $Candidate.$used and $Candidate.$macro == $Target.macro and $Candidate.$sector == $Target.sector and player.age le $Candidate.$time + 2h">
+                <do_if value="not $WreckRecordKey or $Candidate.$time lt global.$SES_Component_Kill_Records.{$WreckRecordKey}.$time">
+                  <set_value name="$WreckRecordKey" exact="$CandidateKey" />
+                </do_if>
+              </do_if>
+            </do_for_each>
+          </do_elseif>
+          <do_if value="$WreckRecordKey and player.age le global.$SES_Component_Kill_Records.{$WreckRecordKey}.$time + 2h">
+            <set_value name="$WreckRecord" exact="global.$SES_Component_Kill_Records.{$WreckRecordKey}" />
+            <set_value name="global.$SES_Component_Kill_Records.{$WreckRecordKey}.$used" exact="true" />
+          </do_if>
+
+          <do_if value="$WreckRecord">
+            <set_value name="$WreckRace" exact="$WreckRecord.$race" />
+            <set_value name="$WreckTypes" exact="$WreckRecord.$types" />
+            <set_value name="$WreckSmall" exact="$WreckRecord.$size == 's'" />
+            <set_value name="$WreckRolls" min="if $WreckSmall then 1 else 2" max="if $WreckSmall then 2 else 4" />
+            <set_value name="$WreckAdvancedPct" exact="if $WreckSmall then (if $WreckRecord.$mk3 then 15 else 5) else (if $WreckRecord.$mk3 then 25 else 8)" />
+            <set_value name="$WreckSource" exact="'kill'" />
+          </do_if>
+          <do_else>
+            <run_actions ref="SES_Component_Hull_Race_V1" result="$WreckRace"><param name="Object" value="$Target" /></run_actions>
+            <run_actions ref="SES_Component_Loadout_Summary_V1" result="$WreckSummary"><param name="Object" value="$Target" /></run_actions>
+            <set_value name="$WreckTypes" exact="$WreckSummary.$types" />
+            <set_value name="$WreckSmall" exact="@$Target.isrealclass.ship_s" />
+            <set_value name="$WreckRolls" min="if $WreckSmall then 0 else 1" max="if $WreckSmall then 1 else 2" />
+            <set_value name="$WreckAdvancedPct" exact="if not $WreckSmall and $WreckSummary.$mk3 then 3 else 0" />
+            <set_value name="$WreckSource" exact="'derelict'" />
+          </do_else>
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][COMPONENT] Wreck salvaged target=%s source=%s race=%s rolls=%s advancedpct=%s types=%s recipient=%s'.[$Target, $WreckSource, $WreckRace, $WreckRolls, $WreckAdvancedPct, $WreckTypes.count, $Recipient]" />
+          <do_if value="$WreckRace != ''">
+            <do_all exact="$WreckRolls">
+              <set_value name="$WreckType" exact="if $WreckTypes.count gt 0 then $WreckTypes.random else ['weapon', 'turret', 'shield', 'propulsion'].random" />
+              <set_value name="$WreckRoll" min="1" max="100" />
+              <run_actions ref="SES_Component_Give_V1">
+                <param name="Recipient" value="$Recipient" />
+                <param name="Race" value="$WreckRace" />
+                <param name="Type" value="$WreckType" />
+                <param name="Grade" value="if $WreckRoll le $WreckAdvancedPct then 'advanced' else 'basic'" />
+                <param name="Source" value="'wreck_' + $WreckSource" />
+              </run_actions>
+            </do_all>
+          </do_if>
+        </do_if>
+      </actions>
+    </library>
+
+    <!-- ============================ Shared ============================ -->
+    <!-- Saved Equipment copies of a ware (ledger), and the first row holding one. -->
+    <library name="SES_Research_Ledger_V1" purpose="run_actions">
+      <params><param name="Ware" /></params>
+      <actions>
+        <set_value name="$LgCount" exact="0" />
+        <set_value name="$LgIndex" exact="0" />
+        <do_for_each name="$LgEntry" in="if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else []" counter="$LgEntryIndex">
+          <do_if value="@$LgEntry.$wareid == $Ware.id and @$LgEntry.$count gt 0">
+            <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Resolve_Equipment_Macro_ID_V1" result="$LgMacro"><param name="Entry" value="$LgEntry" /><param name="Ware" value="$Ware" /></run_actions>
+            <do_if value="$LgMacro == $Ware.objectmacro.id">
+              <set_value name="$LgCount" operation="add" exact="$LgEntry.$count" />
+              <do_if value="$LgIndex == 0"><set_value name="$LgIndex" exact="$LgEntryIndex" /></do_if>
+            </do_if>
+          </do_if>
+        </do_for_each>
+        <return value="table[$count = $LgCount, $index = $LgIndex]" />
+      </actions>
+    </library>
+  </cues>
+</mdscript>

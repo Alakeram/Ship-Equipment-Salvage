@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Systems_Research" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <!-- Systems research (Wreck Mining & Fabrication BETA). Design:
+       docs/Blueprint Research Concept.md section 4a.
+       Research tab: teardowns + components compile a schematic per maker/tier.
+       HQ: "<Maker> Systems I-III" research waits on a hidden mission-only
+       precursor until the schematic is delivered to Boso Ta (same pattern as
+       vanilla Time Compression, x4ep1_mentor_subscription.xml RM_SETA).
+       Completion decodes every blueprint of that maker and tier.
+       Group data: md/ses_systems_data.xml (generated). -->
+  <cues>
+    <!-- Lookups, HQ tree reveal and catch-up after load. Signalled again by the
+         fabrication publish so enabling the BETA shows the nodes at once. -->
+    <cue name="SES_Systems_Init_V1" instantiate="true">
+      <conditions>
+        <check_any>
+          <event_game_started />
+          <event_game_loaded />
+          <event_cue_signalled />
+        </check_any>
+      </conditions>
+      <delay exact="3s" />
+      <actions>
+        <!-- Rows name their equipment by ware id; resolve against the installed
+             game so DLC groups (BOR/SPL/TER) drop cleanly without that DLC. -->
+        <get_ware_definition flags="equipment" result="$InitDefinitions" />
+        <set_value name="$InitWareById" exact="table[]" />
+        <do_for_each name="$InitDefinition" in="$InitDefinitions">
+          <set_value name="$InitWareById.{'$' + $InitDefinition.id}" exact="$InitDefinition" />
+        </do_for_each>
+        <run_actions ref="md.SES_Systems_Data.SES_Systems_Rows_V1" result="$InitRawRows" />
+        <set_value name="global.$SES_Systems_Rows" exact="[]" />
+        <do_for_each name="$InitRow" in="$InitRawRows">
+          <set_value name="$InitWares" exact="[]" />
+          <do_for_each name="$InitWareId" in="$InitRow.$wareids">
+            <do_if value="$InitWareById.{'$' + $InitWareId}?">
+              <append_to_list name="$InitWares" exact="$InitWareById.{'$' + $InitWareId}" />
+            </do_if>
+          </do_for_each>
+          <do_if value="$InitWares.count gt 0">
+            <set_value name="$InitRow.$wares" exact="$InitWares" />
+            <append_to_list name="global.$SES_Systems_Rows" exact="$InitRow" />
+          </do_if>
+        </do_for_each>
+        <set_value name="global.$SES_Systems_ByResearch" exact="table[]" />
+        <do_for_each name="$Row" in="global.$SES_Systems_Rows">
+          <set_value name="global.$SES_Systems_ByResearch.{$Row.$research}" exact="$Row" />
+        </do_for_each>
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled">
+          <do_for_each name="$Row" in="global.$SES_Systems_Rows">
+            <add_encyclopedia_entry type="researchables" item="$Row.$researchid" />
+            <do_if value="$Row.$research.research.unlocked">
+              <run_actions ref="SES_Systems_Unlock_Row_V1">
+                <param name="Row" value="$Row" />
+                <param name="Notify" value="false" />
+              </run_actions>
+            </do_if>
+          </do_for_each>
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] Initialized rows=%s beta=%s'.[global.$SES_Systems_Rows.count, @global.$SES_Wreck_Mining_Beta_Enabled]" />
+      </actions>
+    </cue>
+
+    <!-- Decode every blueprint of one maker/tier. -->
+    <library name="SES_Systems_Unlock_Row_V1" purpose="run_actions">
+      <params>
+        <param name="Row" />
+        <param name="Notify" default="true" />
+      </params>
+      <actions>
+        <run_actions ref="md.SES_Wreck_Fabrication.SES_Fabrication_Ensure_State_V1" />
+        <set_value name="$UnlockCount" exact="0" />
+        <do_for_each name="$UnlockWare" in="$Row.$wares">
+          <do_if value="not @global.$SES_Weapon_Patterns_Known.{$UnlockWare}">
+            <set_value name="global.$SES_Weapon_Patterns_Known.{$UnlockWare}" exact="true" />
+            <set_value name="$UnlockCount" operation="add" />
+          </do_if>
+        </do_for_each>
+        <do_if value="$UnlockCount gt 0">
+          <set_value name="global.$SES_Fabrication_Revision" operation="add" />
+        </do_if>
+        <do_if value="$Notify">
+          <set_value name="$UnlockMessage" exact="readtext.{1171361}.{1199}.[readtext.{1171361}.{$Row.$nametext}, $Row.$wares.count]" />
+          <show_notification text="$UnlockMessage" />
+          <write_to_logbook category="general" title="readtext.{1171361}.{$Row.$nametext}" text="$UnlockMessage" />
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] Unlocked row=%s tier=%s newpatterns=%s total=%s notify=%s'.[$Row.$group, $Row.$tier, $UnlockCount, $Row.$wares.count, $Notify]" />
+      </actions>
+    </library>
+
+    <cue name="SES_Systems_Research_Unlocked_V1" instantiate="true">
+      <conditions>
+        <event_player_research_unlocked />
+        <check_value value="@global.$SES_Systems_ByResearch.{event.param}" />
+      </conditions>
+      <actions>
+        <run_actions ref="SES_Systems_Unlock_Row_V1">
+          <param name="Row" value="global.$SES_Systems_ByResearch.{event.param}" />
+        </run_actions>
+      </actions>
+    </cue>
+
+    <!-- Research started at the HQ: ask Boso Ta for the schematics unless the
+         hidden precursor is already done or a delivery is already open. -->
+    <cue name="SES_Systems_Research_Started_V1" instantiate="true">
+      <conditions>
+        <event_player_production_started research="true" />
+        <check_value value="@global.$SES_Systems_ByResearch.{event.param2}" />
+      </conditions>
+      <actions>
+        <set_value name="$Row" exact="global.$SES_Systems_ByResearch.{event.param2}" />
+        <do_if value="not @global.$SES_Systems_Missions">
+          <set_value name="global.$SES_Systems_Missions" exact="table[]" />
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] Research started ware=%s preunlocked=%s openmission=%s boso=%s'.[$Row.$researchid, $Row.$pre.research.unlocked, @global.$SES_Systems_Missions.{$Row.$research}.hasmission, @md.$PersistentCharacters.$BosoTa]" />
+        <do_if value="not $Row.$pre.research.unlocked and not @global.$SES_Systems_Missions.{$Row.$research}.hasmission">
+          <signal_cue_instantly cue="SES_Systems_Delivery_V1" param="$Row" />
+        </do_if>
+      </actions>
+    </cue>
+
+    <cue name="SES_Systems_Delivery_V1" instantiate="true" namespace="this">
+      <conditions>
+        <event_cue_signalled />
+      </conditions>
+      <actions>
+        <set_value name="$Row" exact="event.param" />
+        <set_value name="$Boso" exact="@md.$PersistentCharacters.$BosoTa" />
+        <set_value name="$MissionCue" exact="namespace" />
+        <do_if value="not @$Boso.isclass.npc">
+          <show_notification text="readtext.{1171361}.{1198}" />
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] No Boso Ta; research %s waits for its schematics.'.[$Row.$researchid]" />
+          <cancel_cue cue="namespace" />
+        </do_if>
+        <do_else>
+          <!-- Boso Ta takes the schematic together with the maker's components. -->
+          <set_value name="$DeliverWares" exact="table[{$Row.$schematic} = 1]" />
+          <do_for_each name="$DeliverNeed" in="$Row.$components">
+            <set_value name="$DeliverWares.{$DeliverNeed.{1}}" exact="$DeliverNeed.{2}" />
+          </do_for_each>
+          <create_mission cue="$MissionCue" name="readtext.{1171361}.{1193}.[readtext.{1171361}.{$Row.$nametext}]" description="readtext.{1171361}.{1194}" type="missiontype.plot" faction="faction.civilian" difficulty="level.medium" abortable="false" icon="'briefing_boso_ta_01'" iconcaption="{30201,2}">
+            <briefing>
+              <objective step="1" action="objective.deliver" />
+            </briefing>
+          </create_mission>
+          <set_objective_from_briefing cue="$MissionCue" step="1" />
+          <set_value name="global.$SES_Systems_Missions.{$Row.$research}" exact="$MissionCue" />
+          <!-- "Bring the items to me and we can get started." -->
+          <speak actor="$Boso" line="30222018" priority="100" caninterrupt="false" />
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] Delivery mission opened research=%s schematic=%s boso=%s'.[$Row.$researchid, $Row.$schematic.id, $Boso]" />
+        </do_else>
+      </actions>
+      <cues>
+        <cue name="SES_Systems_Delivery_Ref_V1" ref="md.RML_Deliver_Inventory.Deliver_Inventory">
+          <param name="EndSignalCue" value="SES_Systems_Delivery_Done_V1" />
+          <param name="MissionCue" value="$MissionCue" />
+          <param name="StartStep" value="1" />
+          <param name="IsPassive" value="false" />
+          <param name="UpdateBriefing" value="true" />
+          <param name="WaresTableParam" value="$DeliverWares" />
+          <param name="DeliveryNPC" value="$Boso" />
+          <param name="ProgressBarText" value="{1171361,1195}" />
+          <param name="ConversationOptionText" value="{1171361,1196}" />
+          <param name="ConversationTipText" value="{1171361,1197}" />
+          <param name="PlaceNPC" value="false" />
+          <param name="DebugChance" value="0" />
+        </cue>
+
+        <cue name="SES_Systems_Delivery_Done_V1">
+          <conditions>
+            <event_cue_signalled />
+          </conditions>
+          <actions>
+            <set_value name="$DeliveryResult" exact="@SES_Systems_Delivery_Done_V1.$EndFeedbackValue" />
+            <do_if value="$DeliveryResult == 1">
+              <add_research ware="$Row.$pre" />
+              <!-- "Now then. We should be able to begin our research." -->
+              <speak actor="$Boso" line="[30222019, 30201170]" priority="100" caninterrupt="false" />
+              <remove_mission cue="$MissionCue" type="completed" />
+            </do_if>
+            <do_else>
+              <remove_mission cue="$MissionCue" type="failed" />
+            </do_else>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] Delivery finished research=%s result=%s preunlocked=%s'.[$Row.$researchid, $DeliveryResult, $Row.$pre.research.unlocked]" />
+            <remove_value name="global.$SES_Systems_Missions.{$Row.$research}" />
+            <cancel_cue cue="namespace" />
+          </actions>
+        </cue>
+
+        <cue name="SES_Systems_Delivery_Cancelled_V1">
+          <conditions>
+            <event_player_production_cancelled research="true" />
+            <check_value value="event.param3.indexof.{$Row.$research}" />
+          </conditions>
+          <actions>
+            <do_if value="$MissionCue.hasmission">
+              <remove_mission cue="$MissionCue" type="aborted" />
+            </do_if>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] Research cancelled at HQ; delivery mission closed research=%s'.[$Row.$researchid]" />
+            <remove_value name="global.$SES_Systems_Missions.{$Row.$research}" />
+            <cancel_cue cue="namespace" />
+          </actions>
+        </cue>
+      </cues>
+    </cue>
+
+    <!-- ============== Research tab: compile schematics ============== -->
+    <library name="SES_Systems_State_V1" purpose="run_actions">
+      <params><param name="Row" /></params>
+      <actions>
+        <do_if value="not @global.$SES_Systems_Progress">
+          <set_value name="global.$SES_Systems_Progress" exact="table[]" />
+        </do_if>
+        <do_if value="not @global.$SES_Systems_Progress.{$Row.$schematic}">
+          <set_value name="global.$SES_Systems_Progress.{$Row.$schematic}" exact="table[$torn = [], $deposits = table[], $compiled = false]" />
+        </do_if>
+        <return value="global.$SES_Systems_Progress.{$Row.$schematic}" />
+      </actions>
+    </library>
+
+    <!-- Rows for the Research view. -->
+    <library name="SES_Systems_UI_Rows_V1" purpose="run_actions">
+      <actions>
+        <set_value name="$UiRows" exact="[]" />
+        <do_for_each name="$Row" in="if @global.$SES_Systems_Rows then global.$SES_Systems_Rows else []">
+          <run_actions ref="SES_Systems_State_V1" result="$UiState"><param name="Row" value="$Row" /></run_actions>
+          <set_value name="$UiEligible" exact="[]" />
+          <do_for_each name="$UiWare" in="$Row.$wares">
+            <do_if value="not $UiState.$torn.indexof.{$UiWare}">
+              <run_actions ref="md.SES_Blueprint_Research.SES_Research_Ledger_V1" result="$UiLedger"><param name="Ware" value="$UiWare" /></run_actions>
+              <do_if value="$UiLedger.$count gt 0">
+                <append_to_list name="$UiEligible" exact="table[$wareid = $UiWare.id, $name = $UiWare.name, $owned = $UiLedger.$count]" />
+              </do_if>
+            </do_if>
+          </do_for_each>
+          <!-- Component amounts are tracked by the Boso Ta delivery mission, not here. -->
+          <append_to_list name="$UiRows" exact="table[
+            $schematicid = $Row.$schematic.id, $name = readtext.{1171361}.{$Row.$nametext},
+            $schematicname = $Row.$schematic.name, $group = $Row.$group, $tier = $Row.$tier,
+            $researched = if $Row.$research.research.unlocked then true else false,
+            $compiled = if $UiState.$compiled then true else false,
+            $delivering = if @global.$SES_Systems_Missions.{$Row.$research}.hasmission then true else false,
+            $researching = if $Row.$pre.research.unlocked then true else false,
+            $carriedschematics = player.entity.inventory.{$Row.$schematic}.count,
+            $needteardowns = $Row.$teardowns, $haveteardowns = $UiState.$torn.count,
+            $eligible = $UiEligible, $blueprints = $Row.$wares.count
+          ]" />
+        </do_for_each>
+        <return value="$UiRows" />
+      </actions>
+    </library>
+
+    <library name="SES_Systems_Try_Compile_V1" purpose="run_actions">
+      <params><param name="Row" /></params>
+      <actions>
+        <set_value name="$CompileDone" exact="false" />
+        <run_actions ref="SES_Systems_State_V1" result="$CompileState"><param name="Row" value="$Row" /></run_actions>
+        <!-- Teardowns alone make the schematic; components go to Boso Ta with it. -->
+        <set_value name="$CompileReady" exact="not $CompileState.$compiled and $CompileState.$torn.count ge $Row.$teardowns" />
+        <do_if value="$CompileReady">
+          <add_inventory entity="player.entity" ware="$Row.$schematic" exact="1" />
+          <set_value name="global.$SES_Systems_Progress.{$Row.$schematic}.$compiled" exact="true" />
+          <set_value name="$CompileMessage" exact="readtext.{1171361}.{1181}.[$Row.$schematic.name]" />
+          <show_notification text="$CompileMessage" />
+          <write_to_logbook category="general" title="$CompileMessage" text="readtext.{1171361}.{1183}.[readtext.{1171361}.{$Row.$nametext}]" />
+          <set_value name="$CompileDone" exact="true" />
+        </do_if>
+        <return value="$CompileDone" />
+      </actions>
+    </library>
+
+    <!-- One Research-tab request. WareId: the saved item to tear down (sys_teardown). -->
+    <library name="SES_Systems_Request_V1" purpose="run_actions">
+      <params>
+        <param name="Action" />
+        <param name="WareId" />
+      </params>
+      <actions>
+        <set_value name="$SrOut" exact="'unsupported'" />
+        <set_value name="$SrRow" exact="null" />
+        <set_value name="$SrWare" exact="null" />
+        <do_for_each name="$SrCandidate" in="if @global.$SES_Systems_Rows then global.$SES_Systems_Rows else []">
+          <do_if value="not $SrRow and $Action == 'sys_teardown'">
+            <do_for_each name="$SrItem" in="$SrCandidate.$wares">
+              <do_if value="$SrItem.id == $WareId">
+                <set_value name="$SrRow" exact="$SrCandidate" />
+                <set_value name="$SrWare" exact="$SrItem" />
+              </do_if>
+            </do_for_each>
+          </do_if>
+        </do_for_each>
+        <do_if value="$SrRow">
+          <run_actions ref="SES_Systems_State_V1" result="$SrState"><param name="Row" value="$SrRow" /></run_actions>
+          <do_if value="$SrState.$compiled or $SrRow.$research.research.unlocked">
+            <set_value name="$SrOut" exact="'research_nothing'" />
+          </do_if>
+          <do_elseif value="$Action == 'sys_teardown'">
+            <run_actions ref="md.SES_Blueprint_Research.SES_Research_Ledger_V1" result="$SrLedger"><param name="Ware" value="$SrWare" /></run_actions>
+            <do_if value="$SrState.$torn.indexof.{$SrWare} or $SrState.$torn.count ge $SrRow.$teardowns">
+              <set_value name="$SrOut" exact="'research_nothing'" />
+            </do_if>
+            <do_elseif value="$SrLedger.$index gt 0 and @global.$SES_Salvage_Inventory.{$SrLedger.$index}.$count gt 0">
+              <set_value name="global.$SES_Salvage_Inventory.{$SrLedger.$index}.$count" exact="global.$SES_Salvage_Inventory.{$SrLedger.$index}.$count - 1" />
+              <set_value name="global.$SES_Salvage_Inventory.{$SrLedger.$index}.$lasttime" exact="player.age" />
+              <append_to_list name="global.$SES_Systems_Progress.{$SrRow.$schematic}.$torn" exact="$SrWare" />
+              <set_value name="$SrOut" exact="'research_teardown'" />
+            </do_elseif>
+            <do_else><set_value name="$SrOut" exact="'research_need_copy'" /></do_else>
+          </do_elseif>
+          <do_if value="$SrOut == 'research_teardown'">
+            <run_actions ref="SES_Systems_Try_Compile_V1" result="$SrCompiled"><param name="Row" value="$SrRow" /></run_actions>
+            <do_if value="$SrCompiled"><set_value name="$SrOut" exact="'sys_compiled'" /></do_if>
+          </do_if>
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SYSTEMS] Request action=%s ware=%s row=%s result=%s torn=%s'.[$Action, $WareId, @$SrRow.$researchid, $SrOut, @global.$SES_Systems_Progress.{$SrRow.$schematic}.$torn.count]" />
+        <return value="$SrOut" />
+      </actions>
+    </library>
+  </cues>
+</mdscript>

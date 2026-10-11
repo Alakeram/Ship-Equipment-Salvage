@@ -5,6 +5,128 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v4.0 - not yet released
+
+**Wreck salvaging, crafting and research since public release v3.78**
+
+At a glance: S/M wreck salvaging with new Riptide salvage gear, AI salvage
+orders, faction-based crafting of weapons, turrets, shields, engines and
+thrusters, a research path from Mk1 to Mk3, and 88 new items (48 faction
+components, 21 schematics, 16 salvage materials and 3 salvage weapons and
+turrets) plus 21 HQ research projects.
+
+### Requirements
+
+- **Kuertee UI Extensions and HUD 9.0.0.17 or newer** (was 9.0.0.9). It adds
+  the hooks for the Crafting menu Fabrication tab and the per-turret Salvage
+  Laser mode.
+- Crafting fallback: with an older UI Extensions version, the Crafting menu
+  has no Fabrication tab. Fabrication then stays in the Salvage Inventory and
+  works while you're at a Crafting Bench.
+
+### Translations
+
+- German: not all new texts are translated yet. Untranslated lines show in
+  English; the translations follow in a later update.
+
+### Requested Fix: Personal Blaster
+
+- The Avarice regulators now work for players who own the Personal Blaster.
+  Before, the blaster replaced the Hand Laser on your suit and the SES Tool
+  Mode options disappeared.
+- Picking the Beam or Bonding Regulator now puts your blaster away and swaps
+  the Hand Laser into your hand on the spot. Your position and oxygen are
+  kept. Setting the tool mode back to Off swaps the blaster back in.
+- A blaster you receive while a regulator mode is on (for example from a
+  storyline) is put away automatically.
+- If a swap can't happen right away (for example during a salvage or welding
+  cycle), the Hand Laser is fitted on your next EVA instead and a message
+  tells you so.
+- Before uninstalling SES, set SES Tool Mode to Off so a stowed blaster is
+  returned to you.
+
+### Wreck Salvaging (S/M)
+
+- New salvage gear: Riptide Salvage Laser S, Riptide Salvage Laser M and
+  Riptide Salvage Turret M. They fit any S/M weapon or turret slot; a ship
+  doesn't need to be a miner. Sold by the Black Market (one guaranteed row per
+  restock) and, with Tides of Avarice, at Riptide Rakers wharfs. NPC ships
+  never carry them.
+- Cut unclaimed S/M ship wrecks for salvage materials. Each wreck holds a
+  fixed amount; more salvage beams cut faster.
+- Each salvage turret has a "Salvage Laser" entry in its own mode dropdown (Turret
+  Behaviour). The "All" row switches only salvage turrets. Ordinary mining
+  turrets and lasers can't cut wrecks.
+- New "Salvage Wreck" order: select ships with salvage gear, right-click an
+  S/M wreck. The ship closes in, cuts the wreck and keeps the materials in
+  its pilot's inventory. Ships whose turrets can't reach the wreck reposition
+  on their own.
+- New "Auto-Salvage" default behaviour: the ship works through the unclaimed
+  S/M wrecks in its sector, skipping wrecks another of your salvage ships is
+  working. It shows greyed out for ships without salvage gear.
+- The Bonding Regulator can weld the Riptide salvage gear onto your ships.
+
+### Salvage Materials and Fabrication
+
+- Salvage now yields typed materials: Weapon, Turret, Shield, Engine and
+  Thruster Grade Salvage, Salvaged Metal, five casings, four cores (Weapon,
+  Turret AI, Shield Matrix, Drive Control) and Functional Core Fragments.
+- Fabricate weapons, turrets, shields, engines and thrusters at a Crafting
+  Bench, based on the maker faction. Costs are about 70 % of the item's
+  value. Fabricated parts go to your SES salvage inventory for welding.
+- The vanilla Crafting menu gains a "Fabrication" tab with the same amount
+  slider as vanilla crafting.
+- The salvage results window now lists the components and materials each
+  salvaged part produced.
+
+### Research: Mk1 to Mk3
+
+- 48 faction components drop from EVA salvage, from ships you destroy, and
+  (fewer) from derelicts.
+- Tear down salvaged equipment into schematics, then research "S/M Systems"
+  at your HQ for Argon, Boron, Paranid, Split, Teladi, Terran and the
+  Commonwealth, Mk1 to Mk3 (21 projects). Deliver the components to Boso Ta to
+  complete a project. DLC factions appear only with their DLC.
+- Completed research unlocks fabrication patterns. Salvaging an item no
+  longer teaches its pattern.
+
+### Balance
+
+- Terran equipment is rarer to extract from ships: 60 % of the normal chance
+  (Mk1-Mk4: 56/51/48/38 % instead of 94/86/80/64 %).
+- Black Market: 2-5 salvaged equipment rows, restocking every 2-4 in-game
+  hours. Terran equipment appears only as a rare import at 250 % price.
+
+### Options
+
+- Wreck salvaging, fabrication and research are now always on. The
+  Wreck Mining & Fabrication BETA switch is gone.
+- "L/XL ship salvage (BETA)" is listed under Extension Options as a disabled
+  placeholder for the next major update.
+
+### Fixes
+
+- The Crafting menu's Fabrication tab now shows right after loading a save;
+  before, it could stay hidden until something refreshed the menu.
+- Fixed the wreck-salvage award notification.
+
+### Ship Configuration Planners
+
+- Fixed salvage and welding plans being lost after opening the Encyclopedia
+  from the planner and returning with Back. The plan and its editability are
+  now kept while you browse, and are still discarded normally when you leave
+  the planner.
+- Added equipment stat tooltips to SES's selected-part and pending-part rows
+  for weapons, turrets, shields, engines and thrusters. Engine and thruster
+  values reflect the target ship's loadout. Native equipment tiles keep their
+  usual information panel.
+
+### Welding Results
+
+- Shortened the welding results notification to a three-line summary so it no
+  longer overflows after large multi-part installs. The full list of installed
+  equipment is still recorded in the logbook (English and German).
+
 ## v3.78 - 2026-08-22
 
 **Stock rotation, paired launcher safety, and optional save dependency since
@@ -32,14 +154,13 @@ public release v3.74**
 
 ### Save Independence and Removal
 
-- New saves made with v3.78 no longer record SES as a hard extension
-  dependency.
+- Removed the hard save-game dependency on SES. New saves made with v3.78 can
+  be loaded after the mod is disabled or uninstalled.
+- Warning: continuing to play and saving without SES may cause the mod's
+  salvage inventory, regulators, catalysts, progression, and Black Market
+  state to be lost. Keep your last SES-enabled save if you may reinstall.
 - Vanilla and DLC equipment already installed on ships remains ordinary X4
   equipment after SES is removed.
-- SES regulators, catalysts, salvage inventory, progression, and Black Market
-  state remain mod-owned. Players who may reinstall should retain their last
-  save made with SES enabled; a save written while SES is absent may return
-  with an empty SES salvage inventory.
 
 ## v3.74 - 2026-08-10
 

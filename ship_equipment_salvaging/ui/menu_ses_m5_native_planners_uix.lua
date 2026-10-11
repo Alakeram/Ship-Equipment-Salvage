@@ -45,7 +45,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v378-save-independent",
+	version = "v400",
 	salvageMode = "custom_ses_m5_salvage",
 	salvageResultMode = "custom_ses_m5_salvage_result",
 	weldMode = "custom_ses_m5_weld",
@@ -1189,6 +1189,100 @@ local function frameProperties(config)
 	}
 end
 
+-- Native equipment tiles keep their shipyard hover panel. SES-owned text rows
+-- need their own tooltip; use the same stat definitions, units and formatters.
+local function equipmentTooltip(item)
+	if not item or not item.macro or item.macro == "" then return "" end
+	local fallback = item.name or item.macro
+	local ok, text = pcall(function()
+		local name, library = GetMacroData(item.macro, "name", "infolibrary")
+		local data = GetLibraryEntry(library, item.macro)
+		local menu = shipConfigurationMenu
+		local object = menu and menu.object and ConvertStringTo64Bit(tostring(menu.object))
+		local validObject = object and IsValidComponent(object)
+		local upgradeType = nativeUpgradeTypeFromCategory(item.category)
+		local entries = Helper.equipmentStats[library]
+		local values = nil
+		local modifiers = { weaponheat = 1, invweaponheat = 1, shieldcapacity = 1, shieldrechargedelay = 1, shieldrechargerate = 1 }
+		if menu and menu.macro and menu.macro ~= "" then
+			local heat, capacity, delay, recharge = GetMacroData(menu.macro, "weaponheatmodifier", "shieldcapacitymodifier", "shieldrechargedelaymodifier", "shieldrechargeratemodifier")
+			modifiers.weaponheat = tonumber(heat) or 1
+			modifiers.invweaponheat = modifiers.weaponheat > 0 and 1 / modifiers.weaponheat or 1
+			modifiers.shieldcapacity = tonumber(capacity) or 1
+			modifiers.shieldrechargedelay = tonumber(delay) or 1
+			modifiers.shieldrechargerate = tonumber(recharge) or 1
+		end
+		if library == "enginetypes" or library == "thrustertypes" then
+			-- These are ship performance values, not raw engine thrust. Compute on
+			-- a copy just as the native panel does; never change the preview plan.
+			if not menu or not menu.upgradeplan or not menu.slots or not menu.slots[upgradeType]
+				or not validObject then return fallback end
+			local slot = nil
+			for index in ipairs(menu.slots[upgradeType]) do
+				if nativeSlotCompatible(menu, upgradeType, index, item.macro, false) then slot = index; break end
+			end
+			if not slot then return fallback end
+			-- In salvage mode upgradeplan is the removal preview, so a planned
+			-- engine would zero a thruster's speeds (and vice versa). Describe
+			-- the installed loadout there; weld tooltips keep the preview.
+			local source = menu.upgradeplan
+			if state.kind == "salvage" and weldPreviewBaseline and weldPreviewObject == safeString(menu.object or "") then
+				source = weldPreviewBaseline
+			end
+			local plan = Helper.tableCopy(source, 3)
+			plan[upgradeType] = plan[upgradeType] or {}
+			local definition = Helper.findUpgradeType(upgradeType)
+			if definition.mergeslots then
+				for index in ipairs(menu.slots[upgradeType]) do
+					plan[upgradeType][index] = { macro = item.macro, ammomacro = "", weaponmode = "" }
+				end
+			else
+				plan[upgradeType][slot] = { macro = item.macro, ammomacro = "", weaponmode = "" }
+			end
+			values = Helper.convertLoadoutStats(Helper.callLoadoutFunction(plan, nil, function(loadout)
+				return C.GetLoadoutStatistics5(menu.object, "", loadout)
+			end))
+			entries = Helper.equipmentStats[upgradeType]
+		end
+		local conditions = {}
+		conditions.areadpshot_shield = (data.hullshieldareadpshot or 0) > 0 or (data.shieldonlyareadpshot or 0) > 0
+		conditions.areadpshot_hull = (data.hullonlyareadpshot or 0) > 0
+		conditions.areadpshot_hullonly = (data.hullshieldareadpshot or 0) > 0 or conditions.areadpshot_hull or (data.hullnoshieldareadpshot or 0) > 0
+		for _, key in ipairs({ "isbeamweapon", "initialheat", "timetooverheat" }) do conditions[key] = (data[key] or 0) > 0 end
+		for _, key in ipairs({ "coolingrate", "chargetime" }) do conditions[key] = data[key] ~= nil and data[key] > -1 end
+		conditions.influencename = data.influencename ~= nil
+		conditions.hull = validObject
+			and (C.IsComponentClass(menu.object, "ship_l") or C.IsComponentClass(menu.object, "ship_xl")) and data.hull ~= nil
+		local lines = { name or fallback }
+		for _, entry in ipairs(entries or {}) do
+			if not entry.statcondition or Helper.checkStatCondition(conditions, entry.statcondition) == (not entry.negatestatcondition) then
+				if not entry.id then
+					table.insert(lines, entry.name)
+				else
+					local value, display
+					if values then value, display = values[entry.id], true
+					else value, display = Helper.getEquipmentStatValue(modifiers, data, entry) end
+					if display and value ~= nil then
+						if entry.userangeformat then value = Helper.formatRange(value)
+						elseif entry.accuracy then value = Helper.formatLoadoutStat(value, entry.accuracy)
+						elseif type(value) == "number" then value = Helper.round(value) end
+						local unit = entry.unit
+						if type(value) == "number" then
+							if entry.usenaturalunits and value >= 0.01 * Helper.speedoflight then
+								value = math.floor(value * 100 / Helper.speedoflight + 0.5) / 100 .. " " .. ReadText(1001, 124)
+								unit = nil
+							else value = ConvertIntegerString(value, true, 0, true) end
+						end
+						table.insert(lines, entry.name .. ": " .. tostring(value) .. (unit and (" " .. unit) or ""))
+					end
+				end
+			end
+		end
+		return table.concat(lines, "\n")
+	end)
+	return ok and text or fallback
+end
+
 local function createPlannerTables(frame, kind)
 	loadPlannerData()
 	if kind == "salvage_result" then
@@ -1209,19 +1303,32 @@ local function createPlannerTables(frame, kind)
 			numeric(itemField(plannerData, "recovered")), numeric(itemField(plannerData, "attempted")),
 			numeric(itemField(plannerData, "success")), numeric(itemField(plannerData, "partial")),
 			numeric(itemField(plannerData, "failed")), numeric(itemField(plannerData, "blocked"))), { wordwrap = true, font = Helper.standardFontBold })
+		-- Item and the components/grade salvage that row produced sit side by side.
+		resultTable:setColWidthPercent(1, 9)
+		resultTable:setColWidthPercent(2, 9)
+		resultTable:setColWidthPercent(3, 7)
+		resultTable:setColWidthPercent(4, 22)
+		resultTable:setColWidthPercent(5, 25)
 		row = resultTable:addRow(false, { fixed = true, bgColor = Color["row_title_background"] })
 		row[1]:createText(sesText(414, "Result"), Helper.subHeaderTextProperties)
 		row[2]:createText(sesText(415, "Recovered"), Helper.subHeaderTextProperties)
 		row[3]:createText(sesText(416, "Chance"), Helper.subHeaderTextProperties)
-		row[4]:setColSpan(2):createText(sesText(119, "Item"), Helper.subHeaderTextProperties)
+		row[4]:createText(sesText(119, "Item"), Helper.subHeaderTextProperties)
+		row[5]:createText(sesText(1240, "Components"), Helper.subHeaderTextProperties)
 		row[6]:createText(sesText(417, "Reason"), Helper.subHeaderTextProperties)
 		for _, item in pairs(dataList("results")) do
 			row = resultTable:addRow(false, {})
 			local status = safeString(itemField(item, "status") or sesText(117, "Unknown"))
+			local byproducts = safeString(itemField(item, "byproducts") or "")
 			row[1]:createText(status, { color = (status == sesText(703, "Success") or status == sesText(702, "Partial")) and Color["text_positive"] or Color["text_negative"] })
 			row[2]:createText(tostring(numeric(itemField(item, "recovered"))) .. " / " .. tostring(numeric(itemField(item, "attempted"))))
 			row[3]:createText(tostring(numeric(itemField(item, "chance"))) .. "%")
-			row[4]:setColSpan(2):createText(equipmentName(item))
+			row[4]:createText(equipmentName(item), { wordwrap = true })
+			if byproducts ~= "" then
+				row[5]:createText(byproducts, { wordwrap = true, color = Color["text_positive"] })
+			else
+				row[5]:createText(sesText(1241, "None"), { color = Color["text_inactive"] })
+			end
 			row[6]:createText(safeString(itemField(item, "reason") or sesText(118, "Completed")), { wordwrap = true })
 		end
 		return resultTable
@@ -1291,7 +1398,7 @@ local function createPlannerTables(frame, kind)
 
 		row = planner:addRow(false, {})
 		row[1]:createText(sesText(108, "Selected"), Helper.subHeaderTextProperties)
-		row[2]:setColSpan(3):createText(selectedRow and selectedRow.name or "--")
+		row[2]:setColSpan(3):createText(selectedRow and selectedRow.name or "--", { mouseOverText = equipmentTooltip(selectedRow) })
 		row[5]:createText(catalystLabel, Helper.subHeaderTextProperties)
 		row[6]:createText(tostring(state.catalysts), { halign = "right" })
 		row[7]:createText(sesText(423, "Plan cost"), Helper.subHeaderTextProperties)
@@ -1325,7 +1432,7 @@ local function createPlannerTables(frame, kind)
 				row[5].handlers.onClick = function()
 					nativeAction("salvage_remove", planIndex)
 				end
-				row[6]:setColSpan(2):createText(tostring(item.quantity) .. " x " .. item.name)
+				row[6]:setColSpan(2):createText(tostring(item.quantity) .. " x " .. item.name, { mouseOverText = equipmentTooltip(item) })
 				row[8]:createText(tostring(item.cost), { halign = "right" })
 			end
 		end
@@ -1437,7 +1544,7 @@ local function createPlannerTables(frame, kind)
 
 	row = planner:addRow(false, {})
 	row[1]:createText(sesText(108, "Selected"), Helper.subHeaderTextProperties)
-	row[2]:setColSpan(3):createText(selectedInventoryRow and selectedInventoryRow.name or "--")
+	row[2]:setColSpan(3):createText(selectedInventoryRow and selectedInventoryRow.name or "--", { mouseOverText = equipmentTooltip(selectedInventoryRow) })
 	row[5]:createText(sesText(109, "Available"))
 	row[6]:createText(selectedInventoryRow and tostring(selectedInventoryRow.available) or "0", { halign = "right" })
 	row[7]:createText(sesText(439, "Install cost"))
@@ -1462,7 +1569,7 @@ local function createPlannerTables(frame, kind)
 			row[5].handlers.onClick = function()
 				nativeAction("weld_remove", planIndex)
 			end
-			row[6]:setColSpan(2):createText(tostring(item.quantity) .. " x " .. item.name)
+			row[6]:setColSpan(2):createText(tostring(item.quantity) .. " x " .. item.name, { mouseOverText = equipmentTooltip(item) })
 			row[8]:createText(tostring(item.cost), { halign = "right" })
 		end
 	end
@@ -1644,7 +1751,7 @@ function ModLua.createTitleBar_on_create_controls(frame, ftable, _, menu, data)
 				end
 				row = panel:addRow(false, { fixed = true })
 				local displayName = abbreviatedEquipmentName(item.name, item, item.macro)
-				row[1]:setColSpan(4):createText((isSalvage and "- " or "+ ") .. tostring(item.quantity) .. " x " .. displayName, { color = isSalvage and Color["text_negative"] or Color["text_positive"], mouseOverText = categoryName(item.category) })
+				row[1]:setColSpan(4):createText((isSalvage and "- " or "+ ") .. tostring(item.quantity) .. " x " .. displayName, { color = isSalvage and Color["text_negative"] or Color["text_positive"], mouseOverText = equipmentTooltip(item) })
 			end
 		end
 

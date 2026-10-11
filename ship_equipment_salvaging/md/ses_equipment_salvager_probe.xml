@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <mdscript
   name="SES_Equipment_Salvager_Probe"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -17,6 +17,13 @@
         <do_if value="not @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled">
           <set_value name="global.$SES_Black_Market_Debug_Fast_Rotation_Enabled" exact="false" />
         </do_if>
+        <!-- Wreck salvage, fabrication and Systems research are production
+             features since 2026-10-10 (Marek). The flag name stays for save and
+             script compatibility; it is always on and has no toggle. -->
+        <set_value name="global.$SES_Wreck_Mining_Beta_Enabled" exact="true" />
+        <!-- L/XL ship salvage: BETA placeholder for the next major update; no
+             feature reads it yet and the option is shown disabled. -->
+        <set_value name="global.$SES_LXL_Salvage_Beta_Enabled" exact="false" />
         <!-- Legacy compatibility alias. The native salvage/weld planners are
              public and always enabled as of v351. -->
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
@@ -128,6 +135,38 @@
       </actions>
     </library>
 
+    <!-- Extraction odds for one ware: grade by Mk list (94/86/80/64 %), and
+         Terran-made equipment is rare, so it keeps only
+         global.$SES_Extraction_Terran_Percent of that chance (Marek, 2026-10-10).
+         Single source for the planner preview and the final roll. -->
+    <library name="SES_Extraction_Odds_V1" purpose="run_actions">
+      <params>
+        <param name="Ware" />
+      </params>
+      <actions>
+        <set_value name="$OddsId" exact="if @$Ware.id then $Ware.id else ''" />
+        <set_value name="$OddsGrade" exact="1" />
+        <set_value name="$OddsChance" exact="94" />
+        <do_if value="@global.$SES_Extraction_MK4_WareIds.indexof.{$OddsId}">
+          <set_value name="$OddsGrade" exact="4" />
+          <set_value name="$OddsChance" exact="64" />
+        </do_if>
+        <do_elseif value="@global.$SES_Extraction_MK3_WareIds.indexof.{$OddsId}">
+          <set_value name="$OddsGrade" exact="3" />
+          <set_value name="$OddsChance" exact="80" />
+        </do_elseif>
+        <do_elseif value="@global.$SES_Extraction_MK2_WareIds.indexof.{$OddsId}">
+          <set_value name="$OddsGrade" exact="2" />
+          <set_value name="$OddsChance" exact="86" />
+        </do_elseif>
+        <set_value name="$OddsTerran" exact="@$Ware.objectmacro.makerraces.indexof.{race.terran} gt 0" />
+        <do_if value="$OddsTerran">
+          <set_value name="$OddsChance" exact="[($OddsChance * (if @global.$SES_Extraction_Terran_Percent then global.$SES_Extraction_Terran_Percent else 60)) / 100, 1].max" />
+        </do_if>
+        <return value="table[$grade = $OddsGrade, $chance = $OddsChance, $terran = $OddsTerran]" />
+      </actions>
+    </library>
+
     <library name="SES_Show_Tool_Gate_Message_V1" purpose="run_actions">
       <params>
         <param name="Mode" />
@@ -172,6 +211,9 @@
         <do_elseif value="$Reason == 'eva'">
           <set_value name="$GateMessage" exact="readtext.{1171361}.{615}" />
         </do_elseif>
+        <do_elseif value="$Reason == 'blaster'">
+          <set_value name="$GateMessage" exact="readtext.{1171361}.{1244}" />
+        </do_elseif>
         <do_elseif value="$Reason == 'busy'">
           <set_value name="$GateMessage" exact="if $Mode == 'install' then readtext.{1171361}.{616} else readtext.{1171361}.{617}" />
         </do_elseif>
@@ -188,6 +230,105 @@
             <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][TOOL GATE] Duplicate notification suppressed mode=%s, reason=%s, target=%s, until=%s, now=%s'.[$Mode, $Reason, $Target, @global.$SES_Tool_Gate_Message_Until, player.age]" />
           </do_else>
         </do_if>
+      </actions>
+    </library>
+
+    <!-- Suit blaster stow (2026-10-11). The suit's default weapon slot is filled
+         from the inventory only when the suit is created (MCP run 39), and the
+         Personal Blaster wins over the Hand Laser. While a regulator mode is on,
+         SES holds the blaster wares and rebuilds the suit in place
+         (SES_Suit_Rebuild_V1) so the Hand Laser is fitted at once; when that is
+         skipped (work cycle running) it waits for the next EVA. Mode Off returns
+         them the same way. Only acts when a blaster is actually in the
+         inventory or the current suit still holds one. -->
+    <library name="SES_Suit_Blaster_Stow_V1" purpose="run_actions">
+      <actions>
+        <do_if value="not @global.$SES_Stowed_Suit_Weapons">
+          <set_value name="global.$SES_Stowed_Suit_Weapons" exact="table[]" />
+        </do_if>
+        <set_value name="$StowNow" exact="0" />
+        <do_for_each name="$StowWare" in="[ware.weapon_gen_spacesuit_laser_02_mk1, @ware.weapon_gen_spacesuit_laser_03_mk1]">
+          <do_if value="$StowWare">
+            <set_value name="$StowCount" exact="player.entity.inventory.{$StowWare}.count" />
+            <do_if value="$StowCount gt 0">
+              <remove_inventory entity="player.entity" ware="$StowWare" exact="$StowCount" />
+              <set_value name="global.$SES_Stowed_Suit_Weapons.{$StowWare}" exact="(if @global.$SES_Stowed_Suit_Weapons.{$StowWare} then global.$SES_Stowed_Suit_Weapons.{$StowWare} else 0) + $StowCount" />
+              <set_value name="$StowNow" exact="$StowNow + $StowCount" />
+            </do_if>
+          </do_if>
+        </do_for_each>
+        <do_if value="$StowNow gt 0 and @player.controlled.isclass.spacesuit">
+          <set_value name="global.$SES_Stowed_Suit_Holder" exact="player.controlled" />
+        </do_if>
+        <do_if value="$StowNow gt 0 or (@global.$SES_Stowed_Suit_Holder.exists and global.$SES_Stowed_Suit_Holder == player.controlled)">
+          <!-- The current suit still holds the blaster: rebuild it in place so
+               the Hand Laser is fitted now; otherwise it waits for the next EVA. -->
+          <run_actions ref="SES_Suit_Rebuild_V1" result="$StowRebuilt" />
+          <do_if value="$StowRebuilt">
+            <remove_value name="global.$SES_Stowed_Suit_Holder" />
+            <show_notification text="readtext.{1171361}.{1246}" />
+          </do_if>
+          <do_else>
+            <run_actions ref="SES_Show_Tool_Gate_Message_V1">
+              <param name="Mode" value="global.$SES_Tool_Mode" />
+              <param name="Reason" value="'blaster'" />
+              <param name="Target" value="player.entity" />
+            </run_actions>
+          </do_else>
+        </do_if>
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][MODE] Suit blaster stow: stowednow=%s, held=%s, holder=%s, controlled=%s'.[$StowNow, global.$SES_Stowed_Suit_Weapons, @global.$SES_Stowed_Suit_Holder, @player.controlled]" />
+      </actions>
+    </library>
+
+    <library name="SES_Suit_Blaster_Restore_V1" purpose="run_actions">
+      <actions>
+        <set_value name="$Returned" exact="0" />
+        <do_if value="@global.$SES_Stowed_Suit_Weapons">
+          <do_for_each name="$HeldWare" valuename="$HeldCount" in="global.$SES_Stowed_Suit_Weapons">
+            <do_if value="$HeldWare and $HeldCount gt 0">
+              <add_inventory entity="player.entity" ware="$HeldWare" exact="$HeldCount" />
+              <set_value name="$Returned" exact="$Returned + $HeldCount" />
+            </do_if>
+          </do_for_each>
+        </do_if>
+        <!-- A holder suit still has the blaster in hand; any other suit has the
+             Hand Laser and is rebuilt so the blaster is back in hand now. -->
+        <set_value name="$RestoreInHand" exact="@global.$SES_Stowed_Suit_Holder.exists and global.$SES_Stowed_Suit_Holder == player.controlled" />
+        <remove_value name="global.$SES_Stowed_Suit_Weapons" />
+        <remove_value name="global.$SES_Stowed_Suit_Holder" />
+        <do_if value="$Returned gt 0">
+          <set_value name="$RestoreRebuilt" exact="false" />
+          <do_if value="not $RestoreInHand">
+            <run_actions ref="SES_Suit_Rebuild_V1" result="$RestoreRebuilt" />
+          </do_if>
+          <show_notification text="if $RestoreRebuilt or $RestoreInHand then readtext.{1171361}.{1247} else readtext.{1171361}.{1245}" />
+          <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][MODE] Suit blaster returned: %s, inhand=%s, rebuilt=%s'.[$Returned, $RestoreInHand, $RestoreRebuilt]" />
+        </do_if>
+      </actions>
+    </library>
+
+    <!-- Rebuild the player's suit in place so it picks up the inventory's suit
+         weapons now (MCP run 39b: teleport_player_to_spacesuit while already in
+         a suit makes a new suit at the same spot; oxygen resets, so restore it).
+         Skipped outside a suit and during a salvage/weld work cycle. Returns
+         true when a new suit was made. -->
+    <library name="SES_Suit_Rebuild_V1" purpose="run_actions">
+      <actions>
+        <set_value name="$RebuildOld" exact="player.controlled" />
+        <do_if value="not @$RebuildOld.isclass.spacesuit or @global.$SES_Salvage_Work_Token or @global.$SES_Weld_Work_Token">
+          <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][MODE] Suit rebuild skipped: controlled=%s, salvagework=%s, weldwork=%s'.[@$RebuildOld, @global.$SES_Salvage_Work_Token, @global.$SES_Weld_Work_Token]" />
+          <return value="false" />
+        </do_if>
+        <set_value name="$RebuildOxygen" exact="$RebuildOld.oxygenpercentage" />
+        <teleport_player_to_spacesuit launch="false" instant="true" />
+        <set_value name="$RebuildNew" exact="player.controlled" />
+        <do_if value="@$RebuildNew.isclass.spacesuit and $RebuildNew != $RebuildOld">
+          <set_spacesuit_oxygen object="$RebuildNew" percent="$RebuildOxygen" />
+          <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][MODE] Suit rebuilt in place: old=%s, new=%s, oxygen=%s'.[$RebuildOld, $RebuildNew, $RebuildOxygen]" />
+          <return value="true" />
+        </do_if>
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][MODE] Suit rebuild did not create a new suit: controlled=%s'.[@player.controlled]" />
+        <return value="false" />
       </actions>
     </library>
 
@@ -308,7 +449,10 @@
             $enabled = @global.$SES_Debug_Keys_Enabled,
             $onOpen = SES_Extension_Options_Build_Helper_Menu_V1
           ]" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Ship Equipment Salvaging production options and private Developer Helpers submenu registered for v313. helpersenabled=%s'.[@global.$SES_Debug_Keys_Enabled]" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Ship Equipment Salvaging options registered for v400. helpersenabled=%s, wreckminingbeta=%s'.[
+          @global.$SES_Debug_Keys_Enabled,
+          @global.$SES_Wreck_Mining_Beta_Enabled
+        ]" />
       </actions>
     </cue>
 
@@ -326,6 +470,7 @@
         <do_if value="not @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled">
           <set_value name="global.$SES_Black_Market_Debug_Fast_Rotation_Enabled" exact="false" />
         </do_if>
+        <set_value name="global.$SES_Wreck_Mining_Beta_Enabled" exact="true" />
         <set_value name="$SESOffOnOptions" exact="[
           table[$text = 'off', $value = 'off'],
           table[$text = 'on', $value = 'on']
@@ -377,6 +522,24 @@
             <param name="active" value="false" />
           </run_actions>
         </do_else>
+
+        <run_actions ref="md.Options_Helper.Add_Title_Row">
+          <param name="title" value="readtext.{1171361}.{800}" />
+          <param name="columns" value="12" />
+        </run_actions>
+
+        <!-- L/XL ship salvage: placeholder for the next major update, shown
+             disabled (no handler; global.$SES_LXL_Salvage_Beta_Enabled stays false). -->
+        <run_actions ref="md.Options_Helper.Add_Dropdown">
+          <param name="id" value="'lxlSalvageBeta'" />
+          <param name="options" value="[table[$text = readtext.{1171361}.{1243}, $value = 'off']]" />
+          <param name="currentIndex" value="1" />
+          <param name="col" value="1" />
+          <param name="textColSpan" value="7" />
+          <param name="text" value="readtext.{1171361}.{801}" />
+          <param name="dropdownColSpan" value="5" />
+          <param name="active" value="false" />
+        </run_actions>
 
         <remove_value name="$SESOffOnOptions" />
         <remove_value name="$SESOptionIndex" />
@@ -459,12 +622,28 @@
           <param name="id" value="'seedRandomSalvageComponent'" />
           <param name="col" value="1" />
           <param name="textColSpan" value="8" />
-          <param name="text" value="'Add one catalog-approved random component to the SES salvage inventory'" />
+          <param name="text" value="'Add a random catalog part to Saved Equipment'" />
           <param name="buttonColSpan" value="4" />
           <param name="buttonText" value="'Add Random Part'" />
           <param name="active" value="@global.$SES_Debug_Keys_Enabled" />
           <param name="handle" value="SES_Extension_Options_Handle_Debug_Button_V1" />
         </run_actions>
+
+        <run_actions ref="md.Options_Helper.Add_Button">
+          <param name="id" value="'addSalvageGear'" />
+          <param name="col" value="1" />
+          <param name="textColSpan" value="8" />
+          <param name="text" value="'Add Riptide Laser S, Laser M, Turret M to Saved Equipment'" />
+          <param name="buttonColSpan" value="4" />
+          <param name="buttonText" value="'Add Salvage Gear'" />
+          <param name="active" value="@global.$SES_Debug_Keys_Enabled" />
+          <param name="handle" value="SES_Extension_Options_Handle_Debug_Button_V1" />
+        </run_actions>
+
+        <signal_cue_instantly cue="md.Simple_Menu_API.Add_Submenu_Link" param="table[
+          $id = 'ship_equipment_salvaging_give_item',
+          $text = 'Give Item'
+        ]" />
 
         <remove_value name="$SESOffOnOptions" />
         <remove_value name="$SESOptionIndex" />
@@ -489,17 +668,24 @@
         <set_value name="global.$SES_Debug_Keys_Enabled" exact="$SESOptionState.$developerHelpers == 'on'" />
         <set_value name="global.$SES_Debug_Abandon_Enabled" exact="@global.$SES_Debug_Keys_Enabled" />
         <set_value name="global.$SES_Black_Market_Debug_Fast_Rotation_Enabled" exact="$SESOptionState.$fastStockRotation == 'on'" />
+        <signal_cue_instantly cue="md.SES_Wreck_Fabrication.SES_Fabrication_Publish_V1" param="''" />
+        <signal_cue_instantly cue="md.SES_Turret_Salvage.SES_Turret_Salvage_Publish_V1" />
         <do_if value="event.param.$echo.$valueId == '$developerHelpers'">
           <signal_cue_instantly cue="md.Simple_Menu_API.Edit_Registered_Options_Menu" param="table[
             $id = 'ship_equipment_salvaging_helper_options',
             $enabled = global.$SES_Debug_Keys_Enabled
           ]" />
+          <signal_cue_instantly cue="md.Simple_Menu_API.Edit_Registered_Options_Menu" param="table[
+            $id = 'ship_equipment_salvaging_give_item',
+            $enabled = global.$SES_Debug_Keys_Enabled
+          ]" />
           <signal_cue_instantly cue="md.Simple_Menu_API.Refresh_Menu" />
         </do_if>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Options changed. debug=%s, developer=%s, fastrotation=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Options changed. debug=%s, developer=%s, fastrotation=%s, wreckminingbeta=%s'.[
           global.$SES_Debug_Log_Enabled,
           global.$SES_Debug_Keys_Enabled,
-          global.$SES_Black_Market_Debug_Fast_Rotation_Enabled
+          global.$SES_Black_Market_Debug_Fast_Rotation_Enabled,
+          global.$SES_Wreck_Mining_Beta_Enabled
         ]" />
         <remove_value name="$resultTable" />
         <remove_value name="$SESOptionState" />
@@ -559,7 +745,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v378. Native salvage equipment tiles retain the two-line chance display, merged missile banks use exact bank quantities, and the extension no longer creates a hard save dependency.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v400. Native salvage equipment tiles retain the two-line chance display, merged missile banks use exact bank quantities, and the extension no longer creates a hard save dependency.'" />
       </actions>
     </cue>
 
@@ -628,16 +814,10 @@
               <run_actions ref="SES_Get_Equipment_Category_V1" result="$M5NativeWareCategory">
                 <param name="Ware" value="$M5NativeWare" />
               </run_actions>
-              <set_value name="$M5NativeExtractionChance" exact="94" />
-              <do_if value="@global.$SES_Extraction_MK4_WareIds.indexof.{$M5NativeWare.id}">
-                <set_value name="$M5NativeExtractionChance" exact="64" />
-              </do_if>
-              <do_elseif value="@global.$SES_Extraction_MK3_WareIds.indexof.{$M5NativeWare.id}">
-                <set_value name="$M5NativeExtractionChance" exact="80" />
-              </do_elseif>
-              <do_elseif value="@global.$SES_Extraction_MK2_WareIds.indexof.{$M5NativeWare.id}">
-                <set_value name="$M5NativeExtractionChance" exact="86" />
-              </do_elseif>
+              <run_actions ref="SES_Extraction_Odds_V1" result="$M5NativeOdds">
+                <param name="Ware" value="$M5NativeWare" />
+              </run_actions>
+              <set_value name="$M5NativeExtractionChance" exact="$M5NativeOdds.$chance" />
               <append_to_list name="$M5NativeAvailable" exact="table[
                 $index = $M5NativeWareIndex,
                 $wareid = $M5NativeWare.id,
@@ -663,7 +843,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v378-save-independent',
+              $version = 'v400',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -677,7 +857,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v378-save-independent',
+              $version = 'v400',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -839,15 +1019,52 @@
       </actions>
     </cue>
 
+    <!-- Helper emits control='' on menu open, and menu_close even for a
+         returnable Encyclopedia excursion. A generation also protects quick
+         Back/reopen transitions from the old delayed cleanup. -->
+    <cue name="SES_M5_Native_UI_Reference_Opened_V1" instantiate="true">
+      <conditions>
+        <event_ui_triggered />
+        <check_value value="event.param2 == '' and ['ShipConfigurationMenu', 'EncyclopediaMenu'].indexof.{event.param}" />
+        <check_value value="['weld', 'salvage'].indexof.{@global.$SES_M5_Native_UI_Context}" />
+      </conditions>
+      <actions>
+        <set_value name="global.$SES_M5_Native_Menu_Generation" exact="if @global.$SES_M5_Native_Menu_Generation then global.$SES_M5_Native_Menu_Generation + 1 else 1" />
+        <set_value name="global.$SES_M5_Native_Current_Menu" exact="event.param" />
+        <set_value name="global.$SES_M5_Native_Reference_Open" exact="event.param == 'EncyclopediaMenu'" />
+      </actions>
+    </cue>
+
+    <cue name="SES_M5_Native_UI_Menu_Close_Dispatch_V1" instantiate="true">
+      <conditions>
+        <event_ui_triggered control="'menu_close'" />
+        <check_value value="['ShipConfigurationMenu', 'EncyclopediaMenu'].indexof.{event.param}" />
+        <check_value value="['weld', 'salvage'].indexof.{@global.$SES_M5_Native_UI_Context}" />
+        <check_value value="not @global.$SES_M5_Native_Current_Menu or global.$SES_M5_Native_Current_Menu == event.param" />
+      </conditions>
+      <actions>
+        <do_if value="event.param == 'EncyclopediaMenu'">
+          <set_value name="global.$SES_M5_Native_Reference_Open" exact="false" />
+        </do_if>
+        <do_if value="global.$SES_M5_Native_UI_Context == 'weld'">
+          <signal_cue_instantly cue="SES_M5_Native_UI_ShipConfig_Closed_V1" param="@global.$SES_M5_Native_Menu_Generation" />
+        </do_if>
+        <do_else>
+          <signal_cue_instantly cue="SES_M5_Native_UI_Salvage_ShipConfig_Closed_V1" param="@global.$SES_M5_Native_Menu_Generation" />
+        </do_else>
+      </actions>
+    </cue>
+
     <cue name="SES_M5_Native_UI_ShipConfig_Closed_V1" instantiate="true">
       <conditions>
-        <event_ui_triggered screen="'ShipConfigurationMenu'" control="'menu_close'" />
+        <event_cue_signalled />
         <check_value value="@global.$SES_M5_Native_UI_Context == 'weld'" />
         <check_value value="not @global.$SES_M5_Native_Weld_Confirm_Active" />
         <check_value value="not @global.$SES_Weld_Plan_Apply_Index" />
       </conditions>
       <delay exact="200ms" />
       <actions>
+        <do_if value="event.param == @global.$SES_M5_Native_Menu_Generation and not @global.$SES_M5_Native_Reference_Open and @global.$SES_M5_Native_UI_Context == 'weld' and not @global.$SES_M5_Native_Weld_Confirm_Active and not @global.$SES_Weld_Plan_Apply_Index">
         <do_if value="@global.$SES_Inventory_View_Open">
           <remove_value name="global.$SES_Inventory_View_Open" />
           <remove_value name="global.$SES_Inventory_View_OpenedAt" />
@@ -860,18 +1077,20 @@
           <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Experimental native Ship Configuration welding screen closed; primed state was cleared.'" />
         </do_if>
         <remove_value name="global.$SES_M5_Weld_Entry_Selected" />
+        </do_if>
       </actions>
     </cue>
 
     <cue name="SES_M5_Native_UI_Salvage_ShipConfig_Closed_V1" instantiate="true">
       <conditions>
-        <event_ui_triggered screen="'ShipConfigurationMenu'" control="'menu_close'" />
+        <event_cue_signalled />
         <check_value value="@global.$SES_M5_Native_UI_Context == 'salvage'" />
         <check_value value="not @global.$SES_M5_Native_Salvage_Confirm_Active" />
         <check_value value="not @global.$SES_Salvage_Plan_Apply_Index" />
       </conditions>
       <delay exact="200ms" />
       <actions>
+        <do_if value="event.param == @global.$SES_M5_Native_Menu_Generation and not @global.$SES_M5_Native_Reference_Open and @global.$SES_M5_Native_UI_Context == 'salvage' and not @global.$SES_M5_Native_Salvage_Confirm_Active and not @global.$SES_Salvage_Plan_Apply_Index">
         <remove_value name="global.$SES_Selection_Menu_Request" />
         <remove_value name="global.$SES_Selection_Menu_Token" />
         <remove_value name="global.$SES_Salvage_Plan" />
@@ -881,6 +1100,7 @@
         <remove_value name="player.entity.$SES_M5_Native_PlannerData" />
         <set_value name="global.$SES_Menu_Cooldown_Until" exact="player.age + 3" />
         <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Experimental native Ship Configuration salvage screen closed; pending UI state was cleared.'" />
+        </do_if>
       </actions>
     </cue>
 
@@ -1085,6 +1305,17 @@
             </do_else>
           </do_else>
         </do_elseif>
+        <do_elseif value="$SESDebugAction == '$addSalvageGear'">
+          <do_for_each name="$SESDebugGearWare" in="[ware.ses_weapon_s_salvage_01_mk1, ware.ses_weapon_m_salvage_01_mk1, ware.ses_turret_rip_m_salvage_01_mk1]">
+            <run_actions ref="md.SES_Debug_Give_Item.SES_Give_Item_Saved_V1">
+              <param name="Ware" value="$SESDebugGearWare" />
+              <param name="Count" value="1" />
+            </run_actions>
+          </do_for_each>
+          <signal_cue_instantly cue="SES_Salvage_Inventory_UI_Publish_V1" param="'debug_add_salvage_gear'" />
+          <show_notification text="'SES debug: added one Riptide Salvage Laser S, Laser M and Turret M to the salvage inventory.'" />
+          <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][DEBUG] Salvage gear added to salvage inventory for weld testing. entries=%s'.[global.$SES_Salvage_Inventory.count]" />
+        </do_elseif>
         <do_else>
           <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][DEBUG] Unknown Options Helper debug button action ignored. action=%s'.[$SESDebugAction]" />
         </do_else>
@@ -1114,7 +1345,7 @@
         <do_if value="not @global.$SES_Black_Market_Shop_Stock">
           <set_value name="global.$SES_Black_Market_Shop_Stock" exact="[]" />
         </do_if>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v42 initialized for v378 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated component stock and SES-owned shady-guy item stock both use lazy 1-2 hour production refresh windows; the developer-gated fast component rotation switch selects 1-2 minute refreshes. No gameplay or debug system requires an experimental flag. forcegeneration=%s fastrotation=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v42 initialized for v400 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated component stock and SES-owned shady-guy item stock both use lazy 1-2 hour production refresh windows; the developer-gated fast component rotation switch selects 1-2 minute refreshes. Production economy remains independent of the Wreck Mining &amp; Fabrication BETA flag. forcegeneration=%s fastrotation=%s'.[
           @global.$SES_Black_Market_Debug_Force_Rotation_Generation,
           @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled
         ]" />
@@ -1309,7 +1540,11 @@
               </do_if>
               <do_if value="$StockWare">
                 <set_value name="$VisibleStockRows" operation="add" />
+                <run_actions ref="md.SES_Black_Market_Stock_Rotation.SES_Black_Market_Buy_Pct_V1" result="$StockPricePct">
+                  <param name="Ware" value="$StockWare" />
+                </run_actions>
                 <set_value name="$StoreInventory.{$StockWare}" exact="table[
+                  $pricepct = $StockPricePct,
                   $id = $StockWare.id,
                   $index = $StockIndex,
                   $category = if @$StockEntry.$category then $StockEntry.$category else 'legacy',
@@ -1657,6 +1892,38 @@
         ]" />
         <raise_lua_event name="'SES.ToolMode'" param="global.$SES_Tool_Mode" />
       </actions>
+    </cue>
+
+    <!-- Never leave a blaster held without an active regulator mode. -->
+    <cue name="SES_Suit_Blaster_Load_Check_V1" instantiate="true">
+      <conditions><event_game_loaded /></conditions>
+      <delay exact="2s" />
+      <actions>
+        <do_if value="@global.$SES_Stowed_Suit_Weapons and (not @global.$SES_Tool_Mode or global.$SES_Tool_Mode == 'off')">
+          <run_actions ref="SES_Suit_Blaster_Restore_V1" />
+        </do_if>
+      </actions>
+    </cue>
+
+    <!-- A blaster bought or received while a regulator mode is on is stowed
+         right away (Marek, 2026-10-11). The short delay keeps the listener's
+         player.entity event source from binding before the player exists on a
+         new game (a check_value-only parent stayed waiting, MCP run 43). -->
+    <cue name="SES_Suit_Blaster_Autostow_V2">
+      <delay exact="3s" />
+      <cues>
+        <cue name="SES_Suit_Blaster_Autostow_Listener_V1" instantiate="true">
+          <conditions>
+            <event_inventory_added object="player.entity" />
+            <check_value value="@global.$SES_Tool_Mode == 'salvage' or @global.$SES_Tool_Mode == 'install'" />
+            <check_value value="@event.param.{ware.weapon_gen_spacesuit_laser_02_mk1} or @event.param.{ware.weapon_gen_spacesuit_laser_03_mk1}" />
+          </conditions>
+          <actions>
+            <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][MODE] Blaster added while mode=%s: %s'.[global.$SES_Tool_Mode, event.param]" />
+            <run_actions ref="SES_Suit_Blaster_Stow_V1" />
+          </actions>
+        </cue>
+      </cues>
     </cue>
 
     <cue name="SES_Default_Slot_Tool_Mode_V26_Startup">
@@ -2255,7 +2522,10 @@
                   </do_for_each>
                 </do_if>
                 <do_if value="$TradeStockMatchesContact and $TradeWare and $TradeQuantity le $TradeCountBefore">
-                  <set_value name="$TradeLineValue" exact="$TradeWare.averageprice * 120 / 100 * $TradeQuantity" />
+                  <run_actions ref="md.SES_Black_Market_Stock_Rotation.SES_Black_Market_Buy_Pct_V1" result="$TradePricePct">
+                    <param name="Ware" value="$TradeWare" />
+                  </run_actions>
+                  <set_value name="$TradeLineValue" exact="$TradeWare.averageprice * $TradePricePct / 100 * $TradeQuantity" />
                   <set_value name="$TradeBuyTotal" operation="add" exact="$TradeLineValue" />
                   <set_value name="$TradeBuyQuantity" operation="add" exact="$TradeQuantity" />
                 </do_if>
@@ -2888,6 +3158,12 @@
             global.$SES_Tool_Mode
           ]" />
         </do_else>
+        <do_if value="global.$SES_Tool_Mode == 'off'">
+          <run_actions ref="SES_Suit_Blaster_Restore_V1" />
+        </do_if>
+        <do_else>
+          <run_actions ref="SES_Suit_Blaster_Stow_V1" />
+        </do_else>
         <raise_lua_event name="'SES.ToolInventory'" param="'%s;%s'.[
           player.entity.inventory.{ware.ses_equipment_salvager}.count,
           player.entity.inventory.{ware.ses_equipment_welder}.count
@@ -2911,6 +3187,8 @@
     <cue name="SES_Record_Probe_Hit_V2" instantiate="true">
       <conditions>
         <event_player_attacked_object />
+        <!-- Salvage stand-ins are turret/AI-only and never suit-interactable. -->
+        <check_value value="not @global.$SES_Salvage_Standins.{event.param}" />
         <check_value value="@global.$SES_Tool_Mode == 'salvage'" />
         <check_value value="@player.controlled.isclass.spacesuit" />
         <check_value value="@event.param3.{2}.macro == macro.spacesuit_gen_laser_01_macro" />
@@ -2995,6 +3273,7 @@
     <cue name="SES_Open_Welder_Install_Inventory_V1" instantiate="true">
       <conditions>
         <event_player_attacked_object />
+        <check_value value="not @global.$SES_Salvage_Standins.{event.param}" />
         <check_value value="@global.$SES_Tool_Mode == 'install'" />
         <check_value value="@player.controlled.isclass.spacesuit" />
         <check_value value="@event.param3.{2}.macro == macro.spacesuit_gen_laser_01_macro" />
@@ -3222,13 +3501,417 @@
 
     <cue name="SES_Production_Features_Startup_V1">
       <actions>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v378. S/M salvage, refit, persistent inventory, delayed Black Market progression, rotating dealer stock, atomic merged missile-bank salvage/refit, and a removable save-independent manifest are active. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated component stock plus SES-owned shady-guy item stock refresh lazily on randomized 1-2 hour production windows.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v400. S/M salvage, refit, persistent inventory, delayed Black Market progression, rotating dealer stock, atomic merged missile-bank salvage/refit, and a removable save-independent manifest are active. Wreck Mining &amp; Fabrication BETA defaults off; when enabled it adds finite personal-inventory salvage, armed-wreck fragments, core refinement, exact learned patterns, and S/M weapon/M-turret fabrication. Wrecks are not mutated. The developer-only read-only wreck probe remains separately gated. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated component stock plus SES-owned shady-guy item stock refresh lazily on randomized 1-2 hour production windows.'" />
+      </actions>
+    </cue>
+
+    <!-- One-time switch for existing saves (new cue name, so it also fires once
+         in saves where the flag was off): wreck salvage is production now. -->
+    <cue name="SES_Wreck_Salvage_Production_V1">
+      <actions>
+        <set_value name="global.$SES_Wreck_Mining_Beta_Enabled" exact="true" />
+        <set_value name="global.$SES_LXL_Salvage_Beta_Enabled" exact="false" />
+        <!-- Publish the now-enabled fabrication state (Crafting menu tab). -->
+        <signal_cue_instantly cue="md.SES_Wreck_Fabrication.SES_Fabrication_Publish_V1" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Wreck salvage, fabrication and Systems research are production features; L/XL ship salvage stays a disabled BETA placeholder.'" />
+      </actions>
+    </cue>
+
+    <cue name="SES_Wreck_Mining_Beta_V1_Startup">
+      <actions>
+        <do_if value="not @global.$SES_Wreck_Harvest_State">
+          <set_value name="global.$SES_Wreck_Harvest_State" exact="table[]" />
+        </do_if>
+        <set_value name="global.$SES_Wreck_Mining_Beta_Version" exact="1" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Finite harvesting initialized for v400. enabled=%s. The default-off BETA accepts six verified ship mining lasers and physical mining-turret hits from the currently piloted ship on unclaimed S/M wrecks. It stores materials in personal inventory and never mutates the wreck. New armed wrecks can yield core fragments; refinement, exact patterns and fabrication are BETA-gated. The BETA All dropdown can direct all mining turrets to the selected eligible wreck while combat turret modes remain unchanged.'.[
+          @global.$SES_Wreck_Mining_Beta_Enabled
+        ]" />
+      </actions>
+    </cue>
+
+    <cue name="SES_Wreck_Mining_Beta_Harvest_V1" instantiate="true">
+      <conditions>
+        <event_player_attacked_object />
+        <check_value value="@global.$SES_Wreck_Mining_Beta_Enabled" />
+        <check_value value="@player.controlled.isclass.ship" />
+        <check_value value="@event.param.iswreck" />
+        <!-- Only Avarice salvage beams harvest (ordinary mining lasers do not). -->
+        <check_value value="@global.$SES_Salvage_Gear_Macros.indexof.{@event.param3.{2}.macro.id}" />
+      </conditions>
+      <actions>
+        <run_actions ref="SES_Wreck_Mining_Apply_Hit_V1">
+          <param name="HarvestTarget" value="event.param" />
+          <param name="HarvestWeapon" value="event.param3.{2}" />
+        </run_actions>
+      </actions>
+    </cue>
+
+    <!-- Observe only the currently piloted ship. This recognizes physical
+         mining-turret hits; it does not invent or override turret targeting. -->
+    <cue name="SES_Wreck_Mining_Turret_Watch_V1" namespace="this">
+      <actions>
+        <create_group groupname="$Ships" />
+        <do_if value="@player.controlled.isclass.ship">
+          <add_to_group groupname="$Ships" object="player.controlled" />
+        </do_if>
+      </actions>
+      <cues>
+        <cue name="SES_Wreck_Mining_Turret_Control_V1" instantiate="true">
+          <conditions>
+            <check_any>
+              <event_player_started_control />
+              <event_player_stopped_control />
+              <event_game_loaded />
+            </check_any>
+          </conditions>
+          <actions>
+            <clear_group group="$Ships" />
+            <do_if value="event.name != 'event_player_stopped_control' and @player.controlled.isclass.ship">
+              <add_to_group groupname="$Ships" object="player.controlled" />
+            </do_if>
+          </actions>
+        </cue>
+        <cue name="SES_Wreck_Mining_Turret_Hit_V1" instantiate="true">
+          <conditions>
+            <event_object_attacked_object group="$Ships" />
+            <check_value value="@global.$SES_Wreck_Mining_Beta_Enabled" />
+            <check_value value="@player.controlled.isclass.ship and event.object == player.controlled" />
+            <!-- Wrecks cannot be hit natively; registered salvage stand-ins
+                 (md/ses_salvage_standin.xml) carry the hits for their wreck. -->
+            <check_value value="(@event.param.iswreck and event.param == player.target) or @global.$SES_Salvage_Standins.{event.param}" />
+            <check_value value="@event.param3.{2}.isclass.turret and @global.$SES_Salvage_Gear_Macros.indexof.{@event.param3.{2}.macro.id}" />
+            <check_value value="@event.param3.{2}.container == player.controlled" />
+          </conditions>
+          <actions>
+            <set_value name="$HitTarget" exact="event.param" />
+            <do_if value="@global.$SES_Salvage_Standins.{event.param}">
+              <set_value name="$HitTarget" exact="global.$SES_Salvage_Standins.{event.param}.$wreck" />
+              <run_actions ref="md.SES_Salvage_Standin.SES_Standin_Salvage_Hit_V1">
+                <param name="Standin" value="event.param" />
+              </run_actions>
+            </do_if>
+            <run_actions ref="SES_Wreck_Mining_Apply_Hit_V1">
+              <param name="HarvestTarget" value="$HitTarget" />
+              <param name="HarvestWeapon" value="event.param3.{2}" />
+            </run_actions>
+          </actions>
+        </cue>
+      </cues>
+    </cue>
+
+    <!-- Both physical hit paths use the same persistent pool and debounce. -->
+    <library name="SES_Wreck_Mining_Apply_Hit_V1" purpose="run_actions">
+      <params>
+        <param name="HarvestTarget" />
+        <param name="HarvestWeapon" />
+        <!-- Stand-in AI salvage passes the ship pilot; the player path keeps the defaults. -->
+        <param name="Recipient" default="player.entity" />
+        <param name="Quiet" default="false" />
+      </params>
+      <actions>
+        <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$HarvestTarget.iswreck">
+          <return />
+        </do_if>
+        <set_value name="$HarvestIsSmall" exact="$HarvestTarget.isrealclass.ship_s" />
+        <set_value name="$HarvestIsMedium" exact="$HarvestTarget.isrealclass.ship_m" />
+        <set_value name="$HarvestInScope" exact="$HarvestIsSmall or $HarvestIsMedium" />
+        <set_value name="$HarvestTug" exact="@$HarvestTarget.tugship" />
+        <set_value name="$HarvestDismantler" exact="@$HarvestTarget.dismantlingobject" />
+        <set_value name="$HarvestClaimantCount" exact="if @$HarvestTarget.salvageclaimants.count then $HarvestTarget.salvageclaimants.count else 0" />
+        <set_value name="$HarvestClaimed" exact="$HarvestTug or $HarvestDismantler or $HarvestClaimantCount gt 0" />
+
+        <do_if value="$HarvestInScope and $HarvestClaimed">
+          <set_value name="$HarvestBlockReady" exact="not @global.$SES_Wreck_Mining_Block_Target or global.$SES_Wreck_Mining_Block_Target != $HarvestTarget or not @global.$SES_Wreck_Mining_Block_Until or player.age ge global.$SES_Wreck_Mining_Block_Until" />
+          <do_if value="$HarvestBlockReady">
+            <do_if value="not $Quiet"><show_notification text="readtext.{1171361}.{805}" /></do_if>
+            <set_value name="global.$SES_Wreck_Mining_Block_Target" exact="$HarvestTarget" />
+            <set_value name="global.$SES_Wreck_Mining_Block_Until" exact="player.age + 10s" />
+            <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Qualified mining hit blocked by vanilla claim state. target=%s, tug=%s, dismantler=%s, claimants=%s'.[
+              $HarvestTarget,
+              $HarvestTug,
+              $HarvestDismantler,
+              $HarvestClaimantCount
+            ]" />
+          </do_if>
+        </do_if>
+        <do_elseif value="$HarvestInScope">
+          <do_if value="not @global.$SES_Wreck_Harvest_State">
+            <set_value name="global.$SES_Wreck_Harvest_State" exact="table[]" />
+          </do_if>
+          <set_value name="$HarvestIsNew" exact="not @global.$SES_Wreck_Harvest_State.{$HarvestTarget}" />
+          <do_if value="$HarvestIsNew">
+            <set_value name="$HarvestPlanned" exact="if $HarvestIsSmall then [2, 3].random else [5, 6, 7].random" />
+            <set_value name="$HarvestContactTarget" exact="if $HarvestIsSmall then 8s else 16s" />
+            <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}" exact="table[
+              $target = $HarvestTarget,
+              $shipmacro = $HarvestTarget.macro,
+              $realclass = @$HarvestTarget.realclass,
+              $initializedtime = player.age,
+              $lastqualifiedhittime = null,
+              $lastacceptedhittime = null,
+              $progress = 0,
+              $salvageplanned = $HarvestPlanned,
+              $salvageawarded = 0,
+              $contacttarget = $HarvestContactTarget,
+              $awardstep = $HarvestContactTarget / $HarvestPlanned,
+              $firstcontactshown = false,
+              $exhausted = false,
+              $exhaustedshown = false
+            ]" />
+            <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Initialized finite harvest record. target=%s, macro=%s, realclass=%s, planned=%s, contacttarget=%s, weapon=%s'.[
+              $HarvestTarget,
+              $HarvestTarget.macro,
+              @$HarvestTarget.realclass,
+              $HarvestPlanned,
+              $HarvestContactTarget,
+              @$HarvestWeapon.macro.id
+            ]" />
+            <run_actions ref="md.SES_Wreck_Fabrication.SES_Wreck_Fragment_Init_V1">
+              <param name="Target" value="$HarvestTarget" />
+            </run_actions>
+          </do_if>
+
+          <set_value name="$HarvestRecord" exact="global.$SES_Wreck_Harvest_State.{$HarvestTarget}" />
+          <do_if value="$HarvestRecord.$exhausted">
+            <do_if value="not @$HarvestRecord.$exhaustedshown">
+              <do_if value="not $Quiet"><show_notification text="readtext.{1171361}.{804}" /></do_if>
+              <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$exhaustedshown" exact="true" />
+              <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Exhausted wreck rejected further SES rewards. target=%s, awarded=%s, planned=%s'.[
+                $HarvestTarget,
+                $HarvestRecord.$salvageawarded,
+                $HarvestRecord.$salvageplanned
+              ]" />
+            </do_if>
+          </do_if>
+          <do_else>
+            <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$lastqualifiedhittime" exact="player.age" />
+            <set_value name="$HarvestAcceptHit" exact="not @$HarvestRecord.$lastacceptedhittime or player.age ge $HarvestRecord.$lastacceptedhittime + 0.25s" />
+            <!-- Remember which salvage beam hit. X4 raises the attacked event about
+                 once per second per attacking ship, whatever the number of beams,
+                 so the event rate cannot show how many beams are cutting. -->
+            <do_if value="not @$HarvestRecord.$beams">
+              <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$beams" exact="table[]" />
+            </do_if>
+            <do_if value="@$HarvestWeapon.exists">
+              <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$beams.{$HarvestWeapon}" exact="player.age" />
+            </do_if>
+            <do_if value="$HarvestAcceptHit">
+              <!-- Cutting time since the previous accepted hit (0.25-2 s; longer gaps
+                   mean the beam was off the wreck). X4 reports hits irregularly, about
+                   0.5-1 per second per ship, so per-hit credit made speed depend on
+                   that rate instead of on the beams (Marek, 2026-10-10). -->
+              <set_value name="$HarvestDelta" exact="if @$HarvestRecord.$lastacceptedhittime then player.age - $HarvestRecord.$lastacceptedhittime else 1s" />
+              <set_value name="$HarvestDelta" exact="[[$HarvestDelta, 2s].min, 0.25s].max" />
+              <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$lastacceptedhittime" exact="player.age" />
+              <!-- Beams cutting = distinct salvage beams that hit this wreck in the last 6 s. -->
+              <set_value name="$HarvestBeamCount" exact="0" />
+              <set_value name="$HarvestBeamTable" exact="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$beams" />
+              <do_for_each name="$HarvestBeam" in="$HarvestBeamTable.keys.list">
+                <do_if value="not @$HarvestBeam.exists or player.age gt $HarvestBeamTable.{$HarvestBeam} + 6s">
+                  <remove_value name="$HarvestBeamTable.{$HarvestBeam}" />
+                </do_if>
+                <do_else>
+                  <set_value name="$HarvestBeamCount" operation="add" />
+                </do_else>
+              </do_for_each>
+              <set_value name="$HarvestBeamCount" exact="[$HarvestBeamCount, 1].max" />
+              <!-- Work credit: 0.5 s per second of cutting per beam (one beam keeps the
+                   old ~1 hit/s pace; 2 beams cut twice as fast whatever the report rate). -->
+              <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$progress" operation="add" exact="$HarvestDelta * 0.5 * $HarvestBeamCount" />
+              <set_value name="$HarvestRecord" exact="global.$SES_Wreck_Harvest_State.{$HarvestTarget}" />
+
+              <do_if value="not @$HarvestRecord.$firstcontactshown">
+                <do_if value="not $Quiet"><show_notification text="readtext.{1171361}.{802}" /></do_if>
+                <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$firstcontactshown" exact="true" />
+              </do_if>
+
+              <set_value name="$HarvestNextThreshold" exact="$HarvestRecord.$awardstep * ($HarvestRecord.$salvageawarded + 1)" />
+              <do_if value="$HarvestRecord.$progress ge $HarvestNextThreshold and $HarvestRecord.$salvageawarded lt $HarvestRecord.$salvageplanned">
+                <add_inventory entity="$Recipient" ware="ware.ses_salvaged_metal" exact="2" />
+                <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$salvageawarded" operation="add" />
+                <set_value name="$HarvestRecord" exact="global.$SES_Wreck_Harvest_State.{$HarvestTarget}" />
+                <set_value name="$HarvestInventoryCount" exact="$Recipient.inventory.{ware.ses_salvaged_metal}.count" />
+                <set_value name="$HarvestAwardMessage" exact="readtext.{1171361}.{803}" />
+                <do_if value="not $Quiet"><show_notification text="$HarvestAwardMessage.[$HarvestRecord.$salvageawarded * 2, $HarvestRecord.$salvageplanned * 2, $HarvestInventoryCount]" /></do_if>
+                <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Salvaged Metal awarded. beams=%s, delta=%s, recipient=%s, target=%s, awarded=%s, planned=%s, progress=%s, threshold=%s, carried=%s'.[
+                  $HarvestBeamCount,
+                  $HarvestDelta,
+                  $Recipient,
+                  $HarvestTarget,
+                  $HarvestRecord.$salvageawarded,
+                  $HarvestRecord.$salvageplanned,
+                  $HarvestRecord.$progress,
+                  $HarvestNextThreshold,
+                  $HarvestInventoryCount
+                ]" />
+                <do_if value="$HarvestRecord.$salvageawarded ge $HarvestRecord.$salvageplanned">
+                  <set_value name="global.$SES_Wreck_Harvest_State.{$HarvestTarget}.$exhausted" exact="true" />
+                  <run_actions ref="md.SES_Wreck_Fabrication.SES_Wreck_Fragment_Exhaust_V1">
+                    <param name="Target" value="$HarvestTarget" />
+                    <param name="Recipient" value="$Recipient" />
+                  </run_actions>
+                  <run_actions ref="md.SES_Salvage_Materials.SES_Grade_Salvage_Award_V1">
+                    <param name="Target" value="$HarvestTarget" />
+                    <param name="Recipient" value="$Recipient" />
+                  </run_actions>
+                  <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Finite common-salvage pool exhausted. target=%s, total=%s. A plain wreck stays for vanilla recycling; a salvage stand-in removes it.'.[
+                    $HarvestTarget,
+                    $HarvestRecord.$salvageawarded
+                  ]" />
+                </do_if>
+              </do_if>
+            </do_if>
+          </do_else>
+        </do_elseif>
+      </actions>
+    </library>
+
+    <cue name="SES_Wreck_Mining_ReadOnly_Probe_V1_Startup">
+      <actions>
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK PROBE] Read-only S/M wreck-mining probe v1 initialized for v400. gate=%s, developerhelpers=%s, debuglogging=%s. The probe records qualifying hit cadence and wreck metadata only; it grants no wares, changes no cargo or ledger state, and does not mutate or claim wrecks.'.[
+          @global.$SES_Debug_Keys_Enabled and @global.$SES_Debug_Log_Enabled,
+          @global.$SES_Debug_Keys_Enabled,
+          @global.$SES_Debug_Log_Enabled
+        ]" />
+      </actions>
+    </cue>
+
+    <cue name="SES_Wreck_Mining_ReadOnly_Probe_V1" instantiate="true">
+      <conditions>
+        <event_player_attacked_object />
+        <check_value value="@global.$SES_Debug_Keys_Enabled and @global.$SES_Debug_Log_Enabled" />
+        <check_value value="@player.controlled.isclass.ship" />
+        <check_value value="@event.param.iswreck" />
+        <!-- Only Avarice salvage beams harvest (ordinary mining lasers do not). -->
+        <check_value value="@global.$SES_Salvage_Gear_Macros.indexof.{@event.param3.{2}.macro.id}" />
+      </conditions>
+      <actions>
+        <set_value name="$ProbeTarget" exact="event.param" />
+        <set_value name="$ProbeComponent" exact="event.param3.{1}" />
+        <set_value name="$ProbeWeapon" exact="event.param3.{2}" />
+        <set_value name="$ProbeWeaponMacroID" exact="if @$ProbeWeapon.macro.id then $ProbeWeapon.macro.id else ''" />
+        <set_value name="$ProbeIsSmall" exact="$ProbeTarget.isrealclass.ship_s" />
+        <set_value name="$ProbeIsMedium" exact="$ProbeTarget.isrealclass.ship_m" />
+        <set_value name="$ProbeInScope" exact="$ProbeIsSmall or $ProbeIsMedium" />
+        <set_value name="$ProbeTug" exact="@$ProbeTarget.tugship" />
+        <set_value name="$ProbeDismantler" exact="@$ProbeTarget.dismantlingobject" />
+        <set_value name="$ProbeClaimantCount" exact="if @$ProbeTarget.salvageclaimants.count then $ProbeTarget.salvageclaimants.count else 0" />
+        <set_value name="$ProbeClaimed" exact="$ProbeTug or $ProbeDismantler or $ProbeClaimantCount gt 0" />
+        <set_value name="$ProbeEligible" exact="$ProbeInScope and not $ProbeClaimed" />
+        <set_value name="$ProbeLoadoutWares" exact="if @$ProbeTarget.loadout.wares.list then $ProbeTarget.loadout.wares.list else []" />
+        <set_value name="$ProbeWreckWeapons" exact="if @$ProbeTarget.weapons.wreck.list then $ProbeTarget.weapons.wreck.list else []" />
+        <set_value name="$ProbeAllWeapons" exact="if @$ProbeTarget.weapons.all.list then $ProbeTarget.weapons.all.list else []" />
+        <do_if value="not @global.$SES_Wreck_Mining_Probe_Records">
+          <set_value name="global.$SES_Wreck_Mining_Probe_Records" exact="table[]" />
+        </do_if>
+        <set_value name="$ProbeNewRecord" exact="not @global.$SES_Wreck_Mining_Probe_Records.{$ProbeTarget}" />
+        <do_if value="$ProbeNewRecord">
+          <set_value name="global.$SES_Wreck_Mining_Probe_Records.{$ProbeTarget}" exact="table[
+            $target = $ProbeTarget,
+            $targetmacro = $ProbeTarget.macro,
+            $realclass = @$ProbeTarget.realclass,
+            $firsttime = player.age,
+            $lasthittime = null,
+            $lastlogtime = null,
+            $hitcount = 0,
+            $initialloadoutcount = $ProbeLoadoutWares.count,
+            $initialwreckweaponcount = $ProbeWreckWeapons.count,
+            $initialallweaponcount = $ProbeAllWeapons.count,
+            $initialmilitary = @$ProbeTarget.ismilitary,
+            $initialpurpose = @$ProbeTarget.primarypurpose,
+            $initialrecyclingremaining = @$ProbeTarget.recyclingwares.remaining,
+            $initialrecyclingmax = @$ProbeTarget.recyclingwares.max
+          ]" />
+        </do_if>
+        <set_value name="$ProbeRecord" exact="global.$SES_Wreck_Mining_Probe_Records.{$ProbeTarget}" />
+        <set_value name="$ProbePreviousHitTime" exact="@$ProbeRecord.$lasthittime" />
+        <set_value name="$ProbeHitDelta" exact="if $ProbePreviousHitTime then player.age - $ProbePreviousHitTime else null" />
+        <set_value name="global.$SES_Wreck_Mining_Probe_Records.{$ProbeTarget}.$hitcount" operation="add" />
+        <set_value name="global.$SES_Wreck_Mining_Probe_Records.{$ProbeTarget}.$lasthittime" exact="player.age" />
+        <set_value name="$ProbeRecord" exact="global.$SES_Wreck_Mining_Probe_Records.{$ProbeTarget}" />
+        <set_value name="$ProbeHitCount" exact="$ProbeRecord.$hitcount" />
+        <set_value name="$ProbeElapsed" exact="player.age - $ProbeRecord.$firsttime" />
+        <set_value name="$ProbeShouldLog" exact="$ProbeHitCount le 25 or not @$ProbeRecord.$lastlogtime or player.age ge $ProbeRecord.$lastlogtime + 1s" />
+
+        <do_if value="$ProbeNewRecord">
+          <debug_text chance="100" text="'[SES][WRECK PROBE] New wreck observed target=%s, targetmacro=%s, realclass=%s, small=%s, medium=%s, inscope=%s, eligible=%s, military=%s, purpose=%s, loadoutwares=%s, wreckweapons=%s, allweapons=%s, tug=%s, dismantler=%s, claimants=%s, recyclingremaining=%s, recyclingmax=%s, playercontrolled=%s, firingweapon=%s'.[
+            $ProbeTarget,
+            $ProbeTarget.macro,
+            @$ProbeTarget.realclass,
+            $ProbeIsSmall,
+            $ProbeIsMedium,
+            $ProbeInScope,
+            $ProbeEligible,
+            @$ProbeTarget.ismilitary,
+            @$ProbeTarget.primarypurpose,
+            $ProbeLoadoutWares.count,
+            $ProbeWreckWeapons.count,
+            $ProbeAllWeapons.count,
+            $ProbeTug,
+            $ProbeDismantler,
+            $ProbeClaimantCount,
+            @$ProbeTarget.recyclingwares.remaining,
+            @$ProbeTarget.recyclingwares.max,
+            player.controlled,
+            $ProbeWeaponMacroID
+          ]" />
+          <do_for_each name="$ProbeLoadoutWare" in="$ProbeLoadoutWares" counter="$ProbeLoadoutIndex">
+            <run_actions ref="SES_Get_Equipment_Category_V1" result="$ProbeLoadoutCategory">
+              <param name="Ware" value="$ProbeLoadoutWare" />
+            </run_actions>
+            <debug_text chance="100" text="'[SES][WRECK PROBE] Retained loadout row target=%s, index=%s, ware=%s, group=%s, category=%s, objectmacro=%s'.[
+              $ProbeTarget,
+              $ProbeLoadoutIndex,
+              @$ProbeLoadoutWare.id,
+              @$ProbeLoadoutWare.group.id,
+              $ProbeLoadoutCategory,
+              @$ProbeLoadoutWare.objectmacro.id
+            ]" />
+          </do_for_each>
+          <do_for_each name="$ProbeWreckWeapon" in="$ProbeWreckWeapons" counter="$ProbeWreckWeaponIndex">
+            <debug_text chance="100" text="'[SES][WRECK PROBE] Retained wreck weapon target=%s, index=%s, weapon=%s, macro=%s, ware=%s'.[
+              $ProbeTarget,
+              $ProbeWreckWeaponIndex,
+              $ProbeWreckWeapon,
+              @$ProbeWreckWeapon.macro.id,
+              @$ProbeWreckWeapon.macro.ware.id
+            ]" />
+          </do_for_each>
+        </do_if>
+
+        <do_if value="$ProbeShouldLog">
+          <set_value name="global.$SES_Wreck_Mining_Probe_Records.{$ProbeTarget}.$lastlogtime" exact="player.age" />
+          <debug_text chance="100" text="'[SES][WRECK PROBE] Mining hit target=%s, targetmacro=%s, hit=%s, delta=%s, elapsed=%s, component=%s, componentmacro=%s, weapon=%s, playercontrolled=%s, small=%s, medium=%s, inscope=%s, eligible=%s, military=%s, purpose=%s, loadoutwares=%s, wreckweapons=%s, allweapons=%s, tug=%s, dismantler=%s, claimants=%s'.[
+            $ProbeTarget,
+            $ProbeTarget.macro,
+            $ProbeHitCount,
+            $ProbeHitDelta,
+            $ProbeElapsed,
+            $ProbeComponent,
+            @$ProbeComponent.macro.id,
+            $ProbeWeaponMacroID,
+            player.controlled,
+            $ProbeIsSmall,
+            $ProbeIsMedium,
+            $ProbeInScope,
+            $ProbeEligible,
+            @$ProbeTarget.ismilitary,
+            @$ProbeTarget.primarypurpose,
+            $ProbeLoadoutWares.count,
+            $ProbeWreckWeapons.count,
+            $ProbeAllWeapons.count,
+            $ProbeTug,
+            $ProbeDismantler,
+            $ProbeClaimantCount
+          ]" />
+        </do_if>
       </actions>
     </cue>
 
     <cue name="SES_Open_ReadOnly_Selector_V1" instantiate="true">
       <conditions>
         <event_player_attacked_object />
+        <check_value value="not @global.$SES_Salvage_Standins.{event.param}" />
         <check_value value="@global.$SES_Tool_Mode == 'salvage'" />
         <check_value value="@player.controlled.isclass.spacesuit" />
         <check_value value="@event.param3.{2}.macro == macro.spacesuit_gen_laser_01_macro" />
@@ -4225,7 +4908,7 @@
     <cue name="SES_Simple_Menu_API_Startup_V1">
       <actions>
         <set_value name="global.$SES_Simple_Menu_API_Ready" exact="true" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Simple Menu API initialized for v313 production. First successful salvage schedules the global announcement after 2-4 minutes, and publication gates the shady-guy shop option. UserQuestionMenu trading uses 60-percent sell and 120-percent dealer prices with up to 10 generated rows.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Simple Menu API initialized for v313 production. First successful salvage schedules the global announcement after 2-4 minutes, and publication gates the shady-guy shop option. UserQuestionMenu trading uses 60-percent sell and 120-percent dealer prices (250 percent for rare Terran imports) with 2-5 generated rows.'" />
         <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][MODE UI] Publishing SES tool inventory state after Simple Menu API startup.'" />
         <raise_lua_event name="'SES.ToolInventory'" param="'%s;%s'.[
           player.entity.inventory.{ware.ses_equipment_salvager}.count,
@@ -5288,20 +5971,11 @@
             <set_value name="$SelectedPlanAddOK" exact="false" />
             <set_value name="$SelectedPlanStatusText" exact="'No selectable equipment'" />
           </do_elseif>
-          <set_value name="$SelectedExtractionGrade" exact="1" />
-          <set_value name="$SelectedExtractionChance" exact="94" />
-          <do_if value="$SelectedWare and @global.$SES_Extraction_MK4_WareIds.indexof.{$SelectedWare.id}">
-            <set_value name="$SelectedExtractionGrade" exact="4" />
-            <set_value name="$SelectedExtractionChance" exact="64" />
-          </do_if>
-          <do_elseif value="$SelectedWare and @global.$SES_Extraction_MK3_WareIds.indexof.{$SelectedWare.id}">
-            <set_value name="$SelectedExtractionGrade" exact="3" />
-            <set_value name="$SelectedExtractionChance" exact="80" />
-          </do_elseif>
-          <do_elseif value="$SelectedWare and @global.$SES_Extraction_MK2_WareIds.indexof.{$SelectedWare.id}">
-            <set_value name="$SelectedExtractionGrade" exact="2" />
-            <set_value name="$SelectedExtractionChance" exact="86" />
-          </do_elseif>
+          <run_actions ref="SES_Extraction_Odds_V1" result="$SelectedOdds">
+            <param name="Ware" value="$SelectedWare" />
+          </run_actions>
+          <set_value name="$SelectedExtractionGrade" exact="$SelectedOdds.$grade" />
+          <set_value name="$SelectedExtractionChance" exact="$SelectedOdds.$chance" />
           <set_value name="$SelectedBeamCatalystCost" exact="$SelectedPlanAddQuantity * $BeamCatalystPerPiece" />
           <set_value name="$SelectedBeamCatalystAvailable" exact="$BeamCatalystInventoryCount - $SalvagePlanBeamCatalystCost" />
           <do_if value="$SelectedBeamCatalystAvailable lt 0">
@@ -5706,20 +6380,11 @@
               <set_value name="$SelectedBeamCatalystAvailable" exact="0" />
             </do_if>
             <set_value name="$SelectedBeamCatalystOK" exact="$SelectedBeamCatalystAvailable ge $SelectedBeamCatalystCost" />
-            <set_value name="$SelectedExtractionGrade" exact="1" />
-            <set_value name="$SelectedExtractionChance" exact="94" />
-            <do_if value="@global.$SES_Extraction_MK4_WareIds.indexof.{$SelectedWare.id}">
-              <set_value name="$SelectedExtractionGrade" exact="4" />
-              <set_value name="$SelectedExtractionChance" exact="64" />
-            </do_if>
-            <do_elseif value="@global.$SES_Extraction_MK3_WareIds.indexof.{$SelectedWare.id}">
-              <set_value name="$SelectedExtractionGrade" exact="3" />
-              <set_value name="$SelectedExtractionChance" exact="80" />
-            </do_elseif>
-            <do_elseif value="@global.$SES_Extraction_MK2_WareIds.indexof.{$SelectedWare.id}">
-              <set_value name="$SelectedExtractionGrade" exact="2" />
-              <set_value name="$SelectedExtractionChance" exact="86" />
-            </do_elseif>
+            <run_actions ref="SES_Extraction_Odds_V1" result="$SelectedOdds">
+              <param name="Ware" value="$SelectedWare" />
+            </run_actions>
+            <set_value name="$SelectedExtractionGrade" exact="$SelectedOdds.$grade" />
+            <set_value name="$SelectedExtractionChance" exact="$SelectedOdds.$chance" />
             <set_value name="$SelectedPlanAddOK" exact="$SelectedMacro and [ 'engines', 'shields', 'thrusters', 'turrets', 'weapons' ].indexof.{$SelectedGroup} and $SelectedPlanAddQuantity le $SelectedAvailableAfterPlan and $SelectedBeamCatalystOK" />
             <do_if value="$SelectedPlanAddOK">
               <append_to_list name="global.$SES_Salvage_Plan" exact="table[
@@ -6368,7 +7033,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v378-save-independent',
+            $version = 'v400',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -6428,15 +7093,17 @@
           <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 1, $text = 'Result', $font = 'Helper.standardFontBold']" />
           <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 2, $text = 'Recovered', $font = 'Helper.standardFontBold']" />
           <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 3, $text = '%', $font = 'Helper.standardFontBold']" />
-          <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 4, $colSpan = 3, $text = 'Item', $font = 'Helper.standardFontBold']" />
-          <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 7, $colSpan = 6, $text = 'Reason', $font = 'Helper.standardFontBold']" />
+          <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 4, $colSpan = 2, $text = 'Item', $font = 'Helper.standardFontBold']" />
+          <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 6, $colSpan = 3, $text = readtext.{1171361}.{1240}, $font = 'Helper.standardFontBold']" />
+          <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 9, $colSpan = 4, $text = 'Reason', $font = 'Helper.standardFontBold']" />
           <do_for_each name="$ResultRow" in="$Rows">
             <signal_cue_instantly cue="md.Simple_Menu_API.Add_Row" param="table[$selectable = false]" />
             <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 1, $text = if @$ResultRow.$status then $ResultRow.$status else 'Unknown']" />
             <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 2, $text = '%s / %s'.[if @$ResultRow.$recovered then $ResultRow.$recovered else 0, if @$ResultRow.$attempted then $ResultRow.$attempted else 0]]" />
             <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 3, $text = '%s%%'.[if @$ResultRow.$chance then $ResultRow.$chance else 94]]" />
-            <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 4, $colSpan = 3, $text = if @$ResultRow.$name then $ResultRow.$name else if @$ResultRow.$wareid then $ResultRow.$wareid else 'Equipment']" />
-            <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 7, $colSpan = 6, $text = if @$ResultRow.$reason then $ResultRow.$reason else 'Completed', $wordwrap = true]" />
+            <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 4, $colSpan = 2, $text = if @$ResultRow.$name then $ResultRow.$name else if @$ResultRow.$wareid then $ResultRow.$wareid else 'Equipment', $wordwrap = true]" />
+            <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 6, $colSpan = 3, $text = if @$ResultRow.$byproducts and $ResultRow.$byproducts != '' then $ResultRow.$byproducts else readtext.{1171361}.{1241}, $wordwrap = true]" />
+            <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text" param="table[$col = 9, $colSpan = 4, $text = if @$ResultRow.$reason then $ResultRow.$reason else 'Completed', $wordwrap = true]" />
           </do_for_each>
           <signal_cue_instantly cue="md.Simple_Menu_API.Add_Row" param="table[$id = 'ses_salvage_results_actions', $selectable = true, $fixed = true]" />
           <signal_cue_instantly
@@ -6984,20 +7651,11 @@
               <do_if value="@$Request.$salvagebeamcatalystcost">
                 <set_value name="$RecoveryBeamCatalystCost" exact="$Request.$salvagebeamcatalystcost" />
               </do_if>
-              <set_value name="$RecoveryExtractionGrade" exact="1" />
-              <set_value name="$RecoveryExtractionChance" exact="94" />
-              <do_if value="@global.$SES_Extraction_MK4_WareIds.indexof.{$SelectedWare.id}">
-                <set_value name="$RecoveryExtractionGrade" exact="4" />
-                <set_value name="$RecoveryExtractionChance" exact="64" />
-              </do_if>
-              <do_elseif value="@global.$SES_Extraction_MK3_WareIds.indexof.{$SelectedWare.id}">
-                <set_value name="$RecoveryExtractionGrade" exact="3" />
-                <set_value name="$RecoveryExtractionChance" exact="80" />
-              </do_elseif>
-              <do_elseif value="@global.$SES_Extraction_MK2_WareIds.indexof.{$SelectedWare.id}">
-                <set_value name="$RecoveryExtractionGrade" exact="2" />
-                <set_value name="$RecoveryExtractionChance" exact="86" />
-              </do_elseif>
+              <run_actions ref="SES_Extraction_Odds_V1" result="$RecoveryOdds">
+                <param name="Ware" value="$SelectedWare" />
+              </run_actions>
+              <set_value name="$RecoveryExtractionGrade" exact="$RecoveryOdds.$grade" />
+              <set_value name="$RecoveryExtractionChance" exact="$RecoveryOdds.$chance" />
               <set_value name="$RecoveryBeamCatalystCountBefore" exact="player.entity.inventory.{ware.ses_avarice_beam_catalyst}.count" />
               <set_value name="$RecoveryBeamCatalystOK" exact="$RecoveryBeamCatalystCountBefore ge $RecoveryBeamCatalystCost" />
               <do_if value="$MutationGateOK and $SafeRecoveryPlanOK and $RecoveryBeamCatalystOK">
@@ -7800,7 +8458,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v378-save-independent',
+            $version = 'v400',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,
@@ -9572,7 +10230,8 @@
           <set_value name="$WeldNotificationTextTemplate" exact="readtext.{1171361}.{623}" />
           <set_value name="$WeldLogbookTitle" exact="readtext.{1171361}.{624}" />
           <set_value name="$WeldLogbookTextTemplate" exact="readtext.{1171361}.{625}" />
-          <show_notification text="$WeldNotificationTextTemplate.[$TargetName, $InstalledListText]" />
+          <!-- Toasts allow at most four lines. Keep names and the full item list in the logbook. -->
+          <show_notification text="$WeldNotificationTextTemplate.[$InstalledTotal, $RequestedQuantity, $SkippedRows]" />
           <write_to_logbook
             category="general"
             title="$WeldLogbookTitle"
@@ -11410,20 +12069,15 @@
                 $CreditGateOK
               ]" />
               <do_if value="$CreditGateOK">
-                <set_value name="$ExtractionGrade" exact="1" />
-                <set_value name="$ExtractionChance" exact="94" />
-                <do_if value="@global.$SES_Extraction_MK4_WareIds.indexof.{$Request.$wareid}">
-                  <set_value name="$ExtractionGrade" exact="4" />
-                  <set_value name="$ExtractionChance" exact="64" />
-                </do_if>
-                <do_elseif value="@global.$SES_Extraction_MK3_WareIds.indexof.{$Request.$wareid}">
-                  <set_value name="$ExtractionGrade" exact="3" />
-                  <set_value name="$ExtractionChance" exact="80" />
-                </do_elseif>
-                <do_elseif value="@global.$SES_Extraction_MK2_WareIds.indexof.{$Request.$wareid}">
-                  <set_value name="$ExtractionGrade" exact="2" />
-                  <set_value name="$ExtractionChance" exact="86" />
-                </do_elseif>
+                <run_actions ref="SES_Resolve_Equipment_Ware_V1" result="$ExtractionWare">
+                  <param name="Entry" value="$Request" />
+                  <param name="WareID" value="@$Request.$wareid" />
+                </run_actions>
+                <run_actions ref="SES_Extraction_Odds_V1" result="$ExtractionOdds">
+                  <param name="Ware" value="$ExtractionWare" />
+                </run_actions>
+                <set_value name="$ExtractionGrade" exact="$ExtractionOdds.$grade" />
+                <set_value name="$ExtractionChance" exact="$ExtractionOdds.$chance" />
                 <set_value name="$ExtractionSuccessQuantity" exact="0" />
                 <do_all exact="$CreditQuantity" counter="$ExtractionAttempt">
                   <set_value name="$ExtractionRoll" min="1" max="100" />
@@ -11454,6 +12108,26 @@
                   $CreditQuantity,
                   $ExtractionSuccessQuantity
                 ]" />
+                <!-- Blueprint Research components (BETA only): hull-race parts for
+                     recovered items, and broken items are never a total loss. -->
+                <run_actions ref="md.SES_Blueprint_Research.SES_Component_EVA_Award_V1" result="$ByproductComponents">
+                  <param name="Target" value="$Request.$target" />
+                  <param name="Ware" value="$Request.$ware" />
+                  <param name="Attempted" value="$CreditQuantity" />
+                  <param name="Recovered" value="$ExtractionSuccessQuantity" />
+                </run_actions>
+                <run_actions ref="md.SES_Salvage_Materials.SES_Grade_Salvage_EVA_V1" result="$ByproductGrade">
+                  <param name="Ware" value="$Request.$ware" />
+                  <param name="Failed" value="[$CreditQuantity - $ExtractionSuccessQuantity, 0].max" />
+                </run_actions>
+                <!-- Components and grade salvage from this row, for the results window. -->
+                <set_value name="$ResultByproducts" exact="''" />
+                <do_for_each name="$ByproductWare" valuename="$ByproductCount" in="if @$ByproductComponents then $ByproductComponents else table[]">
+                  <set_value name="$ResultByproducts" exact="$ResultByproducts + (if $ResultByproducts == '' then '' else '\n') + '%s x %s'.[$ByproductCount, $ByproductWare.name]" />
+                </do_for_each>
+                <do_for_each name="$ByproductWare" valuename="$ByproductCount" in="if @$ByproductGrade then $ByproductGrade else table[]">
+                  <set_value name="$ResultByproducts" exact="$ResultByproducts + (if $ResultByproducts == '' then '' else '\n') + '%s x %s'.[$ByproductCount, $ByproductWare.name]" />
+                </do_for_each>
                 <do_if value="$ExtractionSuccessQuantity gt 0">
                   <do_if value="not @global.$SES_Salvage_Inventory">
                     <set_value name="global.$SES_Salvage_Inventory" exact="[]" />
@@ -11537,6 +12211,7 @@
                     $ExtractionChance,
                     $InventoryEntry.$count
                   ]" />
+                  <!-- Patterns are decoded through Blueprint Research, not learned on salvage. -->
                   <signal_cue_instantly cue="SES_Salvage_Inventory_UI_Publish_V1" param="'salvage_credit'" />
                   <write_to_logbook chance="global.$SES_Debug_Log_Chance"
                     category="general"
@@ -11760,8 +12435,10 @@
             $grade = $ResultGrade,
             $chance = $ResultChance,
             $status = $ResultStatus,
-            $reason = $ResultReason
+            $reason = $ResultReason,
+            $byproducts = if @$ResultByproducts then $ResultByproducts else ''
           ]" />
+          <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][SALVAGEPLAN] Result row byproducts=%s'.[if @$ResultByproducts then $ResultByproducts else '']" />
           <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][SALVAGEPLAN] Result row captured target=%s, index=%s, ware=%s, macro=%s, status=%s, attempted=%s, removed=%s, recovered=%s, grade=MK%s, chance=%s, reason=%s'.[
             $Request.$target,
             if @$Request.$salvagemultiplanindex then $Request.$salvagemultiplanindex else @global.$SES_Salvage_Plan_Apply_Index,

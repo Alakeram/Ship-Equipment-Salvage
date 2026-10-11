@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Salvage_Materials" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <!-- Salvage materials and bench recipes (Wreck Mining & Fabrication BETA).
+       Design: docs/Salvage Materials Reassessment.md. Ware references are static
+       (dynamic ware.{id} lookup is unreliable on loaded saves). -->
+  <cues>
+    <!-- The only gear that harvests wrecks: the Avarice salvage beams. Ordinary
+         mining lasers and turrets do not (Marek, 2026-10-10). Checked by macro id
+         in every hit path (player ship, stand-ins, AI order). -->
+    <cue name="SES_Salvage_Gear_Init_V1" instantiate="true">
+      <conditions>
+        <check_any>
+          <event_game_started />
+          <event_game_loaded />
+        </check_any>
+      </conditions>
+      <actions>
+        <set_value name="global.$SES_Salvage_Gear_Macros" exact="['ses_weapon_s_salvage_01_mk1_macro', 'ses_weapon_m_salvage_01_mk1_macro', 'ses_turret_rip_m_salvage_01_mk1_macro']" />
+      </actions>
+    </cue>
+
+    <!-- Materials per equipment category: grade salvage (bulk, valued at about
+         5 % of the category's average Mk1 item), core (Mk2+; turrets always need
+         their AI core), casing (pressed from Salvaged Metal) and the maker
+         component type. Core value = its bench recipe. Values in credits. -->
+    <library name="SES_Material_Set_V1" purpose="run_actions">
+      <params><param name="Category" comment="weapons/turrets/shields/engines/thrusters" /></params>
+      <actions>
+        <set_value name="$MaterialSets" exact="table[
+          $weapons = table[$grade = ware.ses_weapon_grade_salvage, $unit = 2500, $core = ware.ses_functional_weapon_core, $casing = ware.ses_casing_weapon, $casingvalue = 1000, $comptype = 'weapon', $compbasic = 5500, $corevalue = 25000, $alwayscore = false],
+          $turrets = table[$grade = ware.ses_turret_grade_salvage, $unit = 2000, $core = ware.ses_turret_ai_core, $casing = ware.ses_casing_turret, $casingvalue = 1500, $comptype = 'turret', $compbasic = 4500, $corevalue = 11000, $alwayscore = true],
+          $shields = table[$grade = ware.ses_shield_grade_salvage, $unit = 500, $core = ware.ses_shield_matrix_core, $casing = ware.ses_casing_shield, $casingvalue = 1000, $comptype = 'shield', $compbasic = 1100, $corevalue = 7000, $alwayscore = false],
+          $engines = table[$grade = ware.ses_engine_grade_salvage, $unit = 550, $core = ware.ses_drive_control_core, $casing = ware.ses_casing_engine, $casingvalue = 1000, $comptype = 'propulsion', $compbasic = 1300, $corevalue = 12000, $alwayscore = false],
+          $thrusters = table[$grade = ware.ses_thruster_grade_salvage, $unit = 550, $core = ware.ses_drive_control_core, $casing = ware.ses_casing_thruster, $casingvalue = 750, $comptype = 'propulsion', $compbasic = 1300, $corevalue = 12000, $alwayscore = false]
+        ]" />
+        <return value="@$MaterialSets.{'$' + $Category}" />
+      </actions>
+    </library>
+
+    <!-- Mk tier from the reviewed stock catalog (unknown counts as Mk1). -->
+    <library name="SES_Material_Mk_V1" purpose="run_actions">
+      <params><param name="Ware" /></params>
+      <actions>
+        <return value="if @global.$SES_Black_Market_Stock_MK4_WareIds.indexof.{$Ware.id} then 4 else if @global.$SES_Black_Market_Stock_MK3_WareIds.indexof.{$Ware.id} then 3 else if @global.$SES_Black_Market_Stock_MK2_WareIds.indexof.{$Ware.id} then 2 else 1" />
+      </actions>
+    </library>
+
+    <!-- Bench refining: cores from fragments + matching grade salvage, casings
+         from Salvaged Metal. Output is credited per crafted unit. -->
+    <library name="SES_Bench_Recipes_V1" purpose="run_actions">
+      <actions>
+        <return value="[
+          table[$output = ware.ses_functional_weapon_core, $inputs = [[ware.ses_functional_core_fragment, 3], [ware.ses_weapon_grade_salvage, 4]]],
+          table[$output = ware.ses_turret_ai_core, $inputs = [[ware.ses_functional_core_fragment, 1], [ware.ses_turret_grade_salvage, 3]]],
+          table[$output = ware.ses_shield_matrix_core, $inputs = [[ware.ses_functional_core_fragment, 1], [ware.ses_shield_grade_salvage, 4]]],
+          table[$output = ware.ses_drive_control_core, $inputs = [[ware.ses_functional_core_fragment, 2], [ware.ses_engine_grade_salvage, 4]]],
+          table[$output = ware.ses_casing_weapon, $inputs = [[ware.ses_salvaged_metal, 4]]],
+          table[$output = ware.ses_casing_turret, $inputs = [[ware.ses_salvaged_metal, 6]]],
+          table[$output = ware.ses_casing_shield, $inputs = [[ware.ses_salvaged_metal, 4]]],
+          table[$output = ware.ses_casing_engine, $inputs = [[ware.ses_salvaged_metal, 4]]],
+          table[$output = ware.ses_casing_thruster, $inputs = [[ware.ses_salvaged_metal, 3]]]
+        ]" />
+      </actions>
+    </library>
+
+    <!-- A fully beam-mined wreck gives grade salvage for the equipment it still
+         carried: 1 / 2 / 3 units per item by Mk, capped at S 8 / M 20. A wreck
+         with nothing recognisable gives 1-2 units of a random grade. -->
+    <library name="SES_Grade_Salvage_Award_V1" purpose="run_actions">
+      <params>
+        <param name="Target" />
+        <param name="Recipient" />
+      </params>
+      <actions>
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @$Target.exists and @$Recipient.exists">
+          <set_value name="$GradeSmall" exact="@$Target.isrealclass.ship_s or @global.$SES_Component_Kill_Records.{$Target}.$size == 's'" />
+          <set_value name="$GradeCap" exact="if $GradeSmall then 8 else 20" />
+          <set_value name="$GradeAwards" exact="table[]" />
+          <set_value name="$GradeTotal" exact="0" />
+          <do_for_each name="$GradeWare" in="if @$Target.loadout.wares.list then $Target.loadout.wares.list else []">
+            <do_if value="$GradeTotal lt $GradeCap">
+              <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$GradeCategory"><param name="Ware" value="$GradeWare" /></run_actions>
+              <run_actions ref="SES_Material_Set_V1" result="$GradeSet"><param name="Category" value="$GradeCategory" /></run_actions>
+              <do_if value="$GradeSet">
+                <run_actions ref="SES_Material_Mk_V1" result="$GradeMk"><param name="Ware" value="$GradeWare" /></run_actions>
+                <set_value name="$GradeUnits" exact="[[$GradeMk, 3].min, $GradeCap - $GradeTotal].min" />
+                <set_value name="$GradeAwards.{$GradeSet.$grade}" exact="(if $GradeAwards.{$GradeSet.$grade}? then $GradeAwards.{$GradeSet.$grade} else 0) + $GradeUnits" />
+                <set_value name="$GradeTotal" operation="add" exact="$GradeUnits" />
+              </do_if>
+            </do_if>
+          </do_for_each>
+          <do_if value="$GradeTotal == 0">
+            <set_value name="$GradeRandom" exact="[ware.ses_weapon_grade_salvage, ware.ses_turret_grade_salvage, ware.ses_shield_grade_salvage, ware.ses_engine_grade_salvage, ware.ses_thruster_grade_salvage].random" />
+            <set_value name="$GradeAwards.{$GradeRandom}" exact="[1, 2].random" />
+          </do_if>
+          <set_value name="$GradeSummary" exact="''" />
+          <do_for_each name="$GradeAwardWare" valuename="$GradeAwardAmount" in="$GradeAwards">
+            <add_inventory entity="$Recipient" ware="$GradeAwardWare" exact="$GradeAwardAmount" />
+            <set_value name="$GradeSummary" exact="$GradeSummary + (if $GradeSummary == '' then '' else ', ') + '%s x %s'.[$GradeAwardAmount, $GradeAwardWare.name]" />
+          </do_for_each>
+          <do_if value="$Recipient == player.entity and $GradeSummary != ''">
+            <set_value name="$GradeMessage" exact="readtext.{1171361}.{1236}" />
+            <show_notification text="$GradeMessage.[$GradeSummary]" />
+          </do_if>
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SALVAGE] Grade salvage target=%s recipient=%s total=%s awards=%s'.[$Target, $Recipient, $GradeTotal, $GradeSummary]" />
+        </do_if>
+      </actions>
+    </library>
+
+    <!-- EVA: a part that broke during extraction leaves 1-2 units of its grade.
+         Returns table[ware = amount] of what was given (salvage results window). -->
+    <library name="SES_Grade_Salvage_EVA_V1" purpose="run_actions">
+      <params>
+        <param name="Ware" />
+        <param name="Failed" />
+      </params>
+      <actions>
+        <set_value name="$EvaGradeGiven" exact="table[]" />
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and $Ware and $Failed gt 0">
+          <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$EvaGradeCategory"><param name="Ware" value="$Ware" /></run_actions>
+          <run_actions ref="SES_Material_Set_V1" result="$EvaGradeSet"><param name="Category" value="$EvaGradeCategory" /></run_actions>
+          <do_if value="$EvaGradeSet">
+            <set_value name="$EvaGradeAmount" exact="0" />
+            <do_all exact="$Failed">
+              <set_value name="$EvaGradeAmount" operation="add" exact="[1, 2].random" />
+            </do_all>
+            <add_inventory entity="player.entity" ware="$EvaGradeSet.$grade" exact="$EvaGradeAmount" />
+            <set_value name="$EvaGradeGiven.{$EvaGradeSet.$grade}" exact="$EvaGradeAmount" />
+            <set_value name="$EvaGradeMessage" exact="readtext.{1171361}.{1236}" />
+            <show_notification text="$EvaGradeMessage.['%s x %s'.[$EvaGradeAmount, $EvaGradeSet.$grade.name]]" />
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SALVAGE] EVA grade salvage ware=%s failed=%s amount=%s'.[$Ware.id, $Failed, $EvaGradeAmount]" />
+          </do_if>
+        </do_if>
+        <return value="$EvaGradeGiven" />
+      </actions>
+    </library>
+  </cues>
+</mdscript>

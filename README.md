@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v3.78<br>
+**Release:** v4.0<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -14,6 +14,27 @@ through a dedicated Black Market parts network.
 
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
+
+## What Changed in v4.0
+
+A major update; full details in
+[PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md).
+
+- **Wreck salvaging (S/M):** new Riptide Salvage Laser S/M and Riptide Salvage
+  Turret M cut unclaimed S/M wrecks for salvage materials, from your own ship
+  or through the new Salvage Wreck, Riptide Auto-Salvage and Riptide Salvage in
+  Area orders.
+- **Crafting:** fabricate weapons, turrets, shields, engines and thrusters at a
+  Crafting Bench, based on the maker faction.
+- **Research:** 48 faction components, schematics and 21 HQ "S/M Systems"
+  projects unlock fabrication from Mk1 to Mk3.
+- **Requested fix:** the Avarice regulators now work for players who own the
+  Personal Blaster; it's swapped for the Hand Laser while a regulator mode is
+  on.
+- **Balance:** Terran equipment is rarer to extract; Black Market stock is
+  smaller with rare Terran imports.
+- Planner fixes and stat tooltips, and a compact welding results notification.
+- Requires Kuertee UI Extensions 9.0.0.17 or newer.
 
 ## What Changed in v3.78
 
@@ -241,15 +262,41 @@ changed.
 ## Requirements
 
 - **X4: Foundations 9.00**
-- [Kuertee UI Extensions and HUD](https://www.nexusmods.com/x4foundations/mods/552),
-  v9.0.0.8 or newer. Use the latest available build containing the Ship
-  Configuration callbacks.
-- [SirNukes Mod Support APIs / Simple Menu API](https://steamcommunity.com/sharedfiles/filedetails/?id=2042901274)
-- [Options Helper 1.10 or newer](https://steamcommunity.com/sharedfiles/filedetails/?id=3715253556)
 
-The dependency IDs are enforced by `content.xml`. SirNukes support APIs remain
-a manifest requirement for support/options and compatibility paths; the public
-salvage and welding planners themselves use the native Ship Configuration UI.
+### Nexus IDs
+
+| Requirement | Nexus ID |
+| --- | ---: |
+| [Kuertee UI Extensions and HUD v9.0.0.17+](https://www.nexusmods.com/x4foundations/mods/552) | 552 |
+| [SirNukes Mod Support APIs / Simple Menu API](https://www.nexusmods.com/x4foundations/mods/503) | 503 |
+| [Options Helper 1.10+](https://www.nexusmods.com/x4foundations/mods/2089) | 2089 |
+
+### Workshop
+
+| Requirement | Workshop ID |
+| --- | ---: |
+| [Kuertee UI Extensions and HUD v9.0.0.17+](https://steamcommunity.com/sharedfiles/filedetails/?id=3477279743) | 3477279743 |
+| [SirNukes Mod Support APIs / Simple Menu API](https://steamcommunity.com/sharedfiles/filedetails/?id=2042901274) | 2042901274 |
+| [Options Helper 1.10+](https://steamcommunity.com/sharedfiles/filedetails/?id=3715253556) | 3715253556 |
+
+Install only one copy of each requirement. Nexus IDs identify the download
+pages; X4 checks the installed extension manifests. The manual/Nexus SES
+package checks Kuertee's native `kuerteeUIExtensionsAndHUD` ID; the
+[Steam SES package](https://steamcommunity.com/sharedfiles/filedetails/?id=3788123925)
+checks the verified Workshop `ws_3477279743` ID. Mod Support APIs and Options
+Helper use their Workshop IDs in both distribution channels. X4 manifest
+dependencies are cumulative and cannot express an either/or relationship, so
+the two SES packages keep channel-specific manifests rather than weakening the
+UI dependency to optional.
+
+Kuertee UI Extensions **9.0.0.17 or newer** is needed for the Crafting menu
+Fabrication tab and the per-turret Salvage Laser mode. With an older version,
+Fabrication falls back to the Salvage Inventory and works while you're at a
+Crafting Bench.
+
+SirNukes support APIs remain a manifest requirement for support/options and
+compatibility paths; the public salvage and welding planners themselves use
+the native Ship Configuration UI.
 
 ## Installation
 
@@ -294,6 +341,9 @@ start with an empty salvage inventory.
 - Current tested gameplay scope is S and M ships.
 - L/XL recovery, detailed component condition, automation, and salvage-fleet
   gameplay remain future scope.
+- Wreck Mining & Fabrication is an opt-in BETA and is off by default; leaving
+  it off keeps the production salvage, welding, inventory, and Black Market
+  behavior unchanged.
 - Deployables, countermeasures, mines, satellites, probes, beacons, internal
   wares, restricted ship-specific equipment, and L/XL dealer equipment are not
   treated as normal recoverable S/M components.

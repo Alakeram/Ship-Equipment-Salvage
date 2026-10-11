@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Wreck_Fabrication" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <cues>
+    <!-- All progression and material mutations are scoped to the default-off
+         wreck-mining BETA. Production salvage/welding remain independent. -->
+    <library name="SES_Fabrication_Ensure_State_V1" purpose="run_actions">
+      <actions>
+        <do_if value="not @global.$SES_Weapon_Patterns_Known"><set_value name="global.$SES_Weapon_Patterns_Known" exact="table[]" /></do_if>
+        <do_if value="not @global.$SES_Fabrication_Revision"><set_value name="global.$SES_Fabrication_Revision" exact="0" /></do_if>
+        <do_if value="not @global.$SES_Core_Pity_Misses"><set_value name="global.$SES_Core_Pity_Misses" exact="0" /></do_if>
+        <do_if value="not @global.$SES_Salvage_Inventory"><set_value name="global.$SES_Salvage_Inventory" exact="[]" /></do_if>
+      </actions>
+    </library>
+
+    <library name="SES_Fabrication_Recipe_V1" purpose="run_actions">
+      <params><param name="Ware" /></params>
+      <actions>
+        <set_value name="$FabRecipe" exact="null" />
+        <do_if value="$Ware and @$Ware.objectmacro and $Ware.averageprice gt 0Cr and not @global.$SES_Excluded_WareIds.indexof.{$Ware.id}">
+          <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$FabCategory"><param name="Ware" value="$Ware" /></run_actions>
+          <!-- Intersect live ware definitions with the existing reviewed official
+               S/M stock catalog; restricted/special/unknown wares fail closed.
+               Catalog tier is explicit, never an unknown-weapon Mk1 fallback. -->
+          <set_value name="$FabGrade" exact="if @global.$SES_Black_Market_Stock_MK4_WareIds.indexof.{$Ware.id} then 4 else if @global.$SES_Black_Market_Stock_MK3_WareIds.indexof.{$Ware.id} then 3 else if @global.$SES_Black_Market_Stock_MK2_WareIds.indexof.{$Ware.id} then 2 else if @global.$SES_Black_Market_Stock_MK1_WareIds.indexof.{$Ware.id} then 1 else 0" />
+          <do_if value="$FabGrade gt 0 and (($FabCategory == 'weapons' and $Ware.objectmacro.isclass.weapon) or ($FabCategory == 'turrets' and $Ware.objectmacro.isclass.turret) or ['shields', 'engines', 'thrusters'].indexof.{$FabCategory})">
+            <!-- Display-size subset from the reviewed stock catalog. Eligibility
+                 remains the catalog intersection above, not an ID heuristic. -->
+            <set_value name="$FabSize" exact="if ['weapon_arg_s_ion_01_mk1', 'weapon_bor_s_arc_01_mk1', 'weapon_bor_s_gatling_01_mk1', 'weapon_bor_s_laser_01_mk1', 'weapon_bor_s_mining_01_mk1', 'weapon_gen_s_beam_01_mk1', 'weapon_gen_s_burst_01_mk1', 'weapon_gen_s_cannon_01_mk1', 'weapon_gen_s_dumbfire_02_mk1', 'weapon_gen_s_gatling_01_mk1', 'weapon_gen_s_guided_02_mk1', 'weapon_gen_s_laser_01_mk1', 'weapon_gen_s_mining_01_mk1', 'weapon_gen_s_plasma_01_mk1', 'weapon_gen_s_shotgun_01_mk1', 'weapon_gen_s_torpedo_02_mk1', 'weapon_par_s_railgun_01_mk1', 'weapon_spl_s_gatling_01_mk1', 'weapon_spl_s_railgun_01_mk1', 'weapon_spl_s_shotgun_01_mk1', 'weapon_spl_s_sticky_01_mk1', 'weapon_tel_s_charge_01_mk1', 'weapon_ter_s_beam_01_mk1', 'weapon_ter_s_gatling_01_mk1', 'weapon_ter_s_laser_01_mk1', 'weapon_arg_s_ion_01_mk2', 'weapon_gen_s_beam_01_mk2', 'weapon_gen_s_burst_01_mk2', 'weapon_gen_s_cannon_01_mk2', 'weapon_gen_s_gatling_01_mk2', 'weapon_gen_s_laser_01_mk2', 'weapon_gen_s_mining_01_mk2', 'weapon_gen_s_plasma_01_mk2', 'weapon_gen_s_shotgun_01_mk2', 'weapon_par_s_railgun_01_mk2', 'weapon_spl_s_gatling_01_mk2', 'weapon_spl_s_railgun_01_mk2', 'weapon_spl_s_shotgun_01_mk2', 'weapon_spl_s_sticky_01_mk2', 'weapon_tel_s_charge_01_mk2', 'weapon_ter_s_beam_01_mk2', 'weapon_ter_s_gatling_01_mk2', 'weapon_ter_s_laser_01_mk2', 'engine_arg_s_allround_01_mk1', 'engine_arg_s_allround_01_mk2', 'engine_arg_s_allround_01_mk3', 'engine_arg_s_combat_01_mk1', 'engine_arg_s_combat_01_mk2', 'engine_arg_s_combat_01_mk3', 'engine_arg_s_travel_01_mk1', 'engine_arg_s_travel_01_mk2', 'engine_arg_s_travel_01_mk3', 'engine_bor_s_allround_01_mk1', 'engine_bor_s_allround_01_mk2', 'engine_bor_s_allround_01_mk3', 'engine_par_s_allround_01_mk1', 'engine_par_s_allround_01_mk2', 'engine_par_s_allround_01_mk3', 'engine_par_s_combat_01_mk1', 'engine_par_s_combat_01_mk2', 'engine_par_s_combat_01_mk3', 'engine_par_s_travel_01_mk1', 'engine_par_s_travel_01_mk2', 'engine_par_s_travel_01_mk3', 'engine_spl_s_allround_01_mk1', 'engine_spl_s_allround_01_mk2', 'engine_spl_s_allround_01_mk3', 'engine_spl_s_combat_01_mk1', 'engine_spl_s_combat_01_mk2', 'engine_spl_s_combat_01_mk3', 'engine_spl_s_combat_01_mk4', 'engine_spl_s_travel_01_mk1', 'engine_spl_s_travel_01_mk2', 'engine_spl_s_travel_01_mk3', 'engine_tel_s_allround_01_mk1', 'engine_tel_s_allround_01_mk2', 'engine_tel_s_allround_01_mk3', 'engine_tel_s_combat_01_mk1', 'engine_tel_s_combat_01_mk2', 'engine_tel_s_combat_01_mk3', 'engine_tel_s_travel_01_mk1', 'engine_tel_s_travel_01_mk2', 'engine_tel_s_travel_01_mk3', 'engine_ter_s_allround_01_mk1', 'engine_ter_s_allround_01_mk2', 'engine_ter_s_allround_01_mk3', 'engine_ter_s_combat_01_mk1', 'engine_ter_s_combat_01_mk2', 'engine_ter_s_combat_01_mk3', 'engine_ter_s_travel_01_mk1', 'engine_ter_s_travel_01_mk2', 'engine_ter_s_travel_01_mk3', 'shield_arg_s_standard_01_mk1', 'shield_arg_s_standard_01_mk2', 'shield_arg_s_standard_01_mk3', 'shield_bor_s_standard_01_mk1', 'shield_bor_s_standard_01_mk2', 'shield_bor_s_standard_01_mk3', 'shield_par_s_standard_01_mk1', 'shield_par_s_standard_01_mk2', 'shield_par_s_standard_01_mk3', 'shield_spl_s_standard_01_mk1', 'shield_spl_s_standard_01_mk2', 'shield_spl_s_standard_01_mk3', 'shield_tel_s_standard_01_mk1', 'shield_tel_s_standard_01_mk2', 'shield_tel_s_standard_01_mk3', 'shield_ter_s_standard_01_mk1', 'shield_ter_s_standard_01_mk2', 'shield_ter_s_standard_01_mk3', 'thruster_gen_s_allround_01_mk1', 'thruster_gen_s_allround_01_mk2', 'thruster_gen_s_allround_01_mk3', 'thruster_gen_s_combat_01_mk1', 'thruster_gen_s_combat_01_mk2', 'thruster_gen_s_combat_01_mk3'].indexof.{$Ware.id} then 'S' else 'M'" />
+            <!-- Recipe option C (docs/Salvage Materials Reassessment.md):
+                 fixed parts by Mk and size (casing, same-maker components,
+                 cores), then grade salvage fills up to about 70 % of the item's
+                 average value, min S 2 / M 3, max S 20 / M 30. -->
+            <run_actions ref="md.SES_Salvage_Materials.SES_Material_Set_V1" result="$FabSet"><param name="Category" value="$FabCategory" /></run_actions>
+            <set_value name="$FabMakerTag" exact="''" />
+            <do_if value="$Ware.objectmacro.makerraces.count gt 0">
+              <run_actions ref="md.SES_Blueprint_Research.SES_Component_Race_Tag_V1" result="$FabMakerTag"><param name="Race" value="$Ware.objectmacro.makerraces.{1}" /></run_actions>
+            </do_if>
+            <set_value name="$FabSmall" exact="$FabSize == 'S'" />
+            <set_value name="$FabCasings" exact="if $FabSmall then 1 else 2" />
+            <set_value name="$FabBasic" exact="if $FabMakerTag == '' then 0 else if $FabGrade == 1 then 1 else 2" />
+            <set_value name="$FabAdvanced" exact="if $FabMakerTag == '' then 0 else if $FabGrade == 4 then 2 else if $FabGrade == 3 then 1 else 0" />
+            <set_value name="$FabCoreCount" exact="if $FabGrade == 4 then 3 else if $FabGrade == 3 then 2 else if $FabGrade == 2 then 1 else if $FabSet.$alwayscore then 1 else 0" />
+            <set_value name="$FabCompMul" exact="if $FabMakerTag == 'ter' then 2 else 1" />
+            <!-- (money)i yields cents. -->
+            <set_value name="$FabPrice" exact="($Ware.averageprice)i / 100" />
+            <set_value name="$FabTarget" exact="($FabPrice * 0.7)i" />
+            <set_value name="$FabFixed" exact="$FabCasings * $FabSet.$casingvalue + ($FabBasic + $FabAdvanced * 4) * $FabSet.$compbasic * $FabCompMul + $FabCoreCount * $FabSet.$corevalue" />
+            <set_value name="$FabGradeCount" exact="(($FabTarget - $FabFixed) / ($FabSet.$unit * 1.0) + 0.5)i" />
+            <set_value name="$FabGradeCount" exact="[[$FabGradeCount, if $FabSmall then 2 else 3].max, if $FabSmall then 20 else 30].min" />
+            <set_value name="$FabInputs" exact="[[$FabSet.$casing, $FabCasings], [$FabSet.$grade, $FabGradeCount]]" />
+            <do_if value="$FabBasic gt 0">
+              <run_actions ref="md.SES_Blueprint_Research.SES_Component_Ware_V1" result="$FabBasicWare">
+                <param name="Race" value="$FabMakerTag" /><param name="Type" value="$FabSet.$comptype" /><param name="Grade" value="'basic'" />
+              </run_actions>
+              <do_if value="$FabBasicWare"><append_to_list name="$FabInputs" exact="[$FabBasicWare, $FabBasic]" /></do_if>
+            </do_if>
+            <do_if value="$FabAdvanced gt 0">
+              <run_actions ref="md.SES_Blueprint_Research.SES_Component_Ware_V1" result="$FabAdvancedWare">
+                <param name="Race" value="$FabMakerTag" /><param name="Type" value="$FabSet.$comptype" /><param name="Grade" value="'advanced'" />
+              </run_actions>
+              <do_if value="$FabAdvancedWare"><append_to_list name="$FabInputs" exact="[$FabAdvancedWare, $FabAdvanced]" /></do_if>
+            </do_if>
+            <do_if value="$FabCoreCount gt 0"><append_to_list name="$FabInputs" exact="[$FabSet.$core, $FabCoreCount]" /></do_if>
+            <set_value name="$FabRecipe" exact="table[
+              $ware = $Ware, $wareid = $Ware.id, $macro = $Ware.objectmacro.id,
+              $name = $Ware.name, $category = $FabCategory, $size = $FabSize,
+              $maker = if $Ware.objectmacro.makerraces.count gt 0 then $Ware.objectmacro.makerraces.{1}.shortname else '--',
+              $grade = $FabGrade,
+              $inputs = $FabInputs
+            ]" />
+          </do_if>
+        </do_if>
+        <return value="$FabRecipe" />
+      </actions>
+    </library>
+
+    <!-- Ingredient list [[ware, need], ...] as UI rows with what the player
+         carries; $short is true when any ingredient is missing. -->
+    <library name="SES_Fabrication_Input_Rows_V1" purpose="run_actions">
+      <params><param name="Inputs" /></params>
+      <actions>
+        <set_value name="$InputRows" exact="[]" />
+        <set_value name="$InputShort" exact="false" />
+        <do_for_each name="$InputPair" in="$Inputs">
+          <set_value name="$InputHave" exact="player.entity.inventory.{$InputPair.{1}}.count" />
+          <append_to_list name="$InputRows" exact="table[$wareid = $InputPair.{1}.id, $name = $InputPair.{1}.name, $need = $InputPair.{2}, $have = $InputHave]" />
+          <do_if value="$InputHave lt $InputPair.{2}"><set_value name="$InputShort" exact="true" /></do_if>
+        </do_for_each>
+        <return value="table[$rows = $InputRows, $short = $InputShort]" />
+      </actions>
+    </library>
+
+    <!-- Fabrication happens at a Crafting Bench. Using a bench opens the vanilla
+         CraftingMenu; the room it stands in counts as the bench session until
+         the player leaves that room. Shared by the fallback (Salvage Inventory
+         tab) and the Crafting menu tab when UIX provides that hook. -->
+    <cue name="SES_Crafting_Bench_Session_V1" instantiate="true">
+      <conditions><event_ui_triggered screen="'CraftingMenu'" control="''" /></conditions>
+      <actions>
+        <set_value name="global.$SES_Crafting_Bench_Room" exact="player.room" />
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][FAB BETA] Crafting bench session room=%s container=%s'.[player.room, player.container]" />
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled">
+          <signal_cue_instantly cue="SES_Fabrication_Publish_V1" param="''" />
+        </do_if>
+      </actions>
+    </cue>
+
+    <library name="SES_Crafting_Bench_Check_V1" purpose="run_actions">
+      <actions>
+        <set_value name="$BenchOk" exact="@global.$SES_Crafting_Bench_Room.exists and player.room == global.$SES_Crafting_Bench_Room" />
+        <do_if value="not $BenchOk and @global.$SES_Crafting_Bench_Room">
+          <remove_value name="global.$SES_Crafting_Bench_Room" />
+        </do_if>
+        <return value="if $BenchOk then true else false" />
+      </actions>
+    </library>
+
+    <library name="SES_Wreck_Fragment_Init_V1" purpose="run_actions">
+      <params><param name="Target" /></params>
+      <actions>
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @$Target.exists and @$Target.iswreck and ($Target.isrealclass.ship_s or $Target.isrealclass.ship_m) and @global.$SES_Wreck_Harvest_State.{$Target} and not @global.$SES_Wreck_Harvest_State.{$Target}.$exhausted and not @global.$SES_Wreck_Harvest_State.{$Target}.$fragmentinitialized">
+          <run_actions ref="SES_Fabrication_Ensure_State_V1" />
+          <!-- Lazy cleanup only when opening a new wreck pool. Snapshot the keys
+               before removing despawned objects; live/exhausted pools persist. -->
+          <set_value name="$FragRecordKeys" exact="global.$SES_Wreck_Harvest_State.keys.list" />
+          <do_for_each name="$FragOldTarget" in="$FragRecordKeys">
+            <do_if value="not @$FragOldTarget.exists"><remove_value name="global.$SES_Wreck_Harvest_State.{$FragOldTarget}" /></do_if>
+          </do_for_each>
+          <set_value name="$FragArmed" exact="false" />
+          <set_value name="$FragNonCombat" exact="[
+            'weapon_gen_s_mining_01_mk1', 'weapon_gen_s_mining_01_mk2', 'weapon_gen_m_mining_01_mk1', 'weapon_gen_m_mining_01_mk2',
+            'weapon_bor_s_mining_01_mk1', 'weapon_bor_m_mining_01_mk1',
+            'turret_arg_m_mining_01_mk1', 'turret_arg_m_mining_02_mk1', 'turret_bor_m_mining_01_mk1', 'turret_bor_m_mining_02_mk1',
+            'turret_par_m_mining_01_mk1', 'turret_par_m_mining_02_mk1', 'turret_spl_m_mining_01_mk1', 'turret_spl_m_mining_02_mk1',
+            'turret_tel_m_mining_01_mk1', 'turret_tel_m_mining_02_mk1', 'turret_ter_m_mining_01_mk1', 'turret_ter_m_mining_02_mk1',
+            'turret_gen_m_scrapbeam_01_mk1'
+          ]" />
+          <!-- Retained recipe-supported equipment (any type) qualifies the wreck;
+               the weapon fallback below still ignores mining/scrap tools. -->
+          <do_for_each name="$FragWare" in="if @$Target.loadout.wares.list then $Target.loadout.wares.list else []">
+            <run_actions ref="SES_Fabrication_Recipe_V1" result="$FragRecipe"><param name="Ware" value="$FragWare" /></run_actions>
+            <!-- Any recipe-supported equipment counts (cores exist for every type now). -->
+            <do_if value="$FragRecipe"><set_value name="$FragArmed" exact="true" /></do_if>
+          </do_for_each>
+          <do_if value="not $FragArmed">
+            <do_for_each name="$FragWeapon" in="if @$Target.weapons.wreck.list then $Target.weapons.wreck.list else []">
+              <set_value name="$FragWare" exact="@$FragWeapon.macro.ware" />
+              <run_actions ref="SES_Fabrication_Recipe_V1" result="$FragRecipe"><param name="Ware" value="$FragWare" /></run_actions>
+              <do_if value="$FragRecipe and not $FragNonCombat.indexof.{$FragWare.id}"><set_value name="$FragArmed" exact="true" /></do_if>
+            </do_for_each>
+          </do_if>
+          <set_value name="$FragRolled" exact="0" />
+          <do_if value="$FragArmed">
+            <set_value name="$FragRoll" min="1" max="100" />
+            <set_value name="$FragRolled" exact="if $Target.isrealclass.ship_s then (if $FragRoll le 35 then 1 else 0) else (if $FragRoll le 10 then 2 else if $FragRoll le 80 then 1 else 0)" />
+          </do_if>
+          <set_value name="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentinitialized" exact="true" />
+          <set_value name="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentarmed" exact="$FragArmed" />
+          <set_value name="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentrolled" exact="$FragRolled" />
+          <set_value name="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentsettled" exact="false" />
+          <set_value name="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentawarded" exact="0" />
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][FRAG BETA] Fixed fragment roll target=%s armed=%s rolled=%s'.[$Target, $FragArmed, $FragRolled]" />
+        </do_if>
+      </actions>
+    </library>
+
+    <library name="SES_Wreck_Fragment_Exhaust_V1" purpose="run_actions">
+      <params><param name="Target" /><param name="Recipient" default="player.entity" /></params>
+      <actions>
+        <!-- Old records have no initialized fragment pool: do not retrofit them. -->
+        <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @global.$SES_Wreck_Harvest_State.{$Target}.$exhausted and @global.$SES_Wreck_Harvest_State.{$Target}.$fragmentinitialized and not @global.$SES_Wreck_Harvest_State.{$Target}.$fragmentsettled">
+          <run_actions ref="SES_Fabrication_Ensure_State_V1" />
+          <set_value name="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentsettled" exact="true" />
+          <do_if value="@global.$SES_Wreck_Harvest_State.{$Target}.$fragmentarmed">
+            <set_value name="$FragAward" exact="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentrolled" />
+            <!-- Deterministic fourth-completion floor, not another random roll.
+                 Applying at completion prevents parallel pre-initialization from
+                 defeating the guarantee or duplicating reserved pity rewards. -->
+            <do_if value="$FragAward == 0 and global.$SES_Core_Pity_Misses ge 3"><set_value name="$FragAward" exact="1" /></do_if>
+            <do_if value="$FragAward gt 0">
+              <add_inventory entity="$Recipient" ware="ware.ses_functional_core_fragment" exact="$FragAward" />
+              <set_value name="global.$SES_Core_Pity_Misses" exact="0" />
+              <set_value name="global.$SES_Wreck_Harvest_State.{$Target}.$fragmentawarded" exact="$FragAward" />
+              <do_if value="$Recipient == player.entity">
+                <set_value name="$FragMessage" exact="readtext.{1171361}.{814}" />
+                <show_notification text="$FragMessage.[$FragAward]" />
+              </do_if>
+            </do_if>
+            <do_else><set_value name="global.$SES_Core_Pity_Misses" operation="add" /></do_else>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][FRAG BETA] Exhausted armed wreck target=%s rolled=%s awarded=%s pitymisses=%s'.[$Target, global.$SES_Wreck_Harvest_State.{$Target}.$fragmentrolled, $FragAward, global.$SES_Core_Pity_Misses]" />
+          </do_if>
+        </do_if>
+      </actions>
+    </library>
+
+    <cue name="SES_Fabrication_Startup_V1">
+      <delay exact="3s" />
+      <actions><signal_cue_instantly cue="SES_Fabrication_Publish_V1" /></actions>
+    </cue>
+
+    <!-- The UI asks for a refresh when it initializes, which can be before the
+         save's MD has caught up (e.g. the 2026-10-10 production switch), and the
+         blackboard copy from the save would then stay stale. Republish once
+         after every load (UIX master check, 2026-10-11). -->
+    <cue name="SES_Fabrication_Publish_On_Load_V1" instantiate="true">
+      <conditions><event_game_loaded /></conditions>
+      <delay exact="2s" />
+      <actions><signal_cue_instantly cue="SES_Fabrication_Publish_V1" /></actions>
+    </cue>
+
+    <cue name="SES_Fabrication_Publish_V1" instantiate="true" namespace="this">
+      <conditions><event_cue_signalled /></conditions>
+      <actions>
+        <set_value name="$FabRows" exact="[]" />
+        <set_value name="$FabEnabled" exact="if @global.$SES_Wreck_Mining_Beta_Enabled then true else false" />
+        <do_if value="$FabEnabled">
+          <run_actions ref="SES_Fabrication_Ensure_State_V1" />
+          <get_ware_definition flags="equipment" result="$FabDefinitions" />
+          <do_for_each name="$FabWare" in="$FabDefinitions">
+            <run_actions ref="SES_Fabrication_Recipe_V1" result="$FabRow"><param name="Ware" value="$FabWare" /></run_actions>
+            <do_if value="$FabRow">
+              <set_value name="$FabOwned" exact="0" />
+              <do_for_each name="$FabEntry" in="global.$SES_Salvage_Inventory">
+                <do_if value="@$FabEntry.$wareid == $FabWare.id and @$FabEntry.$count gt 0">
+                  <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Resolve_Equipment_Macro_ID_V1" result="$FabEntryMacro"><param name="Entry" value="$FabEntry" /><param name="Ware" value="$FabWare" /></run_actions>
+                  <do_if value="$FabEntryMacro == $FabWare.objectmacro.id"><set_value name="$FabOwned" operation="add" exact="$FabEntry.$count" /></do_if>
+                </do_if>
+              </do_for_each>
+              <!-- Patterns are only decoded through Blueprint Research; owning or
+                   salvaging an item no longer teaches it. -->
+              <set_value name="$FabRow.$owned" exact="$FabOwned" />
+              <set_value name="$FabRow.$unlocked" exact="if @global.$SES_Weapon_Patterns_Known.{$FabWare} then true else false" />
+              <run_actions ref="SES_Fabrication_Input_Rows_V1" result="$FabInputRows"><param name="Inputs" value="$FabRow.$inputs" /></run_actions>
+              <set_value name="$FabRow.$reason" exact="if not $FabRow.$unlocked then 'locked' else if $FabInputRows.$short then 'materials' else ''" />
+              <set_value name="$FabRow.$inputs" exact="$FabInputRows.$rows" />
+              <remove_value name="$FabRow.$ware" />
+              <append_to_list name="$FabRows" exact="$FabRow" />
+            </do_if>
+          </do_for_each>
+          <!-- Bench refining recipes (cores, casings). -->
+          <set_value name="$FabRefines" exact="[]" />
+          <run_actions ref="md.SES_Salvage_Materials.SES_Bench_Recipes_V1" result="$FabBenchRecipes" />
+          <do_for_each name="$FabBench" in="$FabBenchRecipes">
+            <run_actions ref="SES_Fabrication_Input_Rows_V1" result="$FabBenchRows"><param name="Inputs" value="$FabBench.$inputs" /></run_actions>
+            <append_to_list name="$FabRefines" exact="table[
+              $wareid = $FabBench.$output.id, $name = $FabBench.$output.name,
+              $have = player.entity.inventory.{$FabBench.$output}.count, $inputs = $FabBenchRows.$rows
+            ]" />
+          </do_for_each>
+          <run_actions ref="md.SES_Systems_Research.SES_Systems_UI_Rows_V1" result="$ResearchRows" />
+          <set_value name="global.$SES_Fabrication_Revision" operation="add" />
+          <!-- Keeps the HQ Systems research nodes revealed once the BETA is on. -->
+          <do_if value="not @global.$SES_Systems_Rows">
+            <signal_cue_instantly cue="md.SES_Systems_Research.SES_Systems_Init_V1" />
+          </do_if>
+        </do_if>
+        <!-- Every publication invalidates the previous token. MD issues tokens;
+             neither Lua costs nor Lua-provided output descriptors are trusted. -->
+        <run_actions ref="SES_Crafting_Bench_Check_V1" result="$PublishAtBench" />
+        <set_value name="global.$SES_Fabrication_Current_Token" exact="if $FabEnabled then 'sesfab;%s'.[global.$SES_Fabrication_Revision] else ''" />
+        <set_value name="player.entity.$SES_Fabrication_UI_State" exact="table[
+          $beta = $FabEnabled, $revision = if @global.$SES_Fabrication_Revision then global.$SES_Fabrication_Revision else 0,
+          $token = global.$SES_Fabrication_Current_Token, $atbench = $PublishAtBench,
+          $patterns = $FabRows, $refines = if @$FabRefines then $FabRefines else [],
+          $lxlids = if @global.$SES_Future_LXL_WareIds then global.$SES_Future_LXL_WareIds else [],
+          $research = if @$ResearchRows then $ResearchRows else [],
+          $result = if event.param then event.param else ''
+        ]" />
+        <raise_lua_event name="'SES.FabricationState'" param="'state'" />
+      </actions>
+    </cue>
+
+    <cue name="SES_Fabrication_Request_V1" instantiate="true" namespace="this">
+      <conditions><event_ui_triggered screen="'SES_Fabrication'" control="'Request'" /></conditions>
+      <actions>
+        <set_value name="$FabWire" exact="event.param3" />
+        <set_value name="$FabRequest" exact="null" />
+        <do_if value="@$FabWire.count == 6 and @$FabWire.{1} == 1">
+          <set_value name="$FabRequest" exact="table[
+            $action = $FabWire.{2}, $wareid = $FabWire.{3}, $quantity = $FabWire.{4},
+            $revision = $FabWire.{5}, $token = $FabWire.{6}
+          ]" />
+        </do_if>
+        <set_value name="$FabResult" exact="'failed'" />
+        <run_actions ref="SES_Crafting_Bench_Check_V1" result="$FabAtBench" />
+        <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled"><set_value name="$FabResult" exact="'beta_off'" /></do_if>
+        <do_elseif value="@$FabRequest.$action == 'refresh'"><set_value name="$FabResult" exact="''" /></do_elseif>
+        <do_elseif value="@$FabRequest.$revision != @global.$SES_Fabrication_Revision or not @$FabRequest.$token or $FabRequest.$token != @global.$SES_Fabrication_Current_Token or $FabRequest.$token == @global.$SES_Last_Fabrication_Token">
+          <set_value name="$FabResult" exact="'stale'" />
+        </do_elseif>
+        <do_elseif value="not ['refine', 'fabricate', 'sys_teardown'].indexof.{@$FabRequest.$action} or not (@$FabRequest.$quantity ge 1 and $FabRequest.$quantity le 99) or ($FabRequest.$action == 'sys_teardown' and $FabRequest.$quantity != 1)">
+          <set_value name="$FabResult" exact="'unsupported'" />
+        </do_elseif>
+        <do_elseif value="['refine', 'fabricate'].indexof.{$FabRequest.$action} and not $FabAtBench">
+          <set_value name="$FabResult" exact="'nobench'" />
+        </do_elseif>
+        <do_elseif value="['sys_teardown'].indexof.{$FabRequest.$action}">
+          <!-- Systems research shares the token guard; consume it first. -->
+          <set_value name="global.$SES_Last_Fabrication_Token" exact="$FabRequest.$token" />
+          <set_value name="global.$SES_Fabrication_Current_Token" exact="''" />
+          <run_actions ref="md.SES_Systems_Research.SES_Systems_Request_V1" result="$FabResult">
+            <param name="Action" value="$FabRequest.$action" />
+            <param name="WareId" value="@$FabRequest.$wareid" />
+          </run_actions>
+        </do_elseif>
+        <do_else>
+          <run_actions ref="SES_Fabrication_Ensure_State_V1" />
+          <!-- Consume the token before any spend. The entire action sequence is
+               synchronous; no wait/signal separates spend, credit, or recovery. -->
+          <set_value name="global.$SES_Last_Fabrication_Token" exact="$FabRequest.$token" />
+          <set_value name="global.$SES_Fabrication_Current_Token" exact="''" />
+          <!-- Quantity 1-99 (native Crafting slider); every cost and credit scales by it. -->
+          <set_value name="$FabQty" exact="$FabRequest.$quantity" />
+          <set_value name="$FabReady" exact="false" />
+          <set_value name="$FabInputs" exact="[]" />
+          <set_value name="$FabOutput" exact="null" />
+          <do_if value="$FabRequest.$action == 'refine'">
+            <!-- Bench refining: the request names the output ware. -->
+            <run_actions ref="md.SES_Salvage_Materials.SES_Bench_Recipes_V1" result="$FabBenchRecipes" />
+            <do_for_each name="$FabBench" in="$FabBenchRecipes">
+              <do_if value="$FabBench.$output.id == @$FabRequest.$wareid">
+                <set_value name="$FabOutput" exact="$FabBench.$output" />
+                <set_value name="$FabInputs" exact="$FabBench.$inputs" />
+              </do_if>
+            </do_for_each>
+            <do_if value="$FabOutput"><set_value name="$FabReady" exact="true" /></do_if>
+            <do_else><set_value name="$FabResult" exact="'unsupported'" /></do_else>
+          </do_if>
+          <do_else>
+            <set_value name="$FabResolved" exact="null" />
+            <get_ware_definition flags="equipment" result="$FabDefinitions" />
+            <do_for_each name="$FabDefinition" in="$FabDefinitions">
+              <do_if value="@$FabRequest.$wareid == $FabDefinition.id"><set_value name="$FabResolved" exact="$FabDefinition" /></do_if>
+            </do_for_each>
+            <run_actions ref="SES_Fabrication_Recipe_V1" result="$FabRecipe"><param name="Ware" value="$FabResolved" /></run_actions>
+            <do_if value="not $FabRecipe"><set_value name="$FabResult" exact="'unsupported'" /></do_if>
+            <do_elseif value="not @global.$SES_Weapon_Patterns_Known.{$FabResolved}"><set_value name="$FabResult" exact="'locked'" /></do_elseif>
+            <do_else>
+              <set_value name="$FabInputs" exact="$FabRecipe.$inputs" />
+              <set_value name="$FabReady" exact="true" />
+            </do_else>
+          </do_else>
+          <!-- What this request spends, and what the player carries before. -->
+          <set_value name="$FabSpend" exact="[]" />
+          <set_value name="$FabBefore" exact="table[]" />
+          <do_for_each name="$FabPair" in="$FabInputs">
+            <append_to_list name="$FabSpend" exact="[$FabPair.{1}, $FabPair.{2} * $FabQty]" />
+            <set_value name="$FabBefore.{$FabPair.{1}}" exact="player.entity.inventory.{$FabPair.{1}}.count" />
+            <do_if value="$FabReady and player.entity.inventory.{$FabPair.{1}}.count lt $FabPair.{2} * $FabQty">
+              <set_value name="$FabReady" exact="false" />
+              <set_value name="$FabResult" exact="'insufficient'" />
+            </do_if>
+          </do_for_each>
+          <set_value name="$FabOutputBefore" exact="if $FabOutput then player.entity.inventory.{$FabOutput}.count else 0" />
+          <do_if value="$FabReady">
+            <do_for_each name="$FabPair" in="$FabSpend">
+              <remove_inventory entity="player.entity" ware="$FabPair.{1}" exact="$FabPair.{2}" />
+            </do_for_each>
+            <set_value name="$FabSpent" exact="true" />
+            <do_for_each name="$FabPair" in="$FabSpend">
+              <do_if value="player.entity.inventory.{$FabPair.{1}}.count != $FabBefore.{$FabPair.{1}} - $FabPair.{2}"><set_value name="$FabSpent" exact="false" /></do_if>
+            </do_for_each>
+            <set_value name="$FabCommitted" exact="false" />
+            <do_if value="$FabSpent">
+              <do_if value="$FabRequest.$action == 'refine'">
+                <add_inventory entity="player.entity" ware="$FabOutput" exact="$FabQty" />
+                <set_value name="$FabCommitted" exact="player.entity.inventory.{$FabOutput}.count == $FabOutputBefore + $FabQty" />
+                <set_value name="$FabResult" exact="'refined'" />
+              </do_if>
+              <do_else>
+                <set_value name="$FabLedgerIndex" exact="0" />
+                <set_value name="$FabLedgerBefore" exact="0" />
+                <do_for_each name="$FabEntry" in="global.$SES_Salvage_Inventory" counter="$FabIndex">
+                  <do_if value="$FabLedgerIndex == 0 and @$FabEntry.$wareid == $FabResolved.id">
+                    <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Resolve_Equipment_Macro_ID_V1" result="$FabEntryMacro"><param name="Entry" value="$FabEntry" /><param name="Ware" value="$FabResolved" /></run_actions>
+                    <do_if value="$FabEntryMacro == $FabResolved.objectmacro.id">
+                      <set_value name="$FabLedgerIndex" exact="$FabIndex" />
+                      <set_value name="$FabLedgerBefore" exact="if @$FabEntry.$count then $FabEntry.$count else 0" />
+                    </do_if>
+                  </do_if>
+                </do_for_each>
+                <do_if value="$FabLedgerIndex gt 0">
+                  <set_value name="global.$SES_Salvage_Inventory.{$FabLedgerIndex}.$count" exact="$FabLedgerBefore + $FabQty" />
+                  <set_value name="global.$SES_Salvage_Inventory.{$FabLedgerIndex}.$lasttime" exact="player.age" />
+                </do_if>
+                <do_else>
+                  <append_to_list name="global.$SES_Salvage_Inventory" exact="table[
+                    $ware = $FabResolved, $wareid = $FabResolved.id, $macro = $FabResolved.objectmacro,
+                    $name = $FabResolved.name, $faction = $FabRecipe.$maker, $category = $FabRecipe.$category, $count = $FabQty, $lasttime = player.age
+                  ]" />
+                  <set_value name="$FabLedgerIndex" exact="global.$SES_Salvage_Inventory.count" />
+                </do_else>
+                <set_value name="$FabCommitted" exact="@global.$SES_Salvage_Inventory.{$FabLedgerIndex}.$wareid == $FabResolved.id and @global.$SES_Salvage_Inventory.{$FabLedgerIndex}.$count == $FabLedgerBefore + $FabQty" />
+                <do_if value="not $FabCommitted and @global.$SES_Salvage_Inventory.{$FabLedgerIndex}.$wareid == $FabResolved.id">
+                  <set_value name="global.$SES_Salvage_Inventory.{$FabLedgerIndex}.$count" exact="$FabLedgerBefore" />
+                </do_if>
+                <set_value name="$FabResult" exact="'fabricated'" />
+              </do_else>
+            </do_if>
+            <do_if value="not $FabCommitted">
+              <!-- Restore observed deltas, not blindly the requested cost, if
+                   any inventory removal or credit failed verification. -->
+              <do_for_each name="$FabPair" in="$FabSpend">
+                <do_if value="player.entity.inventory.{$FabPair.{1}}.count lt $FabBefore.{$FabPair.{1}}">
+                  <add_inventory entity="player.entity" ware="$FabPair.{1}" exact="$FabBefore.{$FabPair.{1}} - player.entity.inventory.{$FabPair.{1}}.count" />
+                </do_if>
+              </do_for_each>
+              <do_if value="$FabOutput and player.entity.inventory.{$FabOutput}.count gt $FabOutputBefore">
+                <remove_inventory entity="player.entity" ware="$FabOutput" exact="player.entity.inventory.{$FabOutput}.count - $FabOutputBefore" />
+              </do_if>
+              <set_value name="$FabRestored" exact="true" />
+              <do_for_each name="$FabPair" in="$FabSpend">
+                <do_if value="player.entity.inventory.{$FabPair.{1}}.count != $FabBefore.{$FabPair.{1}}"><set_value name="$FabRestored" exact="false" /></do_if>
+              </do_for_each>
+              <debug_text chance="100" text="'[SES][FAB BETA] Transaction recovery token=%s action=%s restored=%s'.[$FabRequest.$token, $FabRequest.$action, $FabRestored]" />
+              <set_value name="$FabResult" exact="'failed'" />
+            </do_if>
+          </do_if>
+        </do_else>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][FAB BETA] Request action=%s ware=%s token=%s result=%s'.[@$FabRequest.$action, @$FabRequest.$wareid, @$FabRequest.$token, $FabResult]" />
+        <signal_cue_instantly cue="md.SES_Equipment_Salvager_Probe.SES_Salvage_Inventory_UI_Publish_V1" param="'fabrication'" />
+        <signal_cue_instantly cue="SES_Fabrication_Publish_V1" param="$FabResult" />
+      </actions>
+    </cue>
+  </cues>
+</mdscript>

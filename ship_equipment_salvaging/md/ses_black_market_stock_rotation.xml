@@ -4,6 +4,16 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="md.xsd">
   <cues>
+    <!-- Dealer buy price in percent of average ware value. Single source for the
+         price stamped on stock rows (shown by Lua) and the price MD charges.
+         Terran-made gear is a rare import and costs far more. -->
+    <library name="SES_Black_Market_Buy_Pct_V1" purpose="run_actions">
+      <params><param name="Ware" /></params>
+      <actions>
+        <return value="if @$Ware.objectmacro.makerraces.indexof.{race.terran} then 250 else 120" />
+      </actions>
+    </library>
+
     <cue name="SES_Black_Market_Random_Stock_V1_Startup">
       <actions>
         <set_value name="global.$SES_Black_Market_Random_Stock_Version" exact="2" />
@@ -16,7 +26,15 @@
       </actions>
     </cue>
 
-    <cue name="SES_Black_Market_Random_Stock_Build_Candidates_V1">
+    <!-- Rebuilt on every new game and every load (V1 ran once per save, so
+         pool changes such as the Terran split never reached existing saves). -->
+    <cue name="SES_Black_Market_Random_Stock_Build_Candidates_V2" instantiate="true">
+      <conditions>
+        <check_any>
+          <event_game_started />
+          <event_game_loaded />
+        </check_any>
+      </conditions>
       <delay exact="2s" />
       <actions>
         <do_if value="not @global.$SES_Ware_Definition_List">
@@ -26,10 +44,28 @@
         <set_value name="global.$SES_Black_Market_Stock_MK2_Wares" exact="[]" />
         <set_value name="global.$SES_Black_Market_Stock_MK3_Wares" exact="[]" />
         <set_value name="global.$SES_Black_Market_Stock_MK4_Wares" exact="[]" />
+        <!-- Terran gear is a rare import: kept out of the normal tier pools and
+             offered at most once per refresh (see the Terran roll below). -->
+        <set_value name="global.$SES_Black_Market_Stock_Terran_Wares" exact="[]" />
+        <!-- Catalog wares SES leaves out entirely (not sold, not craftable).
+             The catalog itself is generated; exclude here instead.
+             turret_gen_m_gatling_01_mk1: Envoy Pack Autocannon, no Systems group. -->
+        <!-- Future L/XL scope (Marek, 2026-10-10): M turrets and shields whose
+             hittable "standard" mounts only exist on L/XL ships. Source list:
+             tools/data/future-lxl-equipment.txt; see docs/FUTURE_LXL_EQUIPMENT.md. -->
+        <set_value name="global.$SES_Future_LXL_WareIds" exact="['shield_arg_m_standard_02_mk1', 'shield_arg_m_standard_02_mk2', 'shield_bor_m_standard_02_mk1', 'shield_bor_m_standard_02_mk2', 'shield_bor_m_standard_02_mk3', 'shield_kha_m_standard_02_mk1', 'shield_spl_m_standard_02_mk1', 'shield_spl_m_standard_02_mk2', 'shield_ter_m_standard_02_mk1', 'shield_ter_m_standard_02_mk2', 'shield_ter_m_standard_02_mk3', 'shield_ter_m_standard_04_mk1', 'shield_ter_m_standard_04_mk2', 'shield_ter_m_standard_04_mk3', 'shield_xen_m_standard_02_mk1', 'shield_xen_m_standard_02_mk2', 'shield_xen_m_standard_04_mk1', 'turret_arg_m_beam_02_mk1', 'turret_arg_m_dumbfire_02_mk1', 'turret_arg_m_flak_02_mk1', 'turret_arg_m_gatling_02_mk1', 'turret_arg_m_guided_02_mk1', 'turret_arg_m_laser_02_mk1', 'turret_arg_m_mining_02_mk1', 'turret_arg_m_plasma_02_mk1', 'turret_arg_m_shotgun_02_mk1', 'turret_bor_m_arc_02_mk1', 'turret_bor_m_dumbfire_01_mk1', 'turret_bor_m_guided_01_mk1', 'turret_bor_m_laser_02_mk1', 'turret_bor_m_mining_02_mk1', 'turret_bor_m_railgun_02_mk1', 'turret_kha_m_beam_01_mk1', 'turret_par_m_beam_02_mk1', 'turret_par_m_dumbfire_02_mk1', 'turret_par_m_gatling_02_mk1', 'turret_par_m_guided_02_mk1', 'turret_par_m_laser_02_mk1', 'turret_par_m_mining_02_mk1', 'turret_par_m_plasma_02_mk1', 'turret_par_m_shotgun_02_mk1', 'turret_pir_m_battleship_01_gatling_02_mk1', 'turret_spl_m_beam_02_mk1', 'turret_spl_m_dumbfire_02_mk1', 'turret_spl_m_flak_02_mk1', 'turret_spl_m_gatling_02_mk1', 'turret_spl_m_guided_02_mk1', 'turret_spl_m_laser_02_mk1', 'turret_spl_m_mining_02_mk1', 'turret_spl_m_plasma_02_mk1', 'turret_spl_m_shotgun_02_mk1', 'turret_tel_m_beam_02_mk1', 'turret_tel_m_dumbfire_02_mk1', 'turret_tel_m_gatling_02_mk1', 'turret_tel_m_guided_02_mk1', 'turret_tel_m_laser_02_mk1', 'turret_tel_m_mining_02_mk1', 'turret_tel_m_plasma_02_mk1', 'turret_tel_m_shotgun_02_mk1', 'turret_ter_m_beam_02_mk1', 'turret_ter_m_dumbfire_02_mk1', 'turret_ter_m_gatling_02_mk1', 'turret_ter_m_guided_02_mk1', 'turret_ter_m_laser_02_mk1', 'turret_ter_m_laser_04_mk1', 'turret_ter_m_mining_02_mk1', 'turret_xen_m_gatling_02_mk1', 'turret_xen_m_laser_02_mk1']" />
+        <set_value name="global.$SES_Excluded_WareIds" exact="global.$SES_Future_LXL_WareIds.clone" />
+        <append_to_list name="global.$SES_Excluded_WareIds" exact="'turret_gen_m_gatling_01_mk1'" />
         <do_for_each name="$KnownWare" in="global.$SES_Ware_Definition_List">
-          <do_if value="@global.$SES_Black_Market_Stock_MK1_WareIds and global.$SES_Black_Market_Stock_MK1_WareIds.indexof.{$KnownWare.id} gt 0">
-            <append_to_list name="global.$SES_Black_Market_Stock_MK1_Wares" exact="$KnownWare" />
+          <do_if value="global.$SES_Excluded_WareIds.indexof.{$KnownWare.id}">
+            <!-- excluded -->
           </do_if>
+          <do_elseif value="@$KnownWare.objectmacro.makerraces.indexof.{race.terran} and (@global.$SES_Black_Market_Stock_MK1_WareIds.indexof.{$KnownWare.id} or @global.$SES_Black_Market_Stock_MK2_WareIds.indexof.{$KnownWare.id} or @global.$SES_Black_Market_Stock_MK3_WareIds.indexof.{$KnownWare.id} or @global.$SES_Black_Market_Stock_MK4_WareIds.indexof.{$KnownWare.id})">
+            <append_to_list name="global.$SES_Black_Market_Stock_Terran_Wares" exact="$KnownWare" />
+          </do_elseif>
+          <do_elseif value="@global.$SES_Black_Market_Stock_MK1_WareIds and global.$SES_Black_Market_Stock_MK1_WareIds.indexof.{$KnownWare.id} gt 0">
+            <append_to_list name="global.$SES_Black_Market_Stock_MK1_Wares" exact="$KnownWare" />
+          </do_elseif>
           <do_elseif value="@global.$SES_Black_Market_Stock_MK2_WareIds and global.$SES_Black_Market_Stock_MK2_WareIds.indexof.{$KnownWare.id} gt 0">
             <append_to_list name="global.$SES_Black_Market_Stock_MK2_Wares" exact="$KnownWare" />
           </do_elseif>
@@ -40,11 +76,12 @@
             <append_to_list name="global.$SES_Black_Market_Stock_MK4_Wares" exact="$KnownWare" />
           </do_elseif>
         </do_for_each>
-        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Runtime S/M stock candidates built. mk1=%s, mk2=%s, mk3=%s, mk4=%s'.[
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Runtime S/M stock candidates built. mk1=%s, mk2=%s, mk3=%s, mk4=%s, terran=%s'.[
           global.$SES_Black_Market_Stock_MK1_Wares.count,
           global.$SES_Black_Market_Stock_MK2_Wares.count,
           global.$SES_Black_Market_Stock_MK3_Wares.count,
-          global.$SES_Black_Market_Stock_MK4_Wares.count
+          global.$SES_Black_Market_Stock_MK4_Wares.count,
+          global.$SES_Black_Market_Stock_Terran_Wares.count
         ]" />
       </actions>
     </cue>
@@ -119,7 +156,7 @@
           <set_value name="$DebugForceGeneration" exact="if @global.$SES_Black_Market_Debug_Force_Rotation_Generation then global.$SES_Black_Market_Debug_Force_Rotation_Generation else 0" />
           <set_value name="$DebugForceDue" exact="$DebugForceGeneration gt (if @$ContactState.$debugforcegeneration then $ContactState.$debugforcegeneration else 0)" />
           <set_value name="$FastRotation" exact="@global.$SES_Black_Market_Debug_Fast_Rotation_Enabled and @global.$SES_Debug_Keys_Enabled" />
-          <set_value name="$RefreshPolicyChanged" exact="not @$ContactState.$refreshpolicyversion or $ContactState.$refreshpolicyversion lt 2" />
+          <set_value name="$RefreshPolicyChanged" exact="not @$ContactState.$refreshpolicyversion or $ContactState.$refreshpolicyversion lt 4" />
           <set_value name="$RefreshDue" exact="not @$ContactState.$nextrefresh or player.age ge $ContactState.$nextrefresh or $DebugForceDue or $RefreshPolicyChanged" />
           <do_if value="$RefreshDue">
             <!-- Migrate legacy player-sold rows and clear only the generated
@@ -135,12 +172,14 @@
               </do_if>
             </do_for_each>
 
-            <set_value name="$DesiredRows" min="4" max="10" />
+            <!-- Scarce stock: 2-5 rows, weighted to MK1. -->
+            <set_value name="$DesiredRows" min="2" max="5" />
             <set_value name="$SelectedWareIds" exact="[]" />
+            <set_value name="$Picks" exact="[]" />
             <set_value name="$GeneratedRows" exact="0" />
-            <do_all exact="$DesiredRows" counter="$SlotCounter">
+            <do_all exact="$DesiredRows" counter="$PickCounter">
               <set_value name="$TierRoll" min="1" max="100" />
-              <set_value name="$CandidateTier" exact="if $TierRoll le 55 then 1 else if $TierRoll le 83 then 2 else if $TierRoll le 96 then 3 else 4" />
+              <set_value name="$CandidateTier" exact="if $TierRoll le 60 then 1 else if $TierRoll le 87 then 2 else if $TierRoll le 98 then 3 else 4" />
               <set_value name="$TierCandidates" exact="if $CandidateTier == 1 then global.$SES_Black_Market_Stock_MK1_Wares else if $CandidateTier == 2 then global.$SES_Black_Market_Stock_MK2_Wares else if $CandidateTier == 3 then global.$SES_Black_Market_Stock_MK3_Wares else global.$SES_Black_Market_Stock_MK4_Wares" />
               <remove_value name="$CandidateWare" />
               <do_all exact="20" counter="$CandidateAttempt">
@@ -164,6 +203,32 @@
               </do_if>
               <do_if value="$CandidateWare and $CandidateWare.objectmacro">
                 <append_to_list name="$SelectedWareIds" exact="$CandidateWare.id" />
+                <append_to_list name="$Picks" exact="[$CandidateWare, $CandidateTier]" />
+              </do_if>
+            </do_all>
+            <!-- Rare Terran import: 8 % per refresh, at most one row, any tier. -->
+            <set_value name="$TerranRoll" min="1" max="100" />
+            <do_if value="$TerranRoll le 8 and @global.$SES_Black_Market_Stock_Terran_Wares.count gt 0">
+              <set_value name="$TerranWare" exact="global.$SES_Black_Market_Stock_Terran_Wares.random" />
+              <do_if value="$TerranWare.objectmacro and not $SelectedWareIds.indexof.{$TerranWare.id}">
+                <append_to_list name="$SelectedWareIds" exact="$TerranWare.id" />
+                <append_to_list name="$Picks" exact="[$TerranWare, if @global.$SES_Black_Market_Stock_MK3_WareIds.indexof.{$TerranWare.id} then 3 else if @global.$SES_Black_Market_Stock_MK2_WareIds.indexof.{$TerranWare.id} then 2 else 1]" />
+              </do_if>
+            </do_if>
+            <!-- Guaranteed salvage gear (Marek, 2026-10-10): every refresh offers one
+                 Avarice salvage beam, the only gear that harvests wrecks. -->
+            <set_value name="$SalvageGearWare" exact="[ware.ses_weapon_s_salvage_01_mk1, ware.ses_weapon_m_salvage_01_mk1, ware.ses_turret_rip_m_salvage_01_mk1].random" />
+            <do_if value="$SalvageGearWare.objectmacro and not $SelectedWareIds.indexof.{$SalvageGearWare.id}">
+              <append_to_list name="$SelectedWareIds" exact="$SalvageGearWare.id" />
+              <append_to_list name="$Picks" exact="[$SalvageGearWare, 1]" />
+            </do_if>
+            <do_for_each name="$Pick" in="$Picks" counter="$SlotCounter">
+              <set_value name="$CandidateWare" exact="$Pick.{1}" />
+              <set_value name="$CandidateTier" exact="$Pick.{2}" />
+              <do_if value="$CandidateWare and $CandidateWare.objectmacro">
+                <run_actions ref="SES_Black_Market_Buy_Pct_V1" result="$CandidatePricePct">
+                  <param name="Ware" value="$CandidateWare" />
+                </run_actions>
                 <set_value name="$CandidateCategory" exact="if $CandidateWare.hastag.turret then 'turrets' else if $CandidateWare.hastag.shield then 'shields' else if $CandidateWare.hastag.engine then 'engines' else if $CandidateWare.hastag.thruster then 'thrusters' else 'weapons'" />
                 <set_value name="$CandidateFaction" exact="if $CandidateWare.objectmacro.makerraces.count gt 0 then $CandidateWare.objectmacro.makerraces.{1}.shortname else ''" />
                 <set_value name="$MatchedStockIndex" exact="0" />
@@ -197,6 +262,7 @@
                     $count = $ExistingBuybackCount + 1,
                     $source = if $ExistingBuybackCount gt 0 then 'mixed' else 'generated',
                     $generatedtier = $CandidateTier,
+                    $pricepct = $CandidatePricePct,
                     $lasttime = player.age,
                     $lastgenerationtime = player.age
                   ]" />
@@ -216,27 +282,29 @@
                     $count = 1,
                     $source = 'generated',
                     $generatedtier = $CandidateTier,
+                    $pricepct = $CandidatePricePct,
                     $lasttime = player.age,
                     $lastgenerationtime = player.age
                   ]" />
                 </do_else>
                 <set_value name="$GeneratedRows" operation="add" />
-                <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Generated contact stock actor=%s, station=%s, slot=%s, tier=MK%s, ware=%s, macro=%s'.[
+                <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SHOP STOCK] Generated contact stock actor=%s, station=%s, slot=%s, tier=MK%s, ware=%s, macro=%s, pricepct=%s'.[
                   $ShopActor,
                   $ShopStation,
                   $SlotCounter,
                   $CandidateTier,
                   $CandidateWare.id,
-                  $CandidateWare.objectmacro.id
+                  $CandidateWare.objectmacro.id,
+                  $CandidatePricePct
                 ]" />
               </do_if>
-            </do_all>
-            <set_value name="$RefreshDelay" min="if $FastRotation then 1min else 1h" max="if $FastRotation then 2min else 2h" />
+            </do_for_each>
+            <set_value name="$RefreshDelay" min="if $FastRotation then 1min else 2h" max="if $FastRotation then 2min else 4h" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$lastrefresh" exact="player.age" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$nextrefresh" exact="player.age + $RefreshDelay" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$generation" operation="add" />
             <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$rows" exact="$GeneratedRows" />
-            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$refreshpolicyversion" exact="2" />
+            <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$refreshpolicyversion" exact="4" />
             <do_if value="$DebugForceGeneration gt 0">
               <set_value name="global.$SES_Black_Market_Random_Stock_State.{$ContactKey}.$debugforcegeneration" exact="$DebugForceGeneration" />
             </do_if>

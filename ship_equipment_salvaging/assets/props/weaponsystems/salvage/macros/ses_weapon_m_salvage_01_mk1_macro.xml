@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<macros>
+  <!-- Riptide Salvage Laser M: vanilla M mining laser model and beam on an SES
+       component with a combat mount tag, so it fits any M weapon slot. Only SES
+       salvage gear harvests wrecks (global.$SES_Salvage_Gear_Macros). -->
+  <macro name="ses_weapon_m_salvage_01_mk1_macro" class="weapon">
+    <component ref="ses_weapon_m_salvage_01_mk1" />
+    <properties>
+      <identification name="{1171361,926}" basename="{1171361,923}" shortname="{1171361,924}" description="{1171361,927}" mk="1" />
+      <bullet class="bullet_gen_m_mining_01_mk1_macro" />
+      <rotationspeed max="90" />
+      <rotationacceleration max="180" />
+      <hull max="1001" hittable="0" />
+      <effects>
+        <firing start="startshooting_gen_m_mining_01_mk1" stop="stopshooting_gen_m_mining_01_mk1" />
+      </effects>
+      <sounds>
+        <firing ref="wpn_beam_mining_muzzle" />
+      </sounds>
+    </properties>
+  </macro>
+</macros>

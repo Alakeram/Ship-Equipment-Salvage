@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SES Riptide salvage gear: copy of vanilla weapon_gen_s_mining_01_mk1 (geometry, effects and beam unchanged).
+     Mount tag 'mining' replaced by 'combat' so the cutter fits any S/M weapon/turret slot, not only miners (Marek, 2026-10-10). -->
+<!--Exported on 2026-02-10 13:53:25-->
+<components>
+  <component name="ses_weapon_s_salvage_01_mk1" class="weapon">
+    <source geometry="assets\props\WeaponSystems\mining\weapon_gen_s_mining_01_mk1_data" />
+    <layers>
+      <layer />
+    </layers>
+    <connections>
+      <connection name="WeaponCon_01" tags="advanced combat component small weapon " />
+      <connection name="position" tags="position" value="1" />
+      <connection name="ConnectionFordetail_m_gun_decals" tags="detail_l forceoutline nocollision part ">
+        <offset>
+          <position x="0" y="0.0005904837" z="0.5746229" />
+        </offset>
+        <parts>
+          <part name="detail_m_gun_decals">
+            <lods>
+              <lod index="0">
+                <materials>
+                  <material id="1" ref="p2argon.arg_p2_decal_01" />
+                  <material id="2" ref="p2generic.gen_p2_decal_01" />
+                </materials>
+              </lod>
+            </lods>
+            <size>
+              <max x="0.4811454" y="0.2091797" z="0.4801403" />
+              <center x="-7.5e-09" y="0" z="0" />
+            </size>
+          </part>
+        </parts>
+      </connection>
+      <connection name="ConnectionFordetail_xs_rotator" tags="detail_xs nocollision part " hidden="true">
+        <offset>
+          <position x="0" y="0" z="0.7206023" />
+        </offset>
+        <restrictions>
+          <restriction type="rotation_y">
+            <limits>
+              <min value="-10" />
+              <max value="10" />
+            </limits>
+          </restriction>
+        </restrictions>
+        <parts>
+          <part name="detail_xs_rotator">
+            <lods>
+              <lod index="0">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hullpattern_01" />
+                </materials>
+              </lod>
+            </lods>
+            <size>
+              <max x="0.02933945" y="0.02933945" z="0.01229072" />
+              <center x="0" y="0" z="-7.5e-09" />
+            </size>
+          </part>
+        </parts>
+      </connection>
+      <connection name="ConnectionForpart_barrel" tags="forceoutline part platformcollision " parent="detail_xs_rotator">
+        <restrictions>
+          <restriction type="rotation_x">
+            <limits>
+              <min value="-10" />
+              <max value="10" />
+            </limits>
+          </restriction>
+        </restrictions>
+        <parts>
+          <part name="part_barrel">
+            <lods>
+              <lod index="0">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                  <material id="2" ref="p2generic.gen_p2_fx_01" />
+                </materials>
+              </lod>
+              <lod index="1">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                  <material id="2" ref="p2generic.gen_p2_fx_01" />
+                </materials>
+              </lod>
+              <lod index="2">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                  <material id="2" ref="p2generic.gen_p2_fx_01" />
+                </materials>
+              </lod>
+              <lod index="3">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+            </lods>
+            <size>
+              <max x="0.1397802" y="0.1168698" z="0.2188439" />
+              <center x="0" y="0" z="0.2207659" />
+            </size>
+          </part>
+        </parts>
+      </connection>
+      <connection name="Con_laser01" tags="laser " parent="part_barrel">
+        <offset>
+          <position x="0" y="0" z="0.06378329" />
+        </offset>
+      </connection>
+      <connection name="ConnectionForpart_mount" tags="forceoutline part platformcollision ">
+        <parts>
+          <part name="part_mount" wreck="part_mount_wreck">
+            <lods>
+              <lod index="0">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+              <lod index="1">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+              <lod index="2">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+              <lod index="3">
+                <materials>
+                  <material id="1" ref="p2generic.gen_p2_hulltexture_01" />
+                </materials>
+              </lod>
+            </lods>
+            <size>
+              <max x="0.4792124" y="0.2678196" z="0.5303499" />
+              <center x="0" y="0" z="0.5203498" />
+            </size>
+          </part>
+        </parts>
+      </connection>
+    </connections>
+  </component>
+</components>

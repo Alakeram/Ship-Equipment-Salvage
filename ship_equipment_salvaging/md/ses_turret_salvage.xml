@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Turret_Salvage" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <cues>
+    <cue name="SES_Turret_Salvage_Startup_V1">
+      <delay exact="3s" />
+      <actions><signal_cue_instantly cue="SES_Turret_Salvage_Publish_V1" /></actions>
+    </cue>
+    <cue name="SES_Turret_Salvage_Reload_V1" instantiate="true">
+      <conditions><event_game_loaded /></conditions>
+      <actions><signal_cue_instantly cue="SES_Turret_Salvage_Publish_V1" /></actions>
+    </cue>
+    <cue name="SES_Turret_Salvage_Publish_V1" instantiate="true" namespace="this">
+      <conditions><event_cue_signalled /></conditions>
+      <actions>
+        <do_if value="not global.$SES_Turret_Salvage_Ships?">
+          <set_value name="global.$SES_Turret_Salvage_Ships" exact="table[]" />
+        </do_if>
+        <!-- Store mode state in a global object-keyed table. Ships do not
+             support the entity blackboard variables used by the UI bridge. -->
+        <set_value name="$StoredShips" exact="global.$SES_Turret_Salvage_Ships.keys.list" />
+        <do_for_each name="$StoredShip" in="$StoredShips">
+          <do_if value="not @$StoredShip.exists">
+            <remove_value name="global.$SES_Turret_Salvage_Ships.{$StoredShip}" />
+          </do_if>
+        </do_for_each>
+        <set_value name="player.entity.$SES_Wreck_Mining_Beta_Enabled" exact="if @global.$SES_Wreck_Mining_Beta_Enabled then true else false" />
+        <set_value name="player.entity.$SES_Turret_Salvage_UI_State" exact="table[
+          $ship = player.controlled,
+          $enabled = if @global.$SES_Wreck_Mining_Beta_Enabled and @player.controlled.isclass.ship and @global.$SES_Turret_Salvage_Ships.{player.controlled} then true else false
+        ]" />
+        <raise_lua_event name="'SES.TurretSalvageState'" param="'state'" />
+      </actions>
+    </cue>
+    <cue name="SES_Turret_Salvage_Control_Changed_V1" instantiate="true">
+      <conditions>
+        <check_any>
+          <event_player_started_control />
+          <event_player_stopped_control />
+        </check_any>
+      </conditions>
+      <actions><signal_cue_instantly cue="SES_Turret_Salvage_Publish_V1" /></actions>
+    </cue>
+    <cue name="SES_Turret_Salvage_Request_V1" instantiate="true" namespace="this">
+      <conditions><event_ui_triggered screen="'SES_TurretSalvage'" control="'request'" /></conditions>
+      <actions>
+        <!-- Decode the versioned UI list before the existing authority checks.
+             Vanilla ShipConfigurationMenu/modinstalled uses the same bridge. -->
+        <set_value name="$Wire" exact="event.param3" />
+        <set_value name="$Request" exact="null" />
+        <do_if value="@$Wire.count == 4 and @$Wire.{1} == 1">
+          <set_value name="$Request" exact="table[$ship = $Wire.{2}, $enabled = $Wire.{3}, $setmining = $Wire.{4}]" />
+        </do_if>
+        <set_value name="$Ship" exact="@$Request.$ship" />
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][TURRET BETA] Mode request received. ship=%s controlled=%s salvage=%s setmining=%s beta=%s'.[$Ship, player.controlled, @$Request.$enabled, @$Request.$setmining, @global.$SES_Wreck_Mining_Beta_Enabled]" />
+        <do_if value="@$Ship.isclass.ship and $Ship == player.controlled">
+          <do_if value="not global.$SES_Turret_Salvage_Ships?">
+            <set_value name="global.$SES_Turret_Salvage_Ships" exact="table[]" />
+          </do_if>
+          <!-- Ordinary All-mode changes only clear SES state. They keep their
+               native UI handler and must not run a second mode-setting pass. -->
+          <do_if value="not @$Request.$enabled">
+            <do_if value="global.$SES_Turret_Salvage_Ships.{$Ship}?">
+              <remove_value name="global.$SES_Turret_Salvage_Ships.{$Ship}" />
+            </do_if>
+          </do_if>
+          <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @$Request.$setmining">
+            <create_group groupname="$MiningTurrets" />
+            <set_value name="$ModeCollision" exact="false" />
+            <do_for_each name="$Turret" in="$Ship.turrets.operational.list">
+              <!-- Only salvage gear switches to Salvage; ordinary mining turrets
+                   keep their mode (they cannot salvage) (Marek, 2026-10-10). -->
+              <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$Turret.macro.id}">
+                <add_to_group groupname="$MiningTurrets" object="$Turret" />
+              </do_if>
+              <do_elseif value="not $Turret.ismining and $Turret.mode == weaponmode.mining">
+                <set_value name="$ModeCollision" exact="true" />
+              </do_elseif>
+            </do_for_each>
+            <do_if value="$ModeCollision and @$Request.$enabled">
+              <show_notification text="readtext.{1171361}.{904}" />
+            </do_if>
+            <do_elseif value="$MiningTurrets.count gt 0">
+              <!-- Enumerate authoritative equipment, not UI-provided turret refs.
+                   This is the only native mode mutation, restricted to miners. -->
+              <set_weapon_mode group="$MiningTurrets" weaponmode="weaponmode.mining" />
+              <do_if value="@$Request.$enabled">
+                <set_value name="global.$SES_Turret_Salvage_Ships.{$Ship}" exact="true" />
+              </do_if>
+              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][TURRET BETA] Combined mining-turret mode set. ship=%s salvage=%s miningturrets=%s; combat modes untouched.'.[$Ship, @global.$SES_Turret_Salvage_Ships.{$Ship}, $MiningTurrets.count]" />
+            </do_elseif>
+            <!-- Clear membership only. NEVER destroy this group: its members
+                 are the player's installed turrets, not temporary objects. -->
+            <clear_group group="$MiningTurrets" />
+          </do_if>
+        </do_if>
+        <signal_cue_instantly cue="SES_Turret_Salvage_Publish_V1" />
+      </actions>
+    </cue>
+  </cues>
+</mdscript>

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <index>
-  <entry
-    name="ses_equipment_salvager"
-    value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\spacesuit\ses_equipment_salvager" />
-  <entry
-    name="ses_equipment_welder"
-    value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\spacesuit\ses_equipment_welder" />
+  <entry name="ses_equipment_salvager" value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\spacesuit\ses_equipment_salvager" />
+  <entry name="ses_equipment_welder" value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\spacesuit\ses_equipment_welder" />
+  <entry name="ses_turret_rip_m_salvage_02_mk1" value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\salvage\ses_turret_rip_m_salvage_02_mk1" />
+  <entry name="ses_turret_rip_l_salvage_01_mk1" value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\salvage\ses_turret_rip_l_salvage_01_mk1" />
+  <entry name="ses_weapon_s_salvage_01_mk1" value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\salvage\ses_weapon_s_salvage_01_mk1" />
+  <entry name="ses_weapon_m_salvage_01_mk1" value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\salvage\ses_weapon_m_salvage_01_mk1" />
+  <entry name="ses_turret_rip_m_salvage_01_mk1" value="extensions\ship_equipment_salvaging\assets\props\weaponsystems\salvage\ses_turret_rip_m_salvage_01_mk1" />
 </index>

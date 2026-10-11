@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<aiscript name="order.ses.salvage.radius" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!-- SES "Salvage Wrecks in Area" (Marek, 2026-10-11): like vanilla Collect
+       Drops (order.collect.ship.radius). Flies to the area, then salvages every
+       eligible S/M wreck within the radius, nearest first, by queuing the
+       Salvage Wreck order (order.ses.salvage.wreck), and finishes when none is
+       left. Same gates as Auto-Salvage: selectable only for ships carrying a
+       Riptide salvage laser or turret; other ships see it greyed out. -->
+  <order id="SESSalvageInRadius" name="{1171361,938}" description="{1171361,939}" category="salvage" allowinloop="false">
+    <params>
+      <param name="destination" required="true" type="position" text="{1041, 10027}" comment="Destination. Position: [space, position]. With radius it defines the area searched for wrecks.">
+        <input_param name="class" value="class.sector"/>
+      </param>
+      <param name="radius" type="length" default="this.ship.maxradarrange" text="{1041, 10093}" advanced="true" comment="Radius">
+        <input_param name="min" value="1km"/>
+        <input_param name="max" value="this.ship.maxradarrange"/>
+        <input_param name="step" value="1km"/>
+      </param>
+      <param name="debugchance" type="bool" default="0" advanced="true" text="{1041, 10086}" comment="Print debug output">
+        <input_param name="truevalue" value="100"/>
+      </param>
+    </params>
+    <requires>
+      <match class="class.spacesuit" negate="true"/>
+      <match_any>
+        <match_child macro="macro.ses_turret_rip_m_salvage_01_mk1_macro"/>
+        <match_child macro="macro.ses_weapon_m_salvage_01_mk1_macro"/>
+        <match_child macro="macro.ses_weapon_s_salvage_01_mk1_macro"/>
+      </match_any>
+    </requires>
+    <location object="$destination.{1}" position="$destination.{2}" radius="$radius"/>
+  </order>
+  <interrupts>
+    <handler ref="SectorChangeHandler"/>
+    <handler ref="AttackHandler"/>
+    <handler ref="MissileLockHandler"/>
+    <handler ref="ScannedHandler"/>
+    <handler ref="InspectedHandler"/>
+  </interrupts>
+  <attention min="unknown">
+    <actions>
+      <label name="start"/>
+      <!-- Salvage gear check (same list as every salvage hit path). -->
+      <set_value name="$hasgear" exact="false"/>
+      <do_for_each name="$gear" in="this.assignedcontrolled.weapons.operational.list">
+        <do_if value="@global.$SES_Salvage_Gear_Macros.indexof.{$gear.macro.id}">
+          <set_value name="$hasgear" exact="true"/>
+        </do_if>
+      </do_for_each>
+      <do_if value="not $hasgear">
+        <debug_text text="'[SES][AREA] Salvage in area refused: %s has no salvage gear.'.[this.assignedcontrolled]" chance="$debugchance"/>
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,933}"/>
+        </do_if>
+        <return/>
+      </do_if>
+
+      <do_if value="this.sector != $destination.{1} or this.assignedcontrolled.distanceto.{$destination} gt 10km">
+        <run_script name="'move.generic'" result="$movesuccess">
+          <param name="destination" value="$destination.{1}"/>
+          <param name="position" value="$destination.{2}"/>
+          <param name="debugchance" value="$debugchance"/>
+        </run_script>
+        <do_if value="not $movesuccess">
+          <do_if value="@this.assignedcontrolled.order.isrunning">
+            <set_order_failed order="this.assignedcontrolled.order" text="{1045, 101}" comment="Unable to reach destination."/>
+          </do_if>
+          <return/>
+        </do_if>
+      </do_if>
+
+      <label name="search"/>
+      <!-- Per-ship record of wrecks handed to Salvage Wreck (shared with
+           Auto-Salvage). The order restarts after each queued Salvage Wreck, so
+           it lives in a global; a wreck still eligible after two tries
+           (unreachable, order failed) is skipped so the order can't loop on it. -->
+      <do_if value="not @global.$SES_Salvage_Tried">
+        <set_value name="global.$SES_Salvage_Tried" exact="table[]"/>
+      </do_if>
+      <do_if value="not @global.$SES_Salvage_Tried.{this.assignedcontrolled} or player.age gt global.$SES_Salvage_Tried.{this.assignedcontrolled}.$time + 15min">
+        <set_value name="global.$SES_Salvage_Tried.{this.assignedcontrolled}" exact="table[$time = player.age, $wrecks = table[]]"/>
+      </do_if>
+      <set_value name="$tried" exact="global.$SES_Salvage_Tried.{this.assignedcontrolled}.$wrecks"/>
+      <set_value name="$best" exact="null"/>
+      <set_value name="$bestdist" exact="0m"/>
+      <find_ship name="$candidates" space="$destination.{1}" multiple="true" checkoperational="false"/>
+      <do_for_each name="$candidate" in="$candidates">
+        <do_if value="$candidate.iswreck and ($candidate.isrealclass.ship_s or $candidate.isrealclass.ship_m) and $candidate.distanceto.{$destination} le $radius and not @$candidate.tugship and not @$candidate.dismantlingobject and not @$candidate.salvageclaimants.count and not @global.$SES_Wreck_Harvest_State.{$candidate}.$exhausted and (if @$tried.{$candidate} then $tried.{$candidate} else 0) lt 2">
+          <!-- Leave wrecks another SES ship is already working. -->
+          <set_value name="$taken" exact="false"/>
+          <do_for_each name="$requester" valuename="$request" in="if @global.$SES_Salvage_Requests then global.$SES_Salvage_Requests else table[]">
+            <do_if value="$requester != this.assignedcontrolled and @$requester.exists and @$request.$wreck == $candidate">
+              <set_value name="$taken" exact="true"/>
+            </do_if>
+          </do_for_each>
+          <do_if value="not $taken">
+            <set_value name="$dist" exact="this.assignedcontrolled.distanceto.{$candidate}"/>
+            <do_if value="not $best or $dist lt $bestdist">
+              <set_value name="$best" exact="$candidate"/>
+              <set_value name="$bestdist" exact="$dist"/>
+            </do_if>
+          </do_if>
+        </do_if>
+      </do_for_each>
+      <remove_value name="$candidates"/>
+
+      <do_if value="not $best">
+        <debug_text text="'[SES][AREA] Salvage in area: no eligible wreck left within %s m of %s; done.'.[($radius)i, $destination.{1}.knownname]" chance="$debugchance"/>
+        <return/>
+      </do_if>
+
+      <set_value name="$tried.{$best}" exact="(if @$tried.{$best} then $tried.{$best} else 0) + 1"/>
+      <set_value name="global.$SES_Salvage_Tried.{this.assignedcontrolled}.$time" exact="player.age"/>
+      <debug_text text="'[SES][AREA] Salvage in area: %s salvages %s (%s m, try %s).'.[this.assignedcontrolled, $best, ($bestdist)i, $tried.{$best}]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+      <!-- Queue Salvage Wreck ahead of this order, as Auto-Salvage does (MCP run 38). -->
+      <create_order object="this.assignedcontrolled" id="'SESSalvageWreck'" immediate="true">
+        <param name="target" value="$best"/>
+        <param name="debugchance" value="$debugchance"/>
+      </create_order>
+      <wait exact="1ms"/>
+      <wait exact="2s"/>
+      <resume label="search"/>
+    </actions>
+  </attention>
+</aiscript>

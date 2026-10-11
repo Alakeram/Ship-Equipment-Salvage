@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="diff.xsd">
+  <add sel="/aiscript/attention[@min='visible']/actions//add_to_group[@groupname='$miningtargets'][@list='$miningtargetlist']" pos="after">
+    <!-- SES overrides only the native Mining target list on the piloted ship or on a ship running the SES Salvage Wreck order.
+         No polling is added: this executes in vanilla's existing target refresh. -->
+    <set_value name="$SESMiningOverrideNow" exact="(@global.$SES_Wreck_Mining_Beta_Enabled and @global.$SES_Turret_Salvage_Ships.{this.ship} and this.ship == player.controlled) or (@global.$SES_Wreck_Mining_Beta_Enabled and this.ship != player.controlled and @global.$SES_Salvage_Active.{this.ship}.exists)" />
+    <do_if value="$SESMiningOverrideNow">
+      <!-- Fail back to vanilla if another mod puts a combat turret in Mining.
+           Never silently redirect such a turret to a wreck. -->
+      <do_for_each name="$SESMiningTurret" in="this.ship.turrets.operational.list">
+        <do_if value="$SESMiningTurret.mode == weaponmode.mining and not $SESMiningTurret.ismining">
+          <set_value name="$SESMiningOverrideNow" exact="false" />
+        </do_if>
+      </do_for_each>
+      <remove_value name="$SESMiningTurret" />
+    </do_if>
+    <do_if value="$SESMiningOverrideNow">
+      <clear_group group="$miningtargets" />
+      <set_value name="$SESMiningWreck" exact="if this.ship == player.controlled then @player.target else null" />
+      <!-- Stand-in redirect: a wreck under SES salvage is hidden and replaced by a
+           registered stand-in; keep firing at that stand-in even if the hidden
+           wreck is no longer the player's target. -->
+      <do_if value="$SESMiningWreck and @global.$SES_Salvage_Standin_Of.{$SESMiningWreck}.exists">
+        <set_value name="$SESMiningWreck" exact="global.$SES_Salvage_Standin_Of.{$SESMiningWreck}" />
+      </do_if>
+      <do_elseif value="not @$SESMiningWreck.iswreck and @global.$SES_Salvage_Active.{this.ship}.exists">
+        <set_value name="$SESMiningWreck" exact="global.$SES_Salvage_Active.{this.ship}" />
+      </do_elseif>
+      <!-- Target guard: salvage turrets may only be pointed at S/M wrecks or at
+           SES-registered salvage stand-ins. Operational ships, including
+           ownerless/bailed ships, are never eligible: preferredtarget overrides
+           mayattack, so this check is the only thing protecting them. -->
+      <do_if value="(@$SESMiningWreck.iswreck or (@global.$SES_Salvage_Standins.{$SESMiningWreck} and @$SESMiningWreck.isoperational)) and ($SESMiningWreck.isrealclass.ship_s or $SESMiningWreck.isrealclass.ship_m) and @$SESMiningWreck.sector == this.sector">
+        <do_if value="not @$SESMiningWreck.tugship and not @$SESMiningWreck.dismantlingobject and not @$SESMiningWreck.salvageclaimants.count and not @global.$SES_Wreck_Harvest_State.{$SESMiningWreck}.$exhausted and this.ship.distanceto.{$SESMiningWreck} le this.ship.maxcombatrange.{weaponmode.mining}.turrets">
+          <add_to_group groupname="$miningtargets" object="$SESMiningWreck" />
+        </do_if>
+      </do_if>
+      <do_if value="@$SESMiningLastTarget != $SESMiningWreck">
+        <set_value name="$SESMiningDispatchSamples" exact="0" />
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][TURRET BETA] Selected wreck targeting. ship=%s target=%s eligible=%s'.[this.ship, $SESMiningWreck, $miningtargets.count]" />
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][TURRET BETA] DISPATCH gates. pilot=%s occupied=%s playerowned=%s miningmode=%s attackable=%s'.[this.ship.assignedpilot, this.ship == player.occupiedship, this.isplayerowned, $turretmodes.indexof.{weaponmode.mining}, @$SESMiningWreck.canbeattacked]" />
+      </do_if>
+      <set_value name="$SESMiningLastTarget" exact="$SESMiningWreck" />
+      <set_value name="$SESMiningOverrideWasActive" exact="true" />
+      <do_if value="not $miningtargets.count">
+        <cease_fire object="this.ship" weaponmode="weaponmode.mining" />
+      </do_if>
+      <remove_value name="$SESMiningWreck" />
+    </do_if>
+    <do_elseif value="@$SESMiningOverrideWasActive">
+      <!-- Clear the old wreck even when the restored asteroid list is empty.
+           The later vanilla assignment handles normal nonempty lists as usual. -->
+      <set_turret_targets object="this.ship" target="$miningtargets.list" weaponmode="weaponmode.mining" />
+      <remove_value name="$SESMiningOverrideWasActive" />
+      <remove_value name="$SESMiningLastTarget" />
+    </do_elseif>
+    <remove_value name="$SESMiningOverrideNow" />
+  </add>
+  <add sel="/aiscript/attention[@min='visible']/actions//do_if[contains(@value, '$turretmodes.indexof.')]/set_turret_targets[@weaponmode='weaponmode.mining']" pos="after">
+    <!-- Diagnostic only: prove the final vanilla target setter was reached,
+         rather than inferring firing from the earlier candidate-list log.
+         At most three samples per selected target, only with debug enabled. -->
+    <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @global.$SES_Turret_Salvage_Ships.{this.ship} and this.ship == player.controlled and @global.$SES_Debug_Log_Chance and @$SESMiningDispatchSamples lt 3">
+      <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][TURRET BETA] DISPATCH reached. ship=%s target=%s candidates=%s pilot=%s occupied=%s attackable=%s actualtargets=%s'.[this.ship, @player.target, $miningtargets.count, this.ship.assignedpilot, this.ship == player.occupiedship, @player.target.canbeattacked, $miningtargets.list]" />
+      <do_for_each name="$SESDiagnosticTurret" in="this.ship.turrets.operational.list">
+        <do_if value="$SESDiagnosticTurret.ismining">
+          <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][TURRET BETA] FIRING CHECK turret=%s mode=%s ready=%s range=%s targetdistance=%s'.[$SESDiagnosticTurret, $SESDiagnosticTurret.mode, $SESDiagnosticTurret.isreadytofire, $SESDiagnosticTurret.maxfirerange, if @player.target.exists then $SESDiagnosticTurret.distanceto.{player.target} else -1m]" />
+        </do_if>
+      </do_for_each>
+      <remove_value name="$SESDiagnosticTurret" />
+      <set_value name="$SESMiningDispatchSamples" exact="1" operation="add" />
+    </do_if>
+  </add>
+</diff>

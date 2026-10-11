@@ -1,53 +1,714 @@
 <?xml version="1.0" encoding="utf-8"?>
 <diff>
   <add sel="/wares">
-    <ware
-      id="ses_equipment_salvager"
-      name="{1171361,10}"
-      description="{1171361,11}"
-      group="contraband"
-      transport="inventory"
-      volume="1"
-      illegal="alliance antigone argon holyorder ministry paranid teladi trinity"
-      tags="allowdrop inventory noblueprint noplayerblueprint">
+    <ware id="ses_equipment_salvager" name="{1171361,10}" description="{1171361,11}" group="contraband" transport="inventory" volume="1" illegal="alliance antigone argon holyorder ministry paranid teladi trinity" tags="allowdrop inventory noblueprint noplayerblueprint">
       <price min="200000" average="250000" max="300000" />
       <icon video="ware_inventory_handlaser_macro" />
     </ware>
-    <ware
-      id="ses_equipment_welder"
-      name="{1171361,20}"
-      description="{1171361,21}"
-      group="contraband"
-      transport="inventory"
-      volume="1"
-      illegal="alliance antigone argon holyorder ministry paranid teladi trinity"
-      tags="allowdrop inventory noblueprint noplayerblueprint">
+    <ware id="ses_equipment_welder" name="{1171361,20}" description="{1171361,21}" group="contraband" transport="inventory" volume="1" illegal="alliance antigone argon holyorder ministry paranid teladi trinity" tags="allowdrop inventory noblueprint noplayerblueprint">
       <price min="320000" average="400000" max="480000" />
       <icon video="ware_inventory_handlaser_macro" />
     </ware>
-    <ware
-      id="ses_avarice_beam_catalyst"
-      name="{1171361,30}"
-      description="{1171361,31}"
-      group="contraband"
-      transport="inventory"
-      volume="1"
-      illegal="alliance antigone argon holyorder ministry paranid teladi trinity"
-      tags="allowdrop inventory noblueprint noplayerblueprint">
+    <ware id="ses_avarice_beam_catalyst" name="{1171361,30}" description="{1171361,31}" group="contraband" transport="inventory" volume="1" illegal="alliance antigone argon holyorder ministry paranid teladi trinity" tags="allowdrop inventory noblueprint noplayerblueprint">
       <price min="15000" average="30000" max="40000" />
       <icon video="ware_inventory_handlaser_macro" />
     </ware>
-    <ware
-      id="ses_avarice_bonding_catalyst"
-      name="{1171361,40}"
-      description="{1171361,41}"
-      group="contraband"
-      transport="inventory"
-      volume="1"
-      illegal="alliance antigone argon holyorder ministry paranid teladi trinity"
-      tags="allowdrop inventory noblueprint noplayerblueprint">
+    <ware id="ses_avarice_bonding_catalyst" name="{1171361,40}" description="{1171361,41}" group="contraband" transport="inventory" volume="1" illegal="alliance antigone argon holyorder ministry paranid teladi trinity" tags="allowdrop inventory noblueprint noplayerblueprint">
       <price min="15000" average="30000" max="40000" />
       <icon video="ware_inventory_handlaser_macro" />
     </ware>
+    <ware id="ses_weapon_grade_salvage" name="{1171361,50}" description="{1171361,51}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="1500" average="2500" max="3500" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_functional_core_fragment" name="{1171361,810}" description="{1171361,811}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3000" average="5000" max="7000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_functional_weapon_core" name="{1171361,812}" description="{1171361,813}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="15000" average="25000" max="35000" />
+      <icon video="ware_inventory_advencedweaponchamber_macro" />
+    </ware>
+    <!-- Salvage materials (docs/Salvage Materials Reassessment.md). Grade salvage
+         is valued at about 5 % of its category's average Mk1 item. -->
+    <ware id="ses_salvaged_metal" name="{1171361,1210}" description="{1171361,1211}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="150" average="250" max="350" />
+      <icon video="ware_inventory_fragment_macro" />
+    </ware>
+    <ware id="ses_turret_grade_salvage" name="{1171361,1212}" description="{1171361,1213}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="1200" average="2000" max="2800" />
+      <icon video="ware_inventory_advencedtargetingmodule_macro" />
+    </ware>
+    <ware id="ses_shield_grade_salvage" name="{1171361,1214}" description="{1171361,1215}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="300" average="500" max="700" />
+      <icon video="ware_inventory_basicshieldgeneratorcoil_macro" />
+    </ware>
+    <ware id="ses_engine_grade_salvage" name="{1171361,1216}" description="{1171361,1217}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="350" average="550" max="750" />
+      <icon video="ware_inventory_basicenginefuelinjector_macro" />
+    </ware>
+    <ware id="ses_thruster_grade_salvage" name="{1171361,1218}" description="{1171361,1219}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="350" average="550" max="750" />
+      <icon video="ware_inventory_micromotor_macro" />
+    </ware>
+    <ware id="ses_turret_ai_core" name="{1171361,1220}" description="{1171361,1221}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="6600" average="11000" max="15400" />
+      <icon video="ware_inventory_agiheuristiccore_macro" />
+    </ware>
+    <ware id="ses_shield_matrix_core" name="{1171361,1222}" description="{1171361,1223}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="4200" average="7000" max="9800" />
+      <icon video="ware_inventory_advencedshieldgeneratorcoil_macro" />
+    </ware>
+    <ware id="ses_drive_control_core" name="{1171361,1224}" description="{1171361,1225}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="7200" average="12000" max="16800" />
+      <icon video="ware_inventory_advencedenginefuelinjector_macro" />
+    </ware>
+    <ware id="ses_casing_weapon" name="{1171361,1226}" description="{1171361,1227}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="700" average="1000" max="1300" />
+      <icon video="ware_inventory_modulartrigger_macro" />
+    </ware>
+    <ware id="ses_casing_turret" name="{1171361,1228}" description="{1171361,1229}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="1100" average="1500" max="1900" />
+      <icon video="ware_inventory_microgimbal_macro" />
+    </ware>
+    <ware id="ses_casing_shield" name="{1171361,1230}" description="{1171361,1231}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="700" average="1000" max="1300" />
+      <icon video="ware_inventory_programmablefieldarray_macro" />
+    </ware>
+    <ware id="ses_casing_engine" name="{1171361,1232}" description="{1171361,1233}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="700" average="1000" max="1300" />
+      <icon video="ware_inventory_extendedfuelcontainer_macro" />
+    </ware>
+    <ware id="ses_casing_thruster" name="{1171361,1234}" description="{1171361,1235}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="500" average="750" max="1000" />
+      <icon video="ware_inventory_spacesuitthrustermk1_macro" />
+    </ware>
+    <ware id="ses_comp_arg_weapon_basic" name="{1171361,1000}" description="{1171361,1050}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3850" average="5500" max="7150" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_arg_weapon_advanced" name="{1171361,1001}" description="{1171361,1051}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="15400" average="22000" max="28600" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_arg_turret_basic" name="{1171361,1002}" description="{1171361,1052}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3150" average="4500" max="5850" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_arg_turret_advanced" name="{1171361,1003}" description="{1171361,1053}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="12600" average="18000" max="23400" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_arg_shield_basic" name="{1171361,1004}" description="{1171361,1054}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="770" average="1100" max="1430" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_arg_shield_advanced" name="{1171361,1005}" description="{1171361,1055}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3080" average="4400" max="5720" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_arg_propulsion_basic" name="{1171361,1006}" description="{1171361,1056}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="910" average="1300" max="1690" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_arg_propulsion_advanced" name="{1171361,1007}" description="{1171361,1057}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3640" average="5200" max="6760" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_weapon_basic" name="{1171361,1008}" description="{1171361,1050}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3850" average="5500" max="7150" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_weapon_advanced" name="{1171361,1009}" description="{1171361,1051}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="15400" average="22000" max="28600" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_turret_basic" name="{1171361,1010}" description="{1171361,1052}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3150" average="4500" max="5850" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_turret_advanced" name="{1171361,1011}" description="{1171361,1053}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="12600" average="18000" max="23400" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_shield_basic" name="{1171361,1012}" description="{1171361,1054}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="770" average="1100" max="1430" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_shield_advanced" name="{1171361,1013}" description="{1171361,1055}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3080" average="4400" max="5720" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_propulsion_basic" name="{1171361,1014}" description="{1171361,1056}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="910" average="1300" max="1690" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_par_propulsion_advanced" name="{1171361,1015}" description="{1171361,1057}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3640" average="5200" max="6760" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_weapon_basic" name="{1171361,1016}" description="{1171361,1050}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3850" average="5500" max="7150" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_weapon_advanced" name="{1171361,1017}" description="{1171361,1051}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="15400" average="22000" max="28600" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_turret_basic" name="{1171361,1018}" description="{1171361,1052}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3150" average="4500" max="5850" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_turret_advanced" name="{1171361,1019}" description="{1171361,1053}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="12600" average="18000" max="23400" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_shield_basic" name="{1171361,1020}" description="{1171361,1054}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="770" average="1100" max="1430" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_shield_advanced" name="{1171361,1021}" description="{1171361,1055}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3080" average="4400" max="5720" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_propulsion_basic" name="{1171361,1022}" description="{1171361,1056}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="910" average="1300" max="1690" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_tel_propulsion_advanced" name="{1171361,1023}" description="{1171361,1057}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3640" average="5200" max="6760" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_weapon_basic" name="{1171361,1024}" description="{1171361,1050}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3850" average="5500" max="7150" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_weapon_advanced" name="{1171361,1025}" description="{1171361,1051}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="15400" average="22000" max="28600" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_turret_basic" name="{1171361,1026}" description="{1171361,1052}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3150" average="4500" max="5850" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_turret_advanced" name="{1171361,1027}" description="{1171361,1053}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="12600" average="18000" max="23400" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_shield_basic" name="{1171361,1028}" description="{1171361,1054}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="770" average="1100" max="1430" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_shield_advanced" name="{1171361,1029}" description="{1171361,1055}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3080" average="4400" max="5720" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_propulsion_basic" name="{1171361,1030}" description="{1171361,1056}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="910" average="1300" max="1690" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_spl_propulsion_advanced" name="{1171361,1031}" description="{1171361,1057}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3640" average="5200" max="6760" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_weapon_basic" name="{1171361,1032}" description="{1171361,1050}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="7700" average="11000" max="14300" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_weapon_advanced" name="{1171361,1033}" description="{1171361,1051}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="30800" average="44000" max="57200" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_turret_basic" name="{1171361,1034}" description="{1171361,1052}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="6300" average="9000" max="11700" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_turret_advanced" name="{1171361,1035}" description="{1171361,1053}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="25200" average="36000" max="46800" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_shield_basic" name="{1171361,1036}" description="{1171361,1054}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="1540" average="2200" max="2860" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_shield_advanced" name="{1171361,1037}" description="{1171361,1055}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="6160" average="8800" max="11440" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_propulsion_basic" name="{1171361,1038}" description="{1171361,1056}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="1820" average="2600" max="3380" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_ter_propulsion_advanced" name="{1171361,1039}" description="{1171361,1057}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="7280" average="10400" max="13520" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_weapon_basic" name="{1171361,1040}" description="{1171361,1050}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3850" average="5500" max="7150" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_weapon_advanced" name="{1171361,1041}" description="{1171361,1051}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="15400" average="22000" max="28600" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_turret_basic" name="{1171361,1042}" description="{1171361,1052}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3150" average="4500" max="5850" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_turret_advanced" name="{1171361,1043}" description="{1171361,1053}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="12600" average="18000" max="23400" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_shield_basic" name="{1171361,1044}" description="{1171361,1054}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="770" average="1100" max="1430" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_shield_advanced" name="{1171361,1045}" description="{1171361,1055}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3080" average="4400" max="5720" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_propulsion_basic" name="{1171361,1046}" description="{1171361,1056}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="910" average="1300" max="1690" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="ses_comp_bor_propulsion_advanced" name="{1171361,1047}" description="{1171361,1057}" transport="inventory" volume="1" tags="crafting inventory noblueprint noplayerblueprint">
+      <price min="3640" average="5200" max="6760" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <!-- S/M salvage gear: the only equipment that harvests wrecks. Based on the
+         vanilla mining laser / M mining turret. No base-game owner: sold by the
+         SES Black Market (guaranteed row) and, with Tides of Avarice, by the
+         Riptide Rakers (conditional owner diffs below). -->
+    <ware id="ses_weapon_s_salvage_01_mk1" name="{1171361,925}" description="{1171361,927}" group="weapons" transport="equipment" volume="1" tags="equipment weapon">
+      <price min="20000" average="25000" max="30000" />
+      <production time="15" amount="1" method="default" name="{20206,101}">
+        <primary>
+          <ware ware="advancedelectronics" amount="2" />
+          <ware ware="energycells" amount="34" />
+          <ware ware="weaponcomponents" amount="4" />
+        </primary>
+      </production>
+      <component ref="ses_weapon_s_salvage_01_mk1_macro" />
+      <restriction licence="generaluseequipment" />
+      <use threshold="0" factions="player" />
+    </ware>
+    <ware id="ses_weapon_m_salvage_01_mk1" name="{1171361,926}" description="{1171361,927}" group="weapons" transport="equipment" volume="1" tags="equipment weapon">
+      <price min="32000" average="40000" max="48000" />
+      <production time="15" amount="1" method="default" name="{20206,101}">
+        <primary>
+          <ware ware="advancedelectronics" amount="4" />
+          <ware ware="energycells" amount="52" />
+          <ware ware="weaponcomponents" amount="6" />
+        </primary>
+      </production>
+      <component ref="ses_weapon_m_salvage_01_mk1_macro" />
+      <restriction licence="generaluseequipment" />
+      <use threshold="0" factions="player" />
+    </ware>
+    <ware id="ses_turret_rip_m_salvage_01_mk1" name="{1171361,920}" description="{1171361,922}" group="turrets" transport="equipment" volume="1" tags="equipment turret">
+      <price min="28000" average="35000" max="42000" />
+      <production time="20" amount="1" method="default" name="{20206,101}">
+        <primary>
+          <ware ware="advancedelectronics" amount="2" />
+          <ware ware="energycells" amount="34" />
+          <ware ware="turretcomponents" amount="8" />
+        </primary>
+      </production>
+      <component ref="ses_turret_rip_m_salvage_01_mk1_macro" />
+      <restriction licence="generaluseequipment" />
+      <use threshold="0" factions="player" />
+    </ware>
+    <ware id="ses_turret_rip_l_salvage_01_mk1" name="{1171361,921}" description="{1171361,922}" group="turrets" transport="equipment" volume="1" tags="equipment turret">
+      <price min="14146" average="15718" max="17289" />
+      <production time="20" amount="1" method="default" name="{20206,101}">
+        <primary>
+          <ware ware="advancedelectronics" amount="2" />
+          <ware ware="energycells" amount="32" />
+          <ware ware="turretcomponents" amount="7" />
+        </primary>
+      </production>
+      <component ref="ses_turret_rip_l_salvage_01_mk1_macro" />
+      <restriction licence="generaluseequipment" />
+      <use threshold="0" purposes="salvage" />
+    </ware>
+    <ware id="ses_turret_rip_m_salvage_02_mk1" name="{1171361,928}" description="{1171361,922}" group="turrets" transport="equipment" volume="1" tags="equipment turret">
+      <price min="14146" average="15718" max="17289" />
+      <production time="20" amount="1" method="default" name="{20206,101}">
+        <primary>
+          <ware ware="advancedelectronics" amount="2" />
+          <ware ware="energycells" amount="32" />
+          <ware ware="turretcomponents" amount="7" />
+        </primary>
+      </production>
+      <component ref="ses_turret_rip_m_salvage_02_mk1_macro" />
+      <restriction licence="generaluseequipment" />
+      <use threshold="0" purposes="salvage" />
+    </ware>
+    <!-- SES SYSTEMS RESEARCH BEGIN (generated by tools\Generate-SesSystemsResearch.ps1) -->
+    <ware id="research_ses_arg_1" name="{1171361,1101}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="901">
+      <price min="1" average="1" max="1" />
+      <research time="1800">
+        <research><ware ware="research_ses_arg_1_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_arg_1_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="901">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_arg_1" name="{1171361,1104}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="40000" average="50000" max="60000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_arg_2" name="{1171361,1102}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="901">
+      <price min="1" average="1" max="1" />
+      <research time="3600">
+        <research><ware ware="research_ses_arg_1" /><ware ware="research_ses_arg_2_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_arg_2_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="901">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_arg_2" name="{1171361,1105}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="80000" average="100000" max="120000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_arg_3" name="{1171361,1103}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="901">
+      <price min="1" average="1" max="1" />
+      <research time="7200">
+        <research><ware ware="research_ses_arg_2" /><ware ware="research_ses_arg_3_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_arg_3_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="901">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_arg_3" name="{1171361,1106}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="160000" average="200000" max="240000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_bor_1" name="{1171361,1111}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="902">
+      <price min="1" average="1" max="1" />
+      <research time="1800">
+        <research><ware ware="research_ses_bor_1_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_bor_1_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="902">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_bor_1" name="{1171361,1114}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="40000" average="50000" max="60000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_bor_2" name="{1171361,1112}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="902">
+      <price min="1" average="1" max="1" />
+      <research time="3600">
+        <research><ware ware="research_ses_bor_1" /><ware ware="research_ses_bor_2_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_bor_2_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="902">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_bor_2" name="{1171361,1115}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="80000" average="100000" max="120000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_bor_3" name="{1171361,1113}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="902">
+      <price min="1" average="1" max="1" />
+      <research time="7200">
+        <research><ware ware="research_ses_bor_2" /><ware ware="research_ses_bor_3_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_bor_3_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="902">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_bor_3" name="{1171361,1116}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="160000" average="200000" max="240000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_par_1" name="{1171361,1121}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="903">
+      <price min="1" average="1" max="1" />
+      <research time="1800">
+        <research><ware ware="research_ses_par_1_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_par_1_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="903">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_par_1" name="{1171361,1124}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="40000" average="50000" max="60000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_par_2" name="{1171361,1122}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="903">
+      <price min="1" average="1" max="1" />
+      <research time="3600">
+        <research><ware ware="research_ses_par_1" /><ware ware="research_ses_par_2_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_par_2_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="903">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_par_2" name="{1171361,1125}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="80000" average="100000" max="120000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_par_3" name="{1171361,1123}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="903">
+      <price min="1" average="1" max="1" />
+      <research time="7200">
+        <research><ware ware="research_ses_par_2" /><ware ware="research_ses_par_3_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_par_3_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="903">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_par_3" name="{1171361,1126}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="160000" average="200000" max="240000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_spl_1" name="{1171361,1131}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="904">
+      <price min="1" average="1" max="1" />
+      <research time="1800">
+        <research><ware ware="research_ses_spl_1_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_spl_1_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="904">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_spl_1" name="{1171361,1134}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="40000" average="50000" max="60000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_spl_2" name="{1171361,1132}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="904">
+      <price min="1" average="1" max="1" />
+      <research time="3600">
+        <research><ware ware="research_ses_spl_1" /><ware ware="research_ses_spl_2_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_spl_2_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="904">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_spl_2" name="{1171361,1135}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="80000" average="100000" max="120000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_spl_3" name="{1171361,1133}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="904">
+      <price min="1" average="1" max="1" />
+      <research time="7200">
+        <research><ware ware="research_ses_spl_2" /><ware ware="research_ses_spl_3_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_spl_3_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="904">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_spl_3" name="{1171361,1136}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="160000" average="200000" max="240000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_tel_1" name="{1171361,1141}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="905">
+      <price min="1" average="1" max="1" />
+      <research time="1800">
+        <research><ware ware="research_ses_tel_1_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_tel_1_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="905">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_tel_1" name="{1171361,1144}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="40000" average="50000" max="60000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_tel_2" name="{1171361,1142}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="905">
+      <price min="1" average="1" max="1" />
+      <research time="3600">
+        <research><ware ware="research_ses_tel_1" /><ware ware="research_ses_tel_2_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_tel_2_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="905">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_tel_2" name="{1171361,1145}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="80000" average="100000" max="120000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_tel_3" name="{1171361,1143}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="905">
+      <price min="1" average="1" max="1" />
+      <research time="7200">
+        <research><ware ware="research_ses_tel_2" /><ware ware="research_ses_tel_3_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_tel_3_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="905">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_tel_3" name="{1171361,1146}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="160000" average="200000" max="240000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_ter_1" name="{1171361,1151}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="906">
+      <price min="1" average="1" max="1" />
+      <research time="2700">
+        <research><ware ware="research_ses_ter_1_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_ter_1_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="906">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_ter_1" name="{1171361,1154}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="40000" average="50000" max="60000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_ter_2" name="{1171361,1152}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="906">
+      <price min="1" average="1" max="1" />
+      <research time="5400">
+        <research><ware ware="research_ses_ter_1" /><ware ware="research_ses_ter_2_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_ter_2_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="906">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_ter_2" name="{1171361,1155}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="80000" average="100000" max="120000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_ter_3" name="{1171361,1153}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="906">
+      <price min="1" average="1" max="1" />
+      <research time="10800">
+        <research><ware ware="research_ses_ter_2" /><ware ware="research_ses_ter_3_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_ter_3_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="906">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_ter_3" name="{1171361,1156}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="160000" average="200000" max="240000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_com_1" name="{1171361,1161}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="907">
+      <price min="1" average="1" max="1" />
+      <research time="1800">
+        <research><ware ware="research_ses_com_1_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_com_1_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="907">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_com_1" name="{1171361,1164}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="40000" average="50000" max="60000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_com_2" name="{1171361,1162}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="907">
+      <price min="1" average="1" max="1" />
+      <research time="3600">
+        <research><ware ware="research_ses_com_1" /><ware ware="research_ses_com_2_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_com_2_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="907">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_com_2" name="{1171361,1165}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="80000" average="100000" max="120000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <ware id="research_ses_com_3" name="{1171361,1163}" description="{1171361,1190}" transport="research" volume="1" tags="research" sortorder="907">
+      <price min="1" average="1" max="1" />
+      <research time="7200">
+        <research><ware ware="research_ses_com_2" /><ware ware="research_ses_com_3_pre" /></research>
+      </research>
+    </ware>
+    <ware id="research_ses_com_3_pre" name="{1171361,1192}" description="{1171361,1192}" transport="research" volume="1" tags="missiononly research" sortorder="907">
+      <price min="1" average="1" max="1" />
+      <research time="10" />
+    </ware>
+    <ware id="ses_schem_com_3" name="{1171361,1166}" description="{1171361,1191}" transport="inventory" volume="1" tags="inventory noblueprint noplayerblueprint">
+      <price min="160000" average="200000" max="240000" />
+      <icon video="ware_inventory_basicweaponchamber_macro" />
+    </ware>
+    <!-- SES SYSTEMS RESEARCH END -->
+  </add>
+  <!-- Riptide Rakers (scavenger, Tides of Avarice) own the S/M salvage gear, so
+       their wharf/shipyard sell it and its blueprints. Applied only when the DLC
+       has given the Manticore scrap turret its scavenger owner (we load after
+       ego_dlc_pirate via the optional dependency). -->
+  <add sel="/wares/ware[@id='ses_weapon_s_salvage_01_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/owner[@faction='scavenger']">
+    <owner faction="scavenger" />
+  </add>
+  <add sel="/wares/ware[@id='ses_weapon_m_salvage_01_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/owner[@faction='scavenger']">
+    <owner faction="scavenger" />
+  </add>
+  <add sel="/wares/ware[@id='ses_turret_rip_m_salvage_01_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/owner[@faction='scavenger']">
+    <owner faction="scavenger" />
+  </add>
+  <!-- M02 (exposed M mount) and L01 (L turret) fit L/XL ships: future scope,
+       no owners (docs/FUTURE_LXL_EQUIPMENT.md). Optional DLC production
+       methods below mirror the Manticore scrap turret. -->
+  <add sel="/wares/ware[@id='ses_turret_rip_m_salvage_01_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/production[@method='terran']">
+    <production time="20" amount="1" method="terran" name="{20206,901}">
+      <primary>
+        <ware ware="energycells" amount="7" />
+        <ware ware="metallicmicrolattice" amount="24" />
+        <ware ware="siliconcarbide" amount="5" />
+      </primary>
+    </production>
+  </add>
+  <add sel="/wares/ware[@id='ses_turret_rip_m_salvage_02_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/production[@method='terran']">
+    <production time="20" amount="1" method="terran" name="{20206,901}">
+      <primary>
+        <ware ware="energycells" amount="7" />
+        <ware ware="metallicmicrolattice" amount="24" />
+        <ware ware="siliconcarbide" amount="5" />
+      </primary>
+    </production>
+  </add>
+  <add sel="/wares/ware[@id='ses_turret_rip_l_salvage_01_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/production[@method='terran']">
+    <production time="20" amount="1" method="terran" name="{20206,901}">
+      <primary>
+        <ware ware="energycells" amount="7" />
+        <ware ware="metallicmicrolattice" amount="24" />
+        <ware ware="siliconcarbide" amount="5" />
+      </primary>
+    </production>
+  </add>
+  <add sel="/wares/ware[@id='ses_turret_rip_m_salvage_01_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/production[@method='closedloop']">
+    <production time="20" amount="1" method="closedloop" name="{20206,1201}">
+      <primary>
+        <ware ware="claytronics" amount="1" />
+        <ware ware="energycells" amount="59" />
+        <ware ware="hullparts" amount="7" />
+      </primary>
+    </production>
+  </add>
+  <add sel="/wares/ware[@id='ses_turret_rip_m_salvage_02_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/production[@method='closedloop']">
+    <production time="20" amount="1" method="closedloop" name="{20206,1201}">
+      <primary>
+        <ware ware="claytronics" amount="1" />
+        <ware ware="energycells" amount="59" />
+        <ware ware="hullparts" amount="7" />
+      </primary>
+    </production>
+  </add>
+  <add sel="/wares/ware[@id='ses_turret_rip_l_salvage_01_mk1']" if="/wares/ware[@id='turret_gen_m_scrapbeam_01_mk1']/production[@method='closedloop']">
+    <production time="20" amount="1" method="closedloop" name="{20206,1201}">
+      <primary>
+        <ware ware="claytronics" amount="1" />
+        <ware ware="energycells" amount="59" />
+        <ware ware="hullparts" amount="7" />
+      </primary>
+    </production>
   </add>
 </diff>
