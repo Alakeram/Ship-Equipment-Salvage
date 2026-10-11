@@ -5,7 +5,7 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
-## v4.0 - not yet released
+## v4.0 - 2026-10-11
 
 **Wreck salvaging, crafting and research since public release v3.78**
 
