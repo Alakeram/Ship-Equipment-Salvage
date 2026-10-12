@@ -13,7 +13,8 @@
        and the description (the greyed entry's tooltip) names the requirement. -->
   <order id="SESSalvageRoutine" name="{1171361,936}" description="{1171361,937}" category="salvage" allowinloop="false">
     <params>
-      <param name="destination" type="position" text="{1041, 10027}" comment="Optional area: [space, position]. With radius it limits where wrecks are searched. Null = the ship's current sector.">
+      <param name="destination" type="position" default="null" text="{1041, 10027}" comment="Optional area: [space, position]. With radius it limits where wrecks are searched. Null = the ship's current sector. default=null keeps it optional, as vanilla order.move.recon.explore (without a default X4 treats a position as required).">
+
         <input_param name="class" value="class.sector"/>
         <patch value="null" sinceversion="2"/>
       </param>

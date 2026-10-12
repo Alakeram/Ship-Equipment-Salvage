@@ -5,6 +5,21 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v4.01 - 2026-10-12
+
+**Hotfix: salvage ships that never moved to the wreck**
+
+- Fixed salvage ships with only Riptide Salvage Turrets (no forward salvage
+  lasers) sitting still instead of flying to the wreck, most noticeable with
+  Riptide Auto-Salvage in sectors with few wrecks. The game reported an
+  invalid weapon range for these ships (about 3.4 × 10³⁸ m), so the ship
+  thought it was already in range. Salvage orders now use the actual firing
+  range of the fitted salvage gear (3 km for the Salvage Laser S and Salvage
+  Turret M, 4 km for the Salvage Laser M). Reported by CombreKon, who also
+  supplied a workaround.
+- Fixed Riptide Auto-Salvage requiring an area. The area is optional again:
+  without one, the ship works its current sector.
+
 ## v4.0 - 2026-10-11
 
 **Wreck salvaging, crafting and research since public release v3.78**

@@ -77,7 +77,30 @@
       </do_if>
       <set_weapon_mode group="$miners" weaponmode="weaponmode.mining"/>
       <!-- Close to the SHORTEST salvage range so every salvage gear can reach. -->
-      <set_value name="$range" exact="[this.assignedcontrolled.shortestmaxcombatrange.{weaponmode.mining}.all, 300m].max"/>
+      <!-- Shortest firing range of the salvage gear itself. The engine's
+           shortestmaxcombatrange.{mining}.all ignored the turrets (4 km reported
+           with 3 km Riptide turrets fitted) and can return a huge value when it
+           finds no mining weapon, so the ship never closed in or repositioned
+           far away (player report, 2026-10-12). -->
+      <set_value name="$range" exact="0m"/>
+      <do_for_each name="$gear" in="$miners">
+        <do_if value="@$gear.maxfirerange gt 0m and ($range == 0m or $gear.maxfirerange lt $range)">
+          <set_value name="$range" exact="$gear.maxfirerange"/>
+        </do_if>
+      </do_for_each>
+      <!-- Safety net from the player report: engine values, then 300 m. -->
+      <do_if value="$range le 0m or $range ge 100km">
+        <set_value name="$SESInvalidShortestRange" exact="$range"/>
+        <set_value name="$range" exact="this.assignedcontrolled.shortestmaxcombatrange.{weaponmode.mining}.all"/>
+        <do_if value="$range le 0m or $range ge 100km">
+          <set_value name="$range" exact="this.assignedcontrolled.maxcombatrange.{weaponmode.mining}.all"/>
+        </do_if>
+        <do_if value="$range le 0m or $range ge 100km">
+          <set_value name="$range" exact="300m"/>
+        </do_if>
+        <debug_text text="'[SES][RANGE FIX] ship=%s turrets=%s weapons=%s invalidgearrange=%s approachrange=%s'.[this.assignedcontrolled, $turretcount, $guncount, $SESInvalidShortestRange, $range]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+      </do_if>
+      <set_value name="$range" exact="[$range, 300m].max"/>
       <debug_text text="'[SES][STANDIN] Salvage Wreck start. ship=%s turrets=%s weapons=%s shortestrange=%s'.[this.assignedcontrolled, $turretcount, $guncount, $range]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
 
       <label name="approach"/>
@@ -215,7 +238,30 @@
       </do_if>
       <set_weapon_mode group="$miners" weaponmode="weaponmode.mining"/>
       <!-- Close to the SHORTEST salvage range so every salvage gear can reach. -->
-      <set_value name="$range" exact="[this.assignedcontrolled.shortestmaxcombatrange.{weaponmode.mining}.all, 300m].max"/>
+      <!-- Shortest firing range of the salvage gear itself. The engine's
+           shortestmaxcombatrange.{mining}.all ignored the turrets (4 km reported
+           with 3 km Riptide turrets fitted) and can return a huge value when it
+           finds no mining weapon, so the ship never closed in or repositioned
+           far away (player report, 2026-10-12). -->
+      <set_value name="$range" exact="0m"/>
+      <do_for_each name="$gear" in="$miners">
+        <do_if value="@$gear.maxfirerange gt 0m and ($range == 0m or $gear.maxfirerange lt $range)">
+          <set_value name="$range" exact="$gear.maxfirerange"/>
+        </do_if>
+      </do_for_each>
+      <!-- Safety net from the player report: engine values, then 300 m. -->
+      <do_if value="$range le 0m or $range ge 100km">
+        <set_value name="$SESInvalidShortestRange" exact="$range"/>
+        <set_value name="$range" exact="this.assignedcontrolled.shortestmaxcombatrange.{weaponmode.mining}.all"/>
+        <do_if value="$range le 0m or $range ge 100km">
+          <set_value name="$range" exact="this.assignedcontrolled.maxcombatrange.{weaponmode.mining}.all"/>
+        </do_if>
+        <do_if value="$range le 0m or $range ge 100km">
+          <set_value name="$range" exact="300m"/>
+        </do_if>
+        <debug_text text="'[SES][RANGE FIX] ship=%s turrets=%s weapons=%s invalidgearrange=%s approachrange=%s'.[this.assignedcontrolled, $turretcount, $guncount, $SESInvalidShortestRange, $range]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+      </do_if>
+      <set_value name="$range" exact="[$range, 300m].max"/>
       <debug_text text="'[SES][STANDIN] Salvage Wreck start. ship=%s turrets=%s weapons=%s shortestrange=%s'.[this.assignedcontrolled, $turretcount, $guncount, $range]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
 
       <label name="approach"/>

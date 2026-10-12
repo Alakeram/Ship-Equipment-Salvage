@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v4.0<br>
+**Release:** v4.01<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -14,6 +14,14 @@ through a dedicated Black Market parts network.
 
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
+
+## What Changed in v4.01
+
+- Hotfix: salvage ships with only Riptide Salvage Turrets now fly to the wreck
+  instead of sitting still (the game reported an invalid weapon range).
+  Reported by CombreKon.
+- Riptide Auto-Salvage no longer requires an area; without one it works the
+  ship's current sector.
 
 ## What Changed in v4.0
 

@@ -40,7 +40,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v400",
+	version = "v401",
 	userdatakey = "ses_tool_mode",
 	controlid = "ses_tool_mode",
 	rowid = "ses_tool_mode_row",

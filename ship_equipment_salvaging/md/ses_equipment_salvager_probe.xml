@@ -449,7 +449,7 @@
             $enabled = @global.$SES_Debug_Keys_Enabled,
             $onOpen = SES_Extension_Options_Build_Helper_Menu_V1
           ]" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Ship Equipment Salvaging options registered for v400. helpersenabled=%s, wreckminingbeta=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Ship Equipment Salvaging options registered for v401. helpersenabled=%s, wreckminingbeta=%s'.[
           @global.$SES_Debug_Keys_Enabled,
           @global.$SES_Wreck_Mining_Beta_Enabled
         ]" />
@@ -745,7 +745,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v400. Native salvage equipment tiles retain the two-line chance display, merged missile banks use exact bank quantities, and the extension no longer creates a hard save dependency.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v401. Native salvage equipment tiles retain the two-line chance display, merged missile banks use exact bank quantities, and the extension no longer creates a hard save dependency.'" />
       </actions>
     </cue>
 
@@ -843,7 +843,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v400',
+              $version = 'v401',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -857,7 +857,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v400',
+              $version = 'v401',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -1345,7 +1345,7 @@
         <do_if value="not @global.$SES_Black_Market_Shop_Stock">
           <set_value name="global.$SES_Black_Market_Shop_Stock" exact="[]" />
         </do_if>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v42 initialized for v400 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated component stock and SES-owned shady-guy item stock both use lazy 1-2 hour production refresh windows; the developer-gated fast component rotation switch selects 1-2 minute refreshes. Production economy remains independent of the Wreck Mining &amp; Fabrication BETA flag. forcegeneration=%s fastrotation=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v42 initialized for v401 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated component stock and SES-owned shady-guy item stock both use lazy 1-2 hour production refresh windows; the developer-gated fast component rotation switch selects 1-2 minute refreshes. Production economy remains independent of the Wreck Mining &amp; Fabrication BETA flag. forcegeneration=%s fastrotation=%s'.[
           @global.$SES_Black_Market_Debug_Force_Rotation_Generation,
           @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled
         ]" />
@@ -3501,7 +3501,7 @@
 
     <cue name="SES_Production_Features_Startup_V1">
       <actions>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v400. S/M salvage, refit, persistent inventory, delayed Black Market progression, rotating dealer stock, atomic merged missile-bank salvage/refit, and a removable save-independent manifest are active. Wreck Mining &amp; Fabrication BETA defaults off; when enabled it adds finite personal-inventory salvage, armed-wreck fragments, core refinement, exact learned patterns, and S/M weapon/M-turret fabrication. Wrecks are not mutated. The developer-only read-only wreck probe remains separately gated. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated component stock plus SES-owned shady-guy item stock refresh lazily on randomized 1-2 hour production windows.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v401. S/M salvage, refit, persistent inventory, delayed Black Market progression, rotating dealer stock, atomic merged missile-bank salvage/refit, and a removable save-independent manifest are active. Wreck Mining &amp; Fabrication BETA defaults off; when enabled it adds finite personal-inventory salvage, armed-wreck fragments, core refinement, exact learned patterns, and S/M weapon/M-turret fabrication. Wrecks are not mutated. The developer-only read-only wreck probe remains separately gated. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated component stock plus SES-owned shady-guy item stock refresh lazily on randomized 1-2 hour production windows.'" />
       </actions>
     </cue>
 
@@ -3523,7 +3523,7 @@
           <set_value name="global.$SES_Wreck_Harvest_State" exact="table[]" />
         </do_if>
         <set_value name="global.$SES_Wreck_Mining_Beta_Version" exact="1" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Finite harvesting initialized for v400. enabled=%s. The default-off BETA accepts six verified ship mining lasers and physical mining-turret hits from the currently piloted ship on unclaimed S/M wrecks. It stores materials in personal inventory and never mutates the wreck. New armed wrecks can yield core fragments; refinement, exact patterns and fabrication are BETA-gated. The BETA All dropdown can direct all mining turrets to the selected eligible wreck while combat turret modes remain unchanged.'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Finite harvesting initialized for v401. enabled=%s. The default-off BETA accepts six verified ship mining lasers and physical mining-turret hits from the currently piloted ship on unclaimed S/M wrecks. It stores materials in personal inventory and never mutates the wreck. New armed wrecks can yield core fragments; refinement, exact patterns and fabrication are BETA-gated. The BETA All dropdown can direct all mining turrets to the selected eligible wreck while combat turret modes remain unchanged.'.[
           @global.$SES_Wreck_Mining_Beta_Enabled
         ]" />
       </actions>
@@ -3768,7 +3768,7 @@
 
     <cue name="SES_Wreck_Mining_ReadOnly_Probe_V1_Startup">
       <actions>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK PROBE] Read-only S/M wreck-mining probe v1 initialized for v400. gate=%s, developerhelpers=%s, debuglogging=%s. The probe records qualifying hit cadence and wreck metadata only; it grants no wares, changes no cargo or ledger state, and does not mutate or claim wrecks.'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK PROBE] Read-only S/M wreck-mining probe v1 initialized for v401. gate=%s, developerhelpers=%s, debuglogging=%s. The probe records qualifying hit cadence and wreck metadata only; it grants no wares, changes no cargo or ledger state, and does not mutate or claim wrecks.'.[
           @global.$SES_Debug_Keys_Enabled and @global.$SES_Debug_Log_Enabled,
           @global.$SES_Debug_Keys_Enabled,
           @global.$SES_Debug_Log_Enabled
@@ -7033,7 +7033,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v400',
+            $version = 'v401',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -8458,7 +8458,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v400',
+            $version = 'v401',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,

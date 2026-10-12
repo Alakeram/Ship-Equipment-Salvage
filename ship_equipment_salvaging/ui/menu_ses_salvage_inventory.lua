@@ -11,7 +11,7 @@ pcall(ffi.cdef, [[
 ]])
 
 local ses = {
-	version = "v400",
+	version = "v401",
 	screen = "SES_Salvage_Inventory_UI",
 	category = "ses_salvage",
 	patchid = "ship_equipment_salvaging",
