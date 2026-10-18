@@ -23,7 +23,7 @@ local tradeData = nil
 local tradeMenu = {}
 
 local ses = {
-	version = "v401",
+	version = "v410",
 	mode = "custom_ses_black_market_trade",
 	blackboard = "$SES_Black_Market_BarterData",
 	tradepayloadblackboard = "$SES_Black_Market_TradePayload",

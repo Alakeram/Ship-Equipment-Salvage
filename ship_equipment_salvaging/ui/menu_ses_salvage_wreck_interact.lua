@@ -1,5 +1,6 @@
 -- Ship Equipment Salvaging: "Salvage Wreck" (right-click a wreck) and "Riptide Salvage in Area"
--- (right-click in space) interact-menu orders.
+-- (right-click in space) interact-menu orders, plus Remote Salvage / Remote Weld
+-- (right-click an S/M ship) and the regulator hand-over rows for a pilot.
 -- Vanilla's interact menu only lists hard-coded orders, and SirNukes' Interact Menu
 -- API never fired under Kuertee's menu on this setup (MCP test 2026-10-09), so the
 -- entry is added through Kuertee UIX interact-menu callbacks. Lua only offers the
@@ -29,6 +30,22 @@ pcall(ffi.cdef, [[
     size_t GetNumUpgradeSlots(UniverseID destructibleid, const char* macroname, const char* upgradetypename);
     UniverseID GetUpgradeSlotCurrentComponent(UniverseID destructibleid, const char* upgradetypename, size_t slot);
 ]])
+pcall(ffi.cdef, [[bool IsUnit(UniverseID controllableid);]])
+pcall(ffi.cdef, [[
+    typedef struct {
+        const char* id;
+        const char* name;
+        const char* desc;
+        uint32_t amount;
+        uint32_t numtiers;
+        bool canhire;
+    } PeopleInfo;
+]])
+pcall(ffi.cdef, [[uint32_t GetNumAllRoles(void);]])
+pcall(ffi.cdef, [[UniverseID GetPlayerContainerID(void);]])
+pcall(ffi.cdef, [[UniverseID GetPlayerOccupiedShipID(void);]])
+pcall(ffi.cdef, [[UniverseID GetContextByClass(UniverseID componentid, const char* classname, bool includeself);]])
+pcall(ffi.cdef, [[uint32_t GetPeople2(PeopleInfo* result, uint32_t resultlen, UniverseID controllableid, bool includearriving);]])
 pcall(ffi.cdef, [[bool IsOrderSelectableFor(const char* orderdefid, UniverseID controllableid);]])
 pcall(ffi.cdef, [[bool RemoveAllOrders2(UniverseID controllableid, bool onlytrade, bool onlypriority);]])
 
@@ -70,6 +87,10 @@ local function targetWreck()
     local iswreck, realclass = GetComponentData(object64, "iswreck", "realclassid")
     if iswreck ~= true then return nil end
     if not (Helper.isComponentClass(realclass, "ship_s") or Helper.isComponentClass(realclass, "ship_m")) then return nil end
+    -- Drones and deployables (laser towers) are ship_s too but not salvageable hulls.
+    if GetComponentData(object64, "isdeployable") then return nil end
+    local unitOk, isUnit = pcall(function() return C.IsUnit(object64) end)
+    if unitOk and isUnit then return nil end
     return object64
 end
 
@@ -234,9 +255,182 @@ local function insertSalvageInArea()
     })
 end
 
+-- Remote service (md/ses_remote_service.xml): a selected ship whose pilot
+-- carries the matching Avarice regulator and that has service crew salvages
+-- from, or welds onto, the right-clicked S/M ship. The row opens the native
+-- planner; MD validates everything again.
+local REMOTE_ORDER_ID = "SESRemoteService"
+local REMOTE_TOOL = { salvage = "ses_equipment_salvager", weld = "ses_equipment_welder" }
+
+local function serviceCrew(ship64)
+    local ok, amount = pcall(function()
+        local num = C.GetNumAllRoles()
+        local people = ffi.new("PeopleInfo[?]", num)
+        num = C.GetPeople2(people, num, ship64, false)
+        for i = 0, num - 1 do
+            if ffi.string(people[i].id) == "service" then return people[i].amount end
+        end
+        return 0
+    end)
+    return ok and tonumber(amount) or 0
+end
+
+local function assignedPilot(ship64)
+    local pilot = GetComponentData(ship64, "assignedpilot")
+    if not pilot or pilot == 0 then return nil end
+    return componentID(pilot)
+end
+
+local function carries(entity, wareid)
+    if not entity or not GetInventory then return false end
+    local ok, inventory = pcall(GetInventory, entity)
+    local entry = ok and type(inventory) == "table" and inventory[wareid] or nil
+    return type(entry) == "table" and (tonumber(entry.amount) or 0) > 0
+end
+
+-- The right-clicked ship when it is an intact S/M ship.
+local function remoteTarget()
+    if not interactMenu or not interactMenu.componentSlot or not interactMenu.componentSlot.component then return nil end
+    local ok, target64 = pcall(componentID, interactMenu.componentSlot.component)
+    if not ok or not target64 or target64 == 0 then return nil end
+    if IsValidComponent and not IsValidComponent(target64) then return nil end
+    if not (C.IsComponentClass(target64, "ship_s") or C.IsComponentClass(target64, "ship_m")) then return nil end
+    if GetComponentData(target64, "iswreck") then return nil end
+    return target64
+end
+
+local function remoteTargetOK(target64, mode)
+    local isPlayerOwned, owner, pilot = GetComponentData(target64, "isplayerowned", "owner", "pilot")
+    if mode == "weld" then return isPlayerOwned == true end
+    if isPlayerOwned == true then return true end
+    return owner == "ownerless" and (not pilot or pilot == 0)
+end
+
+-- Selected ships whose pilot carries the regulator. With requireCrew, only
+-- those that also have service crew (the ones that can take the order).
+local function remoteShips(target64, mode, requireCrew)
+    if requireCrew == nil then requireCrew = true end
+    local result = {}
+    if not interactMenu or type(interactMenu.selectedplayerships) ~= "table" then return result end
+    local controlled = componentID(C.GetPlayerControlledShipID())
+    for _, component in ipairs(interactMenu.selectedplayerships) do
+        local ok, ship64 = pcall(componentID, component)
+        if ok and ship64 and ship64 ~= 0 and ship64 ~= target64 and ship64 ~= controlled
+            and (not IsValidComponent or IsValidComponent(ship64))
+            and (not IsComponentOperational or IsComponentOperational(ship64))
+            and GetComponentData(ship64, "isplayerowned") == true
+            and carries(assignedPilot(ship64), REMOTE_TOOL[mode])
+            and ((not requireCrew) or serviceCrew(ship64) > 0) then
+            result[#result + 1] = ship64
+        end
+    end
+    return result
+end
+
+local function remoteOrder(mode)
+    local target64 = remoteTarget()
+    local ships = target64 and remoteShips(target64, mode) or {}
+    if target64 and #ships > 0 and AddUITriggeredEvent and ConvertStringToLuaID then
+        -- One planner per order: the first eligible selected ship takes the job.
+        pcall(AddUITriggeredEvent, "SES_Remote_Service", "order", {
+            1, (mode == "weld") and 2 or 1,
+            ConvertStringToLuaID(tostring(target64)),
+            ConvertStringToLuaID(tostring(ships[1])),
+        })
+    end
+    finishAction()
+end
+
+local function insertRemoteService()
+    if type(interactMenu.insertInteractionContent) ~= "function" then return end
+    local target64 = remoteTarget()
+    if not target64 then return end
+    local iconText = ""
+    if type(interactMenu.orderIconText) == "function" then
+        local ok, result = pcall(interactMenu.orderIconText, REMOTE_ORDER_ID)
+        if ok and type(result) == "string" then iconText = result end
+    end
+    -- A selected ship whose pilot carries the regulator shows the row; it is
+    -- greyed when none of those ships has service crew (Marek). Without a
+    -- regulator-carrying pilot there is no row at all.
+    for _, entry in ipairs({ { mode = "salvage", text = 1248, fallback = "Salvage Equipment" }, { mode = "weld", text = 1249, fallback = "Weld Equipment" } }) do
+        if remoteTargetOK(target64, entry.mode) and #remoteShips(target64, entry.mode, false) > 0 then
+            local ready = #remoteShips(target64, entry.mode, true) > 0
+            interactMenu.insertInteractionContent("selected_orders", {
+                type = "ses_remote_" .. entry.mode,
+                text = iconText .. sesText(entry.text, entry.fallback),
+                script = function () return remoteOrder(entry.mode) end,
+                active = ready,
+                mouseOverText = (not ready) and sesText(1269, "No service crew aboard.") or nil,
+                orderid = REMOTE_ORDER_ID,
+                helpOverlayID = "",
+                helpOverlayText = "",
+                helpOverlayHighlightOnly = true,
+            })
+        end
+    end
+end
+
+-- Hand a regulator to, or take regulators back from, the pilot of the
+-- right-clicked player ship. Only offered when the player is with the ship,
+-- the same test as SES_Remote_Handover_V1 (which checks again): aboard it,
+-- docked on it, or both docked at the same container.
+local function playerNearShip(ship64)
+    local ok, near = pcall(function()
+        local occupied = componentID(C.GetPlayerOccupiedShipID())
+        local container = componentID(C.GetPlayerContainerID())
+        if ship64 == occupied or ship64 == container then return true end
+        local occupiedDock = (occupied ~= 0) and componentID(C.GetContextByClass(occupied, "container", false)) or 0
+        if occupiedDock == ship64 then return true end
+        local shipDock = componentID(C.GetContextByClass(ship64, "container", false))
+        return shipDock ~= 0 and (shipDock == container or shipDock == occupiedDock)
+    end)
+    return ok and near == true
+end
+
+local function handover(ship64, action)
+    if AddUITriggeredEvent and ConvertStringToLuaID then
+        pcall(AddUITriggeredEvent, "SES_Remote_Service", "handover", { 1, action, ConvertStringToLuaID(tostring(ship64)) })
+    end
+    finishAction()
+end
+
+local function insertHandover()
+    if type(interactMenu.insertInteractionContent) ~= "function" then return end
+    if not interactMenu.componentSlot or not interactMenu.componentSlot.component then return end
+    local ok, ship64 = pcall(componentID, interactMenu.componentSlot.component)
+    if not ok or not ship64 or ship64 == 0 or not C.IsComponentClass(ship64, "ship") then return end
+    if GetComponentData(ship64, "isplayerowned") ~= true or GetComponentData(ship64, "iswreck") then return end
+    local pilot = assignedPilot(ship64)
+    if not pilot or not playerNearShip(ship64) then return end
+    local player = componentID(C.GetPlayerID())
+    local rows = {}
+    for action, tool in ipairs({ REMOTE_TOOL.salvage, REMOTE_TOOL.weld }) do
+        if carries(player, tool) and not carries(pilot, tool) then
+            rows[#rows + 1] = { action = action, text = (action == 1) and 1252 or 1253, fallback = (action == 1) and "Hand Beam Regulator to Pilot" or "Hand Bonding Regulator to Pilot" }
+        end
+    end
+    if carries(pilot, REMOTE_TOOL.salvage) or carries(pilot, REMOTE_TOOL.weld) then
+        rows[#rows + 1] = { action = 3, text = 1254, fallback = "Take Regulators from Pilot" }
+    end
+    for _, row in ipairs(rows) do
+        interactMenu.insertInteractionContent("interaction", {
+            type = "ses_regulator_handover_" .. row.action,
+            text = sesText(row.text, row.fallback),
+            script = function () return handover(ship64, row.action) end,
+            active = true,
+            helpOverlayID = "",
+            helpOverlayText = "",
+            helpOverlayHighlightOnly = true,
+        })
+    end
+end
+
 local function insertSesOrders()
     pcall(insertSalvageWreck)
     pcall(insertSalvageInArea)
+    pcall(insertRemoteService)
+    pcall(insertHandover)
 end
 
 local function registerCallbacks()

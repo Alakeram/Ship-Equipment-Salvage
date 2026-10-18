@@ -37,7 +37,7 @@
     <actions>
       <label name="start"/>
       <set_value name="$gunstarget" exact="null"/>
-      <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$target.iswreck or not ($target.isrealclass.ship_s or $target.isrealclass.ship_m) or @$target.tugship or @$target.dismantlingobject or @$target.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
+      <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$target.iswreck or not ($target.isrealclass.ship_s or $target.isrealclass.ship_m) or @$target.isunit or @$target.isdeployable or @$target.tugship or @$target.dismantlingobject or @$target.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
         <debug_text text="'[SES][STANDIN] Salvage Wreck refused: target %s is not an eligible S/M wreck or the BETA is off.'.[$target]" chance="$debugchance"/>
         <do_if value="@this.assignedcontrolled.order.isrunning">
           <set_order_failed order="this.assignedcontrolled.order" text="{1171361,934}"/>
@@ -145,7 +145,20 @@
             <param name="allowwreck" value="true"/>
             <param name="debugchance" value="$debugchance"/>
           </run_script>
+          <set_value name="$repositionedat" exact="player.age"/>
           <resume label="work"/>
+        </do_if>
+        <!-- No salvage hit for 60 s (after the reposition, or since the last hit):
+             give up so Auto-Salvage moves on (its retry guard skips this wreck)
+             instead of waiting forever (stalled on a laser tower, MCP run 45). -->
+        <set_value name="$lasthit" exact="@global.$SES_Salvage_Standins.{$standin}.$lastsalvagehit"/>
+        <set_value name="$stallfrom" exact="if $repositionedat? then $repositionedat else $workstart"/>
+        <do_if value="player.age gt (if $lasthit and $lasthit gt $stallfrom then $lasthit else $stallfrom) + 60s">
+          <debug_text text="'[SES][STANDIN] No salvage hit for 60 s; giving up on %s.'.[$target]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+          <do_if value="@this.assignedcontrolled.order.isrunning">
+            <set_order_failed order="this.assignedcontrolled.order" text="{1045,101}" comment="Unable to reach destination."/>
+          </do_if>
+          <resume label="finish"/>
         </do_if>
         <do_if value="$turretcount gt 0">
           <set_turret_targets object="this.assignedcontrolled" target="[$standin]" preferredtarget="$standin" weaponmode="weaponmode.mining"/>
@@ -198,7 +211,7 @@
       <!-- Coming down from visible attention: stop any targeted gun fire. -->
       <stop_shooting object="this.assignedcontrolled" missiles="false" turrets="false" weaponmode="weaponmode.mining"/>
       <set_value name="$gunstarget" exact="null"/>
-      <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$target.iswreck or not ($target.isrealclass.ship_s or $target.isrealclass.ship_m) or @$target.tugship or @$target.dismantlingobject or @$target.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
+      <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$target.iswreck or not ($target.isrealclass.ship_s or $target.isrealclass.ship_m) or @$target.isunit or @$target.isdeployable or @$target.tugship or @$target.dismantlingobject or @$target.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$target}.$exhausted">
         <debug_text text="'[SES][STANDIN] Salvage Wreck refused: target %s is not an eligible S/M wreck or the BETA is off.'.[$target]" chance="$debugchance"/>
         <do_if value="@this.assignedcontrolled.order.isrunning">
           <set_order_failed order="this.assignedcontrolled.order" text="{1171361,934}"/>

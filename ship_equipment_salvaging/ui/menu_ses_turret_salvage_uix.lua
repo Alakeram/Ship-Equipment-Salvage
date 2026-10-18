@@ -5,7 +5,7 @@
 
 local ffi = require("ffi")
 local C = ffi.C
-local version = "v401"
+local version = "v410"
 local callbackID = "ship_equipment_salvaging_mining_turrets"
 local loggedConflicts = {}
 

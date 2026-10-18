@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<aiscript name="order.ses.remote.service" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!-- SES Remote Service: fly to an S/M ship and let the service crew salvage
+       from it or weld saved parts onto it, using the plan the player made in
+       the native planner. Queued only by md/ses_remote_service.xml, which keeps
+       the job (plan, mode, work time) in global.$SES_Remote_Jobs.{$jobid}.
+       The pilot (this) must carry the matching Avarice regulator and the ship
+       needs service crew; both are checked again before any change is made.
+       Cancelling the order before the work is done applies nothing. -->
+  <order id="SESRemoteService" name="{1171361,1250}" description="{1171361,1251}" category="salvage" allowinloop="false">
+    <params>
+      <param name="target" required="true" type="object" text="{1041,10126}" comment="Target. The S/M ship to salvage from or weld onto."/>
+      <param name="jobid" default="null" type="internal" comment="SES remote service job id"/>
+      <param name="debugchance" type="bool" default="0" advanced="true" text="{1041,10086}" comment="Print debug output">
+        <input_param name="truevalue" value="100"/>
+      </param>
+    </params>
+    <requires>
+      <match class="class.spacesuit" negate="true"/>
+    </requires>
+    <location object="$target" condition="@$target.exists"/>
+  </order>
+  <interrupts>
+    <handler ref="TargetInvalidHandler"/>
+    <handler ref="AttackHandler"/>
+    <handler ref="MissileLockHandler"/>
+    <handler ref="ScannedHandler"/>
+    <handler ref="InspectedHandler"/>
+    <handler ref="ResupplyHandler"/>
+  </interrupts>
+  <attention min="unknown">
+    <actions>
+      <label name="start"/>
+      <set_value name="$job" exact="if $jobid then @global.$SES_Remote_Jobs.{$jobid} else null"/>
+      <do_if value="not $job or $job.$ship != this.assignedcontrolled or $job.$target != $target">
+        <debug_text text="'[SES][REMOTE] %s has no valid remote job (id=%s); order ends.'.[this.assignedcontrolled, $jobid]" chance="$debugchance"/>
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,1267}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+      <set_value name="$tool" exact="if $job.$mode == 'weld' then ware.ses_equipment_welder else ware.ses_equipment_salvager"/>
+      <set_value name="$approaches" exact="0"/>
+
+      <label name="check"/>
+      <!-- Early, quiet checks; MD repeats them before any change. -->
+      <do_if value="not this.inventory.{$tool}.exists or @this.assignedcontrolled.people.{entityrole.service}.count lt 1 or not @$target.exists">
+        <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'apply']"/>
+        <wait exact="1s"/>
+        <resume label="poll"/>
+      </do_if>
+
+      <label name="approach"/>
+      <do_if value="this.assignedcontrolled.sector != $target.sector or this.assignedcontrolled.bboxdistanceto.{$target} gt 1km">
+        <set_value name="$approaches" operation="add"/>
+        <do_if value="$approaches gt 5">
+          <debug_text text="'[SES][REMOTE] %s could not stay near %s; order fails.'.[this.assignedcontrolled, $target]" chance="$debugchance"/>
+          <do_if value="@this.assignedcontrolled.order.isrunning">
+            <set_order_failed order="this.assignedcontrolled.order" text="{1045,101}" comment="Unable to reach destination."/>
+          </do_if>
+          <resume label="finish"/>
+        </do_if>
+        <run_script name="'move.generic'" result="$movesuccess">
+          <param name="destination" value="$target"/>
+          <param name="position" value="position.[0m, 0m, -([$target.size, 100m].max + this.assignedcontrolled.size)]"/>
+          <param name="debugchance" value="$debugchance"/>
+        </run_script>
+        <do_if value="not $movesuccess">
+          <do_if value="$target.exists and @this.assignedcontrolled.order.isrunning">
+            <set_order_failed order="this.assignedcontrolled.order" text="{1045,101}" comment="Unable to reach destination."/>
+          </do_if>
+          <resume label="finish"/>
+        </do_if>
+        <resume label="approach"/>
+      </do_if>
+
+      <!-- The crew's work time, as the EVA work phase (3-15 s). -->
+      <stop_moving object="this.assignedcontrolled"/>
+      <!-- Visible attention only: a crew member flies over in a spacesuit
+           first (md/ses_remote_service.xml 'eva_out'); the work time starts
+           when the suit is at the target, or after 60 s at most. -->
+      <do_if value="this.attention ge attention.visible">
+        <set_value name="$eva" exact="true"/>
+        <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'eva_out']"/>
+        <wait exact="1s"/>
+        <set_value name="$evauntil" exact="player.age + 60s"/>
+        <set_value name="$suit" exact="@global.$SES_Remote_Jobs.{$jobid}.$suit"/>
+        <do_while value="@$suit.exists and @$target.exists and $suit.distanceto.{$target} gt [$target.size * 0.5, 15m].max + 40m and player.age lt $evauntil">
+          <wait exact="1s"/>
+        </do_while>
+      </do_if>
+      <debug_text text="'[SES][REMOTE] %s working on %s for %ss (job %s, crew eva %s).'.[this.assignedcontrolled, $target, $job.$seconds, $jobid, @$eva]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+      <wait exact="$job.$seconds * 1s"/>
+      <do_if value="not @$target.exists">
+        <resume label="finish"/>
+      </do_if>
+      <do_if value="this.assignedcontrolled.sector != $target.sector or this.assignedcontrolled.bboxdistanceto.{$target} gt 1km">
+        <resume label="approach"/>
+      </do_if>
+      <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'apply']"/>
+      <wait exact="500ms"/>
+
+      <label name="poll"/>
+      <!-- queued/busy: another planner or job holds the pipeline; ask again. -->
+      <set_value name="$polls" exact="0"/>
+      <set_value name="$sincesignal" exact="0"/>
+      <label name="pollloop"/>
+      <set_value name="$job" exact="@global.$SES_Remote_Jobs.{$jobid}"/>
+      <do_if value="not $job">
+        <resume label="finish"/>
+      </do_if>
+      <do_if value="$job.$state == 'done'">
+        <resume label="finish"/>
+      </do_if>
+      <do_if value="$job.$state == 'failed'">
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,1267}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+      <set_value name="$polls" operation="add"/>
+      <set_value name="$sincesignal" operation="add"/>
+      <do_if value="$polls gt 120">
+        <debug_text text="'[SES][REMOTE] Job %s timed out in state %s.'.[$jobid, $job.$state]" chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0"/>
+        <do_if value="@this.assignedcontrolled.order.isrunning">
+          <set_order_failed order="this.assignedcontrolled.order" text="{1171361,1267}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+      <wait exact="1s"/>
+      <do_if value="($job.$state == 'busy' or $job.$state == 'queued') and $sincesignal ge 3">
+        <set_value name="$sincesignal" exact="0"/>
+        <do_if value="this.assignedcontrolled.sector != $target.sector or this.assignedcontrolled.bboxdistanceto.{$target} gt 1km">
+          <resume label="approach"/>
+        </do_if>
+        <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'apply']"/>
+      </do_if>
+      <resume label="pollloop"/>
+
+      <label name="finish"/>
+      <!-- Bring the crew member back aboard before the order ends. -->
+      <set_value name="$suit" exact="if $jobid then @global.$SES_Remote_Jobs.{$jobid}.$suit else null"/>
+      <do_if value="@$suit.exists">
+        <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'eva_back']"/>
+        <set_value name="$evauntil" exact="player.age + 60s"/>
+        <do_while value="@$suit.exists and $suit.distanceto.{this.assignedcontrolled} gt [this.assignedcontrolled.size * 0.5, 15m].max + 15m and player.age lt $evauntil">
+          <wait exact="1s"/>
+        </do_while>
+        <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'eva_end']"/>
+        <wait exact="500ms"/>
+      </do_if>
+      <do_if value="$jobid and @global.$SES_Remote_Jobs.{$jobid}.$state != 'applying'">
+        <remove_value name="global.$SES_Remote_Jobs.{$jobid}"/>
+      </do_if>
+    </actions>
+  </attention>
+  <!-- Cancelled by the player or replaced by another order: drop the job so
+       nothing is applied later. A job already applying finishes in MD. -->
+  <on_abort>
+    <do_if value="$jobid">
+      <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'abort']"/>
+    </do_if>
+  </on_abort>
+</aiscript>

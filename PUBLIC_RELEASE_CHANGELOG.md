@@ -5,6 +5,58 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v4.10 - 2026-10-18
+
+**Remote salvage and welding by your ships' service crew**
+
+### New: Salvage Equipment and Weld Equipment orders
+
+- Select one of your ships on the map and right-click an S/M ship:
+  **Salvage Equipment** (player-owned or abandoned ships) or **Weld
+  Equipment** (your own ships). This opens the same Ship Configuration planner
+  as EVA work. Confirming adds the order to the end of the ship's queue;
+  closing the planner adds nothing.
+- The ship needs **service crew**, and its pilot must carry the matching
+  regulator (Avarice Beam Regulator for salvage, Avarice Bonding Regulator for
+  welding). Without service crew the option is shown greyed out; without the
+  regulator it is not shown.
+- The ship flies to the target, works for the same 3-15 s as EVA work, and
+  then salvages or welds the planned parts. Extraction chances, catalyst costs
+  (from your inventory), components and grade salvage are the same as EVA work.
+  You get a notification and a logbook entry instead of the results window.
+- Cancelling the order before the work is done changes nothing.
+- When you can see it, a crew member flies over in a spacesuit, waits out the
+  work at the target and flies back aboard.
+
+### Regulators for your pilots
+
+- Hand a regulator to a pilot, or take regulators back:
+  - from the pilot conversation: More... > More... > Hand Beam Regulator,
+    Hand Bonding Regulator or Take Regulators from Pilot;
+  - or from the ship's right-click menu on the map.
+  Both work while you are aboard the ship, docked on it or docked at the same
+  station or carrier.
+- You can now carry any number of regulators (the one-of-each limit is gone).
+- The Black Market stocks 1-3 of each regulator per restock (was 1).
+- "Hand me your inventory" and "Deposit Inventory" at your HQ now leave the
+  regulators with the pilot, so a service ship keeps its tools. Everything else
+  is handed over as before.
+
+### Fixes
+
+- AI salvage no longer treats fighting drones and laser towers as salvageable
+  ship wrecks. Riptide Auto-Salvage could get stuck on a laser-tower wreck.
+- A Salvage Wreck order now gives up after 60 seconds without a salvage hit,
+  so Auto-Salvage moves on instead of waiting forever.
+- Xenon and Kha'ak S/M wrecks were checked and salvage normally.
+
+### Notes
+
+- New texts are in English in the German translation until the translator
+  updates them.
+- SES now adds small patches to the vanilla pilot conversation and the
+  Deposit Inventory order (only to keep the regulators with the pilot).
+
 ## v4.01 - 2026-10-12
 
 **Hotfix: salvage ships that never moved to the wreck**

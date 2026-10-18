@@ -103,7 +103,7 @@
               <signal_cue_instantly cue="md.SES_Turret_Salvage.SES_Turret_Salvage_Publish_V1" />
             </do_elseif>
             <set_value name="$Target" exact="@player.target" />
-            <do_if value="$MinerReady and @$Target.iswreck and ($Target.isrealclass.ship_s or $Target.isrealclass.ship_m) and @$Target.sector == $Ship.sector and $Ship.distanceto.{$Target} le $Ship.maxcombatrange.{weaponmode.mining}.turrets">
+            <do_if value="$MinerReady and @$Target.iswreck and ($Target.isrealclass.ship_s or $Target.isrealclass.ship_m) and not @$Target.isunit and not @$Target.isdeployable and @$Target.sector == $Ship.sector and $Ship.distanceto.{$Target} le $Ship.maxcombatrange.{weaponmode.mining}.turrets">
               <run_actions ref="SES_Standin_Ensure_V1" result="$Standin">
                 <param name="Wreck" value="$Target" />
               </run_actions>
@@ -358,7 +358,7 @@
         <do_if value="@global.$SES_Salvage_Standin_Of.{$Wreck}.exists">
           <return value="global.$SES_Salvage_Standin_Of.{$Wreck}" />
         </do_if>
-        <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$Wreck.iswreck or not ($Wreck.isrealclass.ship_s or $Wreck.isrealclass.ship_m) or @$Wreck.tugship or @$Wreck.dismantlingobject or @$Wreck.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$Wreck}.$exhausted">
+        <do_if value="not @global.$SES_Wreck_Mining_Beta_Enabled or not @$Wreck.iswreck or not ($Wreck.isrealclass.ship_s or $Wreck.isrealclass.ship_m) or @$Wreck.isunit or @$Wreck.isdeployable or @$Wreck.tugship or @$Wreck.dismantlingobject or @$Wreck.salvageclaimants.count or @global.$SES_Wreck_Harvest_State.{$Wreck}.$exhausted">
           <return value="null" />
         </do_if>
         <do_if value="not global.$SES_Salvage_Standins?">

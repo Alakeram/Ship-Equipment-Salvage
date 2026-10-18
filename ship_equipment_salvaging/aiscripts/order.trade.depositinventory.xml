@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="diff.xsd">
+  <!-- Remote Service: Deposit Inventory leaves the Avarice regulators with the
+       pilot, so a remote-service ship keeps its tools at the HQ. Blanking the
+       ware makes vanilla's own transfer check skip it. -->
+  <add sel="//do_all[@counter='$i']/set_value[@name='$locware']" pos="after">
+    <do_if value="$locware == ware.ses_equipment_salvager or $locware == ware.ses_equipment_welder">
+      <set_value name="$locware" exact="null"/>
+    </do_if>
+  </add>
+</diff>

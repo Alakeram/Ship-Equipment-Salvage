@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="diff.xsd">
+  <!-- Remote Service: "Hand me your inventory" leaves the Avarice regulators
+       with the pilot, so a remote-service ship keeps its tools; everything
+       else (salvage, materials, drops) still goes to the player. Regulators
+       come back through More... > More... > Take Regulators from Pilot. -->
+  <add sel="//do_elseif[@value=&quot;event.param == 'g_inventorytransfer'&quot;]/set_value[@name='$NPCInventory']" pos="after">
+    <remove_from_list name="$NPCInventory" exact="ware.ses_equipment_salvager" />
+    <remove_from_list name="$NPCInventory" exact="ware.ses_equipment_welder" />
+  </add>
+</diff>

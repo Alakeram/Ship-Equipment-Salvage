@@ -110,7 +110,7 @@
       <set_value name="$bestdist" exact="0m"/>
       <find_ship name="$candidates" space="if $hasarea then $destination.{1} else this.assignedcontrolled.sector" multiple="true" checkoperational="false"/>
       <do_for_each name="$candidate" in="$candidates">
-        <do_if value="$candidate.iswreck and ($candidate.isrealclass.ship_s or $candidate.isrealclass.ship_m) and (not $hasarea or $candidate.distanceto.{$destination} le $radius) and not @$candidate.tugship and not @$candidate.dismantlingobject and not @$candidate.salvageclaimants.count and not @global.$SES_Wreck_Harvest_State.{$candidate}.$exhausted and (if @$tried.{$candidate} then $tried.{$candidate} else 0) lt 2">
+        <do_if value="$candidate.iswreck and ($candidate.isrealclass.ship_s or $candidate.isrealclass.ship_m) and not @$candidate.isunit and not @$candidate.isdeployable and (not $hasarea or $candidate.distanceto.{$destination} le $radius) and not @$candidate.tugship and not @$candidate.dismantlingobject and not @$candidate.salvageclaimants.count and not @global.$SES_Wreck_Harvest_State.{$candidate}.$exhausted and (if @$tried.{$candidate} then $tried.{$candidate} else 0) lt 2">
           <!-- Leave wrecks another SES ship is already working. -->
           <set_value name="$taken" exact="false"/>
           <do_for_each name="$requester" valuename="$request" in="if @global.$SES_Salvage_Requests then global.$SES_Salvage_Requests else table[]">

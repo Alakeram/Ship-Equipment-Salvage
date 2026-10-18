@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Remote_Service" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <!-- Remote service: a player ship with service crew salvages from, or welds
+       saved parts onto, an S/M ship without the player in EVA. The pilot must
+       carry the matching Avarice regulator (Beam for salvage, Bonding for weld).
+
+       Flow: right-click the target with the service ship selected
+       (ui/menu_ses_salvage_wreck_interact.lua) -> SES_Remote_Menu_V1 opens the
+       normal native planner for the target -> the planner's confirm calls
+       SES_Remote_Try_Queue_V1, which snapshots the plan into
+       global.$SES_Remote_Jobs and queues the SESRemoteService order
+       (aiscripts/order.ses.remote.service.xml). Cancelling the planner queues
+       nothing; cancelling the order before the work is done applies nothing.
+       When the ship is in place it signals 'apply'; SES_Remote_Signal_V1
+       restores the plan into the EVA pipeline's globals and sets
+       global.$SES_Remote_Apply, which lets the ship stand in for the EVA player
+       in the apply-time range gates (SES_Remote_Range_OK_V1). The pipeline's
+       completion calls SES_Remote_Finish_V1. Catalysts come from the player's
+       inventory, as for EVA work. -->
+  <cues>
+    <cue name="SES_Remote_Root_V1" namespace="this">
+      <actions>
+        <do_if value="not global.$SES_Remote_Jobs?">
+          <set_value name="global.$SES_Remote_Jobs" exact="table[]" />
+        </do_if>
+        <do_if value="not global.$SES_Remote_Job_Counter?">
+          <set_value name="global.$SES_Remote_Job_Counter" exact="0" />
+        </do_if>
+      </actions>
+      <cues>
+        <!-- A load mid-apply cannot resume the pipeline; release the lock. -->
+        <cue name="SES_Remote_Load_V1" instantiate="true">
+          <conditions>
+            <event_game_loaded />
+          </conditions>
+          <delay exact="2s" />
+          <actions>
+            <remove_value name="global.$SES_Remote_Plan" />
+            <!-- Finished or failed jobs whose order already ended. -->
+            <do_for_each name="$OldId" in="global.$SES_Remote_Jobs.keys.list">
+              <set_value name="$OldJob" exact="global.$SES_Remote_Jobs.{$OldId}" />
+              <do_if value="(@$OldJob.$state == 'done' or @$OldJob.$state == 'failed' or not @$OldJob.$ship.exists) and player.age gt @$OldJob.$created + 600s">
+                <do_if value="@$OldJob.$suit.exists">
+                  <destroy_object object="$OldJob.$suit" explosion="false" />
+                </do_if>
+                <remove_value name="global.$SES_Remote_Jobs.{$OldId}" />
+              </do_if>
+            </do_for_each>
+            <do_if value="@global.$SES_Remote_Apply and not @global.$SES_Salvage_Plan_Apply_Index and not @global.$SES_Weld_Plan_Apply_Index">
+              <set_value name="$Job" exact="@global.$SES_Remote_Jobs.{global.$SES_Remote_Apply.$id}" />
+              <do_if value="$Job">
+                <set_value name="$Job.$state" exact="'queued'" />
+              </do_if>
+              <remove_value name="global.$SES_Remote_Apply" />
+            </do_if>
+          </actions>
+        </cue>
+
+        <!-- Right-click Remote Salvage / Remote Weld. Wire: [1, mode (1 salvage,
+             2 weld), target, ship]. Everything is validated again here. -->
+        <cue name="SES_Remote_Menu_V1" instantiate="true">
+          <conditions>
+            <event_ui_triggered screen="'SES_Remote_Service'" control="'order'" />
+          </conditions>
+          <actions>
+            <set_value name="$Wire" exact="event.param3" />
+            <do_if value="@$Wire.count ge 4 and @$Wire.{1} == 1">
+              <set_value name="$Mode" exact="if $Wire.{2} == 2 then 'weld' else 'salvage'" />
+              <set_value name="$Target" exact="$Wire.{3}" />
+              <set_value name="$Ship" exact="$Wire.{4}" />
+              <run_actions ref="SES_Remote_Ship_Problem_V1" result="$Problem">
+                <param name="Ship" value="$Ship" />
+                <param name="Mode" value="$Mode" />
+              </run_actions>
+              <run_actions ref="SES_Remote_Target_OK_V1" result="$TargetOK">
+                <param name="Target" value="$Target" />
+                <param name="Mode" value="$Mode" />
+              </run_actions>
+              <run_actions ref="SES_Remote_Busy_V1" result="$Busy" />
+              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Menu order mode=%s ship=%s target=%s problem=%s targetok=%s busy=%s'.[$Mode, $Ship, $Target, $Problem, $TargetOK, $Busy]" />
+              <do_if value="$Problem">
+                <show_notification text="readtext.{1171361}.{1259}.[readtext.{1171361}.{$Problem}]" />
+              </do_if>
+              <do_elseif value="not $TargetOK or $Ship == $Target or not @global.$SES_M5_Native_Planners_Experimental_Enabled">
+                <show_notification text="readtext.{1171361}.{1259}.[readtext.{1171361}.{1262}]" />
+              </do_elseif>
+              <do_elseif value="$Busy">
+                <show_notification text="readtext.{1171361}.{1266}" />
+              </do_elseif>
+              <do_elseif value="$Mode == 'salvage'">
+                <!-- Same row filter as the EVA selector (SES_Open_ReadOnly_Selector_V1). -->
+                <set_value name="$AllMenuWares" exact="$Target.loadout.wares.list" />
+                <set_value name="$MenuWares" exact="[]" />
+                <do_for_each name="$CandidateWare" in="$AllMenuWares">
+                  <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$CandidateGroup">
+                    <param name="Ware" value="$CandidateWare" />
+                  </run_actions>
+                  <set_value name="$CandidateExcluded" exact="[ 'countermeasure_flares_01', 'ship_gen_xs_lasertower_01_a', 'ship_gen_s_lasertower_01_a', 'weapon_gen_mine_01', 'weapon_gen_mine_02', 'weapon_gen_mine_03', 'satellite_mk1', 'satellite_mk2', 'resourceprobe_01', 'waypointmarker_01' ].indexof.{$CandidateWare.id}" />
+                  <set_value name="$CandidateAllowed" exact="[ 'engines', 'shields', 'thrusters', 'turrets', 'weapons' ].indexof.{$CandidateGroup}" />
+                  <do_if value="$CandidateAllowed and not $CandidateExcluded and @$CandidateWare.objectmacro">
+                    <append_to_list name="$MenuWares" exact="$CandidateWare" />
+                  </do_if>
+                </do_for_each>
+                <do_if value="$MenuWares.count">
+                  <set_value name="$MenuToken" exact="player.age" />
+                  <set_value name="$MenuRows" exact="[]" />
+                  <do_for_each name="$MenuWare" in="$MenuWares" counter="$MenuWareIndex">
+                    <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$MenuWareCategory">
+                      <param name="Ware" value="$MenuWare" />
+                    </run_actions>
+                    <append_to_list name="$MenuRows" exact="[ $MenuWareIndex, $MenuWare.name, $MenuWare.id, $MenuWareCategory, @$MenuWare.objectmacro ]" />
+                  </do_for_each>
+                  <remove_value name="global.$SES_Salvage_Plan" />
+                  <remove_value name="global.$SES_Salvage_Plan_Target" />
+                  <remove_value name="global.$SES_Salvage_Plan_Token" />
+                  <set_value name="global.$SES_Selection_Menu_Token" exact="$MenuToken" />
+                  <set_value name="global.$SES_Selection_Menu_Request" exact="table[
+                    $target = $Target,
+                    $wares = $MenuWares,
+                    $totalrows = $AllMenuWares.count,
+                    $salvageablerows = $MenuWares.count,
+                    $index = 1,
+                    $token = $MenuToken,
+                    $devbypass = false,
+                    $selectorcontext = 'standard_hull_selector',
+                    $largehullthrusters = false,
+                    $rangelimit = 50m,
+                    $defaultmodehit = false,
+                    $selector = 'simple_menu_api_v1',
+                    $remote = true
+                  ]" />
+                  <set_value name="global.$SES_Selection_Menu_Request.$rows" exact="$MenuRows" />
+                  <set_value name="global.$SES_Remote_Plan" exact="table[$mode = 'salvage', $ship = $Ship, $target = $Target, $token = $MenuToken]" />
+                  <signal_cue_instantly cue="md.SES_Equipment_Salvager_Probe.SES_Open_Simple_Menu_Selector_V1" param="$MenuToken" />
+                </do_if>
+                <do_else>
+                  <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Show_Tool_Gate_Message_V1">
+                    <param name="Mode" value="'salvage'" />
+                    <param name="Reason" value="'empty'" />
+                    <param name="Target" value="$Target" />
+                  </run_actions>
+                </do_else>
+              </do_elseif>
+              <do_else>
+                <run_actions ref="SES_Remote_Weld_Empty_Slots_V1" result="$EmptySlots">
+                  <param name="Target" value="$Target" />
+                </run_actions>
+                <do_if value="$EmptySlots == 0">
+                  <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Show_Tool_Gate_Message_V1">
+                    <param name="Mode" value="'install'" />
+                    <param name="Reason" value="'full'" />
+                    <param name="Target" value="$Target" />
+                  </run_actions>
+                </do_if>
+                <do_else>
+                  <!-- Same state as the EVA welder hit (SES_Open_Welder_Install_Inventory_V1). -->
+                  <remove_value name="global.$SES_Selection_Menu_Request" />
+                  <remove_value name="global.$SES_Selection_Menu_Token" />
+                  <remove_value name="global.$SES_Recovery_Request" />
+                  <remove_value name="global.$SES_Rejected_Plan_Request" />
+                  <set_value name="global.$SES_Inventory_View_Target" exact="$Target" />
+                  <set_value name="global.$SES_Inventory_View_TargetToken" exact="player.age" />
+                  <set_value name="global.$SES_Inventory_View_RangeLimit" exact="50m" />
+                  <set_value name="global.$SES_Inventory_View_DefaultModeHit" exact="false" />
+                  <set_value name="global.$SES_Inventory_View_Open" exact="true" />
+                  <set_value name="global.$SES_Inventory_View_OpenedAt" exact="player.age" />
+                  <set_value name="global.$SES_Remote_Plan" exact="table[$mode = 'weld', $ship = $Ship, $target = $Target, $token = global.$SES_Inventory_View_TargetToken]" />
+                  <set_value name="global.$SES_M5_Native_UI_Context" exact="'weld'" />
+                  <remove_value name="global.$SES_M5_Weld_Entry_Selected" />
+                  <signal_cue_instantly cue="md.SES_Equipment_Salvager_Probe.SES_M5_Native_UI_Publish_V1" param="'weld'" />
+                  <signal_cue_instantly cue="md.SES_Equipment_Salvager_Probe.SES_M5_Open_Ship_Configuration_V1" param="$Target" />
+                </do_else>
+              </do_else>
+            </do_if>
+          </actions>
+        </cue>
+
+        <!-- Regulator hand-over from the map right-click rows. Wire: [1, action
+             (1 give Beam, 2 give Bonding, 3 take both back), ship]. -->
+        <cue name="SES_Remote_Handover_V1" instantiate="true">
+          <conditions>
+            <event_ui_triggered screen="'SES_Remote_Service'" control="'handover'" />
+          </conditions>
+          <actions>
+            <set_value name="$Wire" exact="event.param3" />
+            <do_if value="@$Wire.count ge 3 and @$Wire.{1} == 1">
+              <run_actions ref="SES_Remote_Handover_Do_V1">
+                <param name="Ship" value="$Wire.{3}" />
+                <param name="Action" value="$Wire.{2}" />
+              </run_actions>
+            </do_if>
+          </actions>
+        </cue>
+
+        <!-- The same hand-over in the pilot's conversation: More... (slot 2)
+             -> Avarice Regulators -> Hand Beam / Hand Bonding / Take back.
+             Offered only to the pilot of a player-owned ship the player is with
+             (vanilla g_mainmore leaves the 'left' slot free for pilots). -->
+        <cue name="SES_Remote_Conversation_More_V1" instantiate="true">
+          <conditions>
+            <check_any>
+              <event_conversation_next_section section="g_mainmore" />
+              <event_conversation_returned_to_section section="g_mainmore" />
+            </check_any>
+            <check_value value="typeof event.object == datatype.component and event.object.isplayerowned and @event.object.ship.exists and event.object == @event.object.ship.pilot" />
+          </conditions>
+          <actions>
+            <run_actions ref="SES_Remote_Player_Near_V1" result="$Near">
+              <param name="Ship" value="event.object.ship" />
+            </run_actions>
+            <do_if value="$Near">
+              <add_player_choice_sub text="{1002,12025}" section="ses_regulators" position="left" comment="More... (SES regulator hand-over)" />
+            </do_if>
+          </actions>
+        </cue>
+
+        <cue name="SES_Remote_Conversation_Regulators_V1" instantiate="true">
+          <conditions>
+            <check_any>
+              <event_conversation_next_section section="ses_regulators" />
+              <event_conversation_returned_to_section section="ses_regulators" />
+            </check_any>
+            <check_value value="typeof event.object == datatype.component and @event.object.ship.exists" />
+          </conditions>
+          <actions>
+            <set_value name="$Pilot" exact="event.object" />
+            <add_player_choice text="readtext.{1171361}.{1252}" section="ses_regulator_give_beam" position="top_left" selectable="player.entity.inventory.{ware.ses_equipment_salvager}.count ge 1 and not $Pilot.inventory.{ware.ses_equipment_salvager}.exists" comment="Hand Beam Regulator to Pilot" />
+            <add_player_choice text="readtext.{1171361}.{1253}" section="ses_regulator_give_bonding" position="left" selectable="player.entity.inventory.{ware.ses_equipment_welder}.count ge 1 and not $Pilot.inventory.{ware.ses_equipment_welder}.exists" comment="Hand Bonding Regulator to Pilot" />
+            <add_player_choice text="readtext.{1171361}.{1254}" section="ses_regulator_take" position="bottom_left" selectable="$Pilot.inventory.{ware.ses_equipment_salvager}.exists or $Pilot.inventory.{ware.ses_equipment_welder}.exists" comment="Take Regulators from Pilot" />
+            <add_player_choice_return text="{1002,20}" position="bottom_right" comment="Back" />
+          </actions>
+        </cue>
+
+        <cue name="SES_Remote_Conversation_Action_V1" instantiate="true">
+          <conditions>
+            <event_conversation_next_section sectionprefix="ses_regulator_" />
+            <check_value value="typeof event.object == datatype.component and @event.object.ship.exists" />
+          </conditions>
+          <actions>
+            <run_actions ref="SES_Remote_Handover_Do_V1">
+              <param name="Ship" value="event.object.ship" />
+              <param name="Action" value="if event.param == 'ses_regulator_give_beam' then 1 else if event.param == 'ses_regulator_give_bonding' then 2 else 3" />
+            </run_actions>
+          </actions>
+        </cue>
+
+        <!-- From the SESRemoteService order. param2 = table[$id, $event]:
+             'apply' (ship in place, work time done) or 'abort'. The order then
+             polls the job's $state: queued / busy / applying / done / failed. -->
+        <cue name="SES_Remote_Signal_V1" instantiate="true">
+          <conditions>
+            <event_object_signalled object="player.galaxy" param="'SES_Remote_Service'" />
+          </conditions>
+          <actions>
+            <set_value name="$Id" exact="@event.param2.$id" />
+            <set_value name="$Event" exact="@event.param2.$event" />
+            <set_value name="$Job" exact="if $Id then @global.$SES_Remote_Jobs.{$Id} else null" />
+            <do_if value="not $Job">
+              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Signal for unknown job id=%s event=%s'.[$Id, $Event]" />
+            </do_if>
+            <do_elseif value="$Event == 'abort'">
+              <do_if value="@$Job.$suit.exists">
+                <destroy_object object="$Job.$suit" explosion="false" />
+              </do_if>
+              <do_if value="$Job.$state != 'applying'">
+                <remove_value name="global.$SES_Remote_Jobs.{$Id}" />
+              </do_if>
+              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Job %s aborted by its order. state=%s'.[$Id, $Job.$state]" />
+            </do_elseif>
+            <!-- Cosmetic crew EVA while the player can see the work (the order
+                 only asks for it in visible attention): a crew member in a
+                 spacesuit flies from the service ship to the target, waits out
+                 the work time there and flies back into the ship, where the
+                 order removes the suit. It never affects the result. -->
+            <do_elseif value="$Event == 'eva_out' and not @$Job.$suit.exists and @$Job.$ship.isoperational and @$Job.$target.exists">
+              <set_value name="$Race" exact="@$Job.$ship.assignedpilot.race" />
+              <set_value name="$SuitMacro" exact="if $Race == race.argon then macro.ship_arg_xs_spacesuit_01_a_macro else if $Race == race.paranid then macro.ship_par_xs_spacesuit_01_a_macro else if $Race == race.split then macro.ship_spl_xs_spacesuit_01_a_macro else if $Race == race.teladi then macro.ship_tel_xs_spacesuit_01_a_macro else macro.ship_gen_xs_spacesuit_01_a_macro" />
+              <create_ship name="$Suit" macro="$SuitMacro" sector="$Job.$ship.sector" capturable="false" commandeerable="false">
+                <owner exact="faction.player" overridenpc="true" />
+                <pilot><select race="if $Race then $Race else race.argon" tags="tag.aipilot" /></pilot>
+                <safepos object="$Job.$ship" radius="[$Job.$ship.size * 0.5, 20m].max" />
+              </create_ship>
+              <do_if value="@$Suit.exists">
+                <set_value name="$Job.$suit" exact="$Suit" />
+                <create_position name="$Pos" object="$Job.$target" space="$Job.$target.sector" z="[$Job.$target.size * 0.5, 15m].max + 10m" />
+                <create_order object="$Suit" id="'MoveWait'" immediate="true">
+                  <param name="destination" value="[$Job.$target.sector, $Pos]" />
+                </create_order>
+              </do_if>
+              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Crew EVA out job=%s suit=%s macro=%s'.[$Id, @$Suit, $SuitMacro]" />
+            </do_elseif>
+            <do_elseif value="$Event == 'eva_back' and @$Job.$suit.exists and @$Job.$ship.exists">
+              <create_position name="$Pos" object="$Job.$ship" space="$Job.$ship.sector" />
+              <create_order object="$Job.$suit" id="'MoveWait'" immediate="true">
+                <param name="destination" value="[$Job.$ship.sector, $Pos]" />
+              </create_order>
+            </do_elseif>
+            <do_elseif value="$Event == 'eva_end'">
+              <do_if value="@$Job.$suit.exists">
+                <destroy_object object="$Job.$suit" explosion="false" />
+              </do_if>
+              <remove_value name="$Job.$suit" />
+            </do_elseif>
+            <do_elseif value="$Event == 'apply' and ($Job.$state == 'queued' or $Job.$state == 'busy')">
+              <!-- A lock older than two minutes with no apply running is stale. -->
+              <do_if value="@global.$SES_Remote_Apply and player.age gt global.$SES_Remote_Apply.$started + 120s and not @global.$SES_Salvage_Plan_Apply_Index and not @global.$SES_Weld_Plan_Apply_Index">
+                <remove_value name="global.$SES_Remote_Apply" />
+              </do_if>
+              <run_actions ref="SES_Remote_Busy_V1" result="$Busy" />
+              <run_actions ref="SES_Remote_Ship_Problem_V1" result="$Problem">
+                <param name="Ship" value="$Job.$ship" />
+                <param name="Mode" value="$Job.$mode" />
+              </run_actions>
+              <run_actions ref="SES_Remote_Target_OK_V1" result="$TargetOK">
+                <param name="Target" value="$Job.$target" />
+                <param name="Mode" value="$Job.$mode" />
+              </run_actions>
+              <do_if value="not $Problem and $TargetOK and not (@$Job.$ship.sector == $Job.$target.sector and $Job.$ship.bboxdistanceto.{$Job.$target} le 2km)">
+                <set_value name="$Problem" exact="1262" />
+              </do_if>
+              <do_if value="$Problem or not $TargetOK">
+                <set_value name="$Job.$state" exact="'failed'" />
+                <set_value name="$Job.$reason" exact="if $Problem then $Problem else 1262" />
+                <show_notification text="readtext.{1171361}.{1259}.[readtext.{1171361}.{$Job.$reason}]" />
+              </do_if>
+              <do_elseif value="$Busy">
+                <set_value name="$Job.$state" exact="'busy'" />
+              </do_elseif>
+              <do_else>
+                <set_value name="$Job.$state" exact="'applying'" />
+                <set_value name="global.$SES_Remote_Apply" exact="table[$id = $Id, $mode = $Job.$mode, $ship = $Job.$ship, $target = $Job.$target, $started = player.age]" />
+                <do_if value="$Job.$mode == 'salvage'">
+                  <set_value name="global.$SES_Selection_Menu_Request" exact="$Job.$request" />
+                  <set_value name="global.$SES_Selection_Menu_Token" exact="$Job.$request.$token" />
+                  <set_value name="global.$SES_Salvage_Plan" exact="$Job.$plan" />
+                  <set_value name="global.$SES_Salvage_Plan_Target" exact="$Job.$target" />
+                  <set_value name="global.$SES_Salvage_Plan_Token" exact="$Job.$request.$token" />
+                  <set_value name="global.$SES_Salvage_Plan_Apply_Index" exact="1" />
+                  <set_value name="global.$SES_Salvage_Plan_Apply_StartedAt" exact="player.age" />
+                  <set_value name="global.$SES_Salvage_Plan_Apply_Target" exact="$Job.$target" />
+                  <set_value name="global.$SES_Salvage_Plan_Apply_Request" exact="$Job.$request" />
+                  <set_value name="global.$SES_Salvage_Plan_Results" exact="[]" />
+                  <remove_value name="global.$SES_Salvage_Plan_Result_Window_Rows" />
+                  <remove_value name="global.$SES_Salvage_Plan_Result_Window_Target" />
+                  <signal_cue_instantly cue="md.SES_Equipment_Salvager_Probe.SES_Salvage_Multi_Plan_Apply_Scheduler_V1" param="'remote_service'" />
+                </do_if>
+                <do_else>
+                  <set_value name="global.$SES_Weld_Plan" exact="$Job.$plan" />
+                  <set_value name="global.$SES_Weld_Plan_Target" exact="$Job.$target" />
+                  <set_value name="global.$SES_Inventory_View_RangeLimit" exact="50m" />
+                  <set_value name="global.$SES_Inventory_View_DefaultModeHit" exact="false" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_Index" exact="1" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_StartedAt" exact="player.age" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_Target" exact="$Job.$target" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_Results" exact="[]" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_TotalInstalled" exact="0" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_TotalCatalystsSpent" exact="0" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_RequestedRows" exact="$Job.$plan.count" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_RequestedQuantity" exact="$Job.$quantity" />
+                  <set_value name="global.$SES_Weld_Plan_Apply_RequestedCatalysts" exact="0" />
+                  <signal_cue_instantly cue="md.SES_Equipment_Salvager_Probe.SES_Weld_Plan_Apply_Scheduler_V1" param="'remote_service'" />
+                </do_else>
+              </do_else>
+              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Apply request job=%s mode=%s ship=%s target=%s state=%s problem=%s targetok=%s busy=%s'.[$Id, $Job.$mode, $Job.$ship, $Job.$target, $Job.$state, $Problem, $TargetOK, $Busy]" />
+            </do_elseif>
+          </actions>
+        </cue>
+      </cues>
+    </cue>
+
+    <!-- True when the player is with $Ship: aboard it, docked on it, or both
+         docked at the same container. Same test as playerNearShip() in
+         ui/menu_ses_salvage_wreck_interact.lua. -->
+    <library name="SES_Remote_Player_Near_V1" purpose="run_actions">
+      <params>
+        <param name="Ship" />
+      </params>
+      <actions>
+        <return value="@$Ship.exists and ($Ship == @player.occupiedship or $Ship == @player.container or @player.occupiedship.container == $Ship or (@$Ship.container and ($Ship.container == @player.container or $Ship.container == @player.occupiedship.container)))" />
+      </actions>
+    </library>
+
+    <!-- Regulator hand-over for the pilot of $Ship. Action: 1 give Beam,
+         2 give Bonding, 3 take every regulator the pilot carries back. -->
+    <library name="SES_Remote_Handover_Do_V1" purpose="run_actions">
+      <params>
+        <param name="Ship" />
+        <param name="Action" />
+      </params>
+      <actions>
+        <do_if value="not @$Ship.isplayerowned or not @$Ship.assignedpilot.exists">
+          <return />
+        </do_if>
+        <set_value name="$Pilot" exact="$Ship.assignedpilot" />
+        <run_actions ref="SES_Remote_Player_Near_V1" result="$Near">
+          <param name="Ship" value="$Ship" />
+        </run_actions>
+        <do_if value="not $Near">
+          <show_notification text="readtext.{1171361}.{1264}" />
+        </do_if>
+        <do_elseif value="$Action == 1 or $Action == 2">
+          <set_value name="$Ware" exact="if $Action == 1 then ware.ses_equipment_salvager else ware.ses_equipment_welder" />
+          <do_if value="player.entity.inventory.{$Ware}.count ge 1 and not $Pilot.inventory.{$Ware}.exists">
+            <remove_inventory entity="player.entity" ware="$Ware" exact="1" />
+            <add_inventory entity="$Pilot" ware="$Ware" exact="1" />
+            <show_notification text="readtext.{1171361}.{1263}.[$Pilot.knownname, $Ware.name]" />
+          </do_if>
+        </do_elseif>
+        <do_elseif value="$Action == 3">
+          <set_value name="$Moved" exact="0" />
+          <do_for_each name="$Ware" in="[ ware.ses_equipment_salvager, ware.ses_equipment_welder ]">
+            <set_value name="$Count" exact="$Pilot.inventory.{$Ware}.count" />
+            <do_if value="$Count gt 0">
+              <remove_inventory entity="$Pilot" ware="$Ware" exact="$Count" />
+              <add_inventory entity="player.entity" ware="$Ware" exact="$Count" />
+              <set_value name="$Moved" operation="add" exact="$Count" />
+            </do_if>
+          </do_for_each>
+          <do_if value="$Moved gt 0">
+            <show_notification text="readtext.{1171361}.{1265}.[$Pilot.knownname, $Moved]" />
+          </do_if>
+        </do_elseif>
+        <raise_lua_event name="'SES.ToolInventory'" param="'%s;%s'.[player.entity.inventory.{ware.ses_equipment_salvager}.count, player.entity.inventory.{ware.ses_equipment_welder}.count]" />
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Hand-over action=%s ship=%s pilot=%s near=%s pilotbeam=%s pilotbonding=%s'.[$Action, $Ship, $Pilot, $Near, $Pilot.inventory.{ware.ses_equipment_salvager}.count, $Pilot.inventory.{ware.ses_equipment_welder}.count]" />
+      </actions>
+    </library>
+
+    <!-- 0 when $Ship can do remote $Mode work, else the text id of the reason. -->
+    <library name="SES_Remote_Ship_Problem_V1" purpose="run_actions">
+      <params>
+        <param name="Ship" />
+        <param name="Mode" />
+      </params>
+      <actions>
+        <set_value name="$Ware" exact="if $Mode == 'weld' then ware.ses_equipment_welder else ware.ses_equipment_salvager" />
+        <do_if value="not @$Ship.isoperational or not @$Ship.isplayerowned or not @$Ship.isclass.ship or $Ship == player.controlled or not @$Ship.assignedpilot.exists">
+          <return value="1267" />
+        </do_if>
+        <do_if value="not $Ship.assignedpilot.inventory.{$Ware}.exists">
+          <return value="1260" />
+        </do_if>
+        <do_if value="@$Ship.people.{entityrole.service}.count lt 1">
+          <return value="1261" />
+        </do_if>
+        <return value="0" />
+      </actions>
+    </library>
+
+    <!-- The EVA eligibility rules for the target, without the player range. -->
+    <library name="SES_Remote_Target_OK_V1" purpose="run_actions">
+      <params>
+        <param name="Target" />
+        <param name="Mode" />
+      </params>
+      <actions>
+        <do_if value="not @$Target.exists or not $Target.isclass.ship or $Target.isclass.ship_l or $Target.isclass.ship_xl or $Target.iswreck or $Target.isconstruction">
+          <return value="false" />
+        </do_if>
+        <do_if value="@$Target.boardingoperation or @$Target.boardingoperations.count or @$Target.boardingmarines.count">
+          <return value="false" />
+        </do_if>
+        <do_if value="$Mode == 'weld'">
+          <return value="$Target.isplayerowned" />
+        </do_if>
+        <return value="$Target.isoperational and ($Target.isplayerowned or $Target.isownerless) and ($Target.isplayerowned or not @$Target.pilot)" />
+      </actions>
+    </library>
+
+    <!-- Same busy gate as the EVA hit cues, plus a running remote apply. Like
+         those cues, a weld viewer flag older than 15 s with no install running
+         is stale and released first. -->
+    <library name="SES_Remote_Busy_V1" purpose="run_actions">
+      <actions>
+        <do_if value="@global.$SES_Inventory_View_Open and @global.$SES_Inventory_View_OpenedAt and player.age gt global.$SES_Inventory_View_OpenedAt + 15 and not @global.$SES_Install_Request and not @global.$SES_Weld_Plan_Apply_Index">
+          <remove_value name="global.$SES_Inventory_View_Open" />
+          <remove_value name="global.$SES_Inventory_View_OpenedAt" />
+          <remove_value name="global.$SES_Inventory_View_Closing" />
+          <remove_value name="global.$SES_Inventory_View_Refreshing" />
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Busy flags remoteapply=%s selection=%s recovery=%s rejected=%s invview=%s install=%s salvagework=%s weldwork=%s salvageapply=%s weldapply=%s cooldown=%s'.[@global.$SES_Remote_Apply, @global.$SES_Selection_Menu_Request, @global.$SES_Recovery_Request, @global.$SES_Rejected_Plan_Request, @global.$SES_Inventory_View_Open, @global.$SES_Install_Request, @global.$SES_Salvage_Work_Token, @global.$SES_Weld_Work_Token, @global.$SES_Salvage_Plan_Apply_Index, @global.$SES_Weld_Plan_Apply_Index, @global.$SES_Menu_Cooldown_Until and player.age lt global.$SES_Menu_Cooldown_Until]" />
+        <return value="@global.$SES_Remote_Apply or @global.$SES_Selection_Menu_Request or @global.$SES_Recovery_Request or @global.$SES_Rejected_Plan_Request or @global.$SES_Inventory_View_Open or @global.$SES_Install_Request or @global.$SES_Salvage_Work_Token or @global.$SES_Weld_Work_Token or @global.$SES_Salvage_Plan_Apply_Index or @global.$SES_Weld_Plan_Apply_Index or (@global.$SES_Menu_Cooldown_Until and player.age lt global.$SES_Menu_Cooldown_Until)" />
+      </actions>
+    </library>
+
+    <!-- Empty slot count as in SES_Open_Welder_Install_Inventory_V1. -->
+    <library name="SES_Remote_Weld_Empty_Slots_V1" purpose="run_actions">
+      <params>
+        <param name="Target" />
+      </params>
+      <actions>
+        <set_value name="$WeaponInstalled" exact="0" />
+        <set_value name="$ThrusterInstalled" exact="0" />
+        <do_for_each name="$TargetWare" in="$Target.loadout.wares.list">
+          <run_actions ref="md.SES_Equipment_Salvager_Probe.SES_Get_Equipment_Category_V1" result="$TargetWareCategory">
+            <param name="Ware" value="$TargetWare" />
+          </run_actions>
+          <do_if value="$TargetWareCategory == 'weapons' and @$TargetWare.objectmacro">
+            <set_value name="$WeaponInstalled" operation="add" />
+          </do_if>
+          <do_elseif value="$TargetWareCategory == 'thrusters' and @$TargetWare.objectmacro">
+            <set_value name="$ThrusterInstalled" operation="add" />
+          </do_elseif>
+        </do_for_each>
+        <set_value name="$Empty" exact="[$Target.weapons.numslots - $WeaponInstalled, 0].max + [$Target.engines.numslots - $Target.engines.all.count, 0].max + [$Target.shields.numslots - $Target.shields.all.count, 0].max + [$Target.turrets.numslots - $Target.turrets.all.count, 0].max" />
+        <do_if value="$ThrusterInstalled == 0">
+          <set_value name="$Empty" operation="add" />
+        </do_if>
+        <return value="$Empty" />
+      </actions>
+    </library>
+
+    <!-- Called from both planner confirmations. When the open planner belongs
+         to a remote request, snapshot the plan, queue the order, clear the
+         planner state and return true; otherwise return false. -->
+    <library name="SES_Remote_Try_Queue_V1" purpose="run_actions">
+      <params>
+        <param name="Mode" />
+        <param name="Quantity" />
+      </params>
+      <actions>
+        <set_value name="$Plan" exact="@global.$SES_Remote_Plan" />
+        <do_if value="not $Plan or $Plan.$mode != $Mode">
+          <return value="false" />
+        </do_if>
+        <do_if value="$Mode == 'salvage' and (@global.$SES_Selection_Menu_Request.$target != $Plan.$target or @global.$SES_Selection_Menu_Request.$token != $Plan.$token)">
+          <return value="false" />
+        </do_if>
+        <do_if value="$Mode == 'weld' and (@global.$SES_Weld_Plan_Target != $Plan.$target or @global.$SES_Inventory_View_TargetToken != $Plan.$token)">
+          <return value="false" />
+        </do_if>
+        <remove_value name="global.$SES_Remote_Plan" />
+        <set_value name="$Ship" exact="$Plan.$ship" />
+        <set_value name="$Target" exact="$Plan.$target" />
+        <run_actions ref="SES_Remote_Ship_Problem_V1" result="$Problem">
+          <param name="Ship" value="$Ship" />
+          <param name="Mode" value="$Mode" />
+        </run_actions>
+        <do_if value="$Problem">
+          <show_notification text="readtext.{1171361}.{1259}.[readtext.{1171361}.{$Problem}]" />
+        </do_if>
+        <do_else>
+          <set_value name="global.$SES_Remote_Job_Counter" operation="add" />
+          <!-- MD table string keys must start with '$'. -->
+          <set_value name="$Id" exact="'$remote_%s'.[global.$SES_Remote_Job_Counter]" />
+          <set_value name="$Seconds" exact="[[$Quantity, 3].max, 15].min" />
+          <do_if value="$Mode == 'salvage'">
+            <set_value name="global.$SES_Remote_Jobs.{$Id}" exact="table[$id = $Id, $mode = $Mode, $ship = $Ship, $target = $Target, $request = global.$SES_Selection_Menu_Request, $plan = global.$SES_Salvage_Plan, $quantity = $Quantity, $seconds = $Seconds, $state = 'queued', $created = player.age]" />
+          </do_if>
+          <do_else>
+            <set_value name="global.$SES_Remote_Jobs.{$Id}" exact="table[$id = $Id, $mode = $Mode, $ship = $Ship, $target = $Target, $plan = global.$SES_Weld_Plan, $quantity = $Quantity, $seconds = $Seconds, $state = 'queued', $created = player.age]" />
+          </do_else>
+          <!-- Not immediate: the job joins the end of the ship's order queue. -->
+          <create_order object="$Ship" id="'SESRemoteService'">
+            <param name="target" value="$Target" />
+            <param name="jobid" value="$Id" />
+          </create_order>
+          <show_notification text="readtext.{1171361}.{if $Mode == 'salvage' then 1255 else 1256}.[$Ship.knownname, $Quantity, $Target.knownname]" />
+          <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Queued job=%s mode=%s ship=%s target=%s rows=%s quantity=%s seconds=%s'.[$Id, $Mode, $Ship, $Target, global.$SES_Remote_Jobs.{$Id}.$plan.count, $Quantity, $Seconds]" />
+        </do_else>
+        <!-- Planner state is released either way; the job holds its own copy. -->
+        <do_if value="$Mode == 'salvage'">
+          <remove_value name="global.$SES_Selection_Menu_Request" />
+          <remove_value name="global.$SES_Selection_Menu_Token" />
+          <remove_value name="global.$SES_Salvage_Plan" />
+          <remove_value name="global.$SES_Salvage_Plan_Target" />
+          <remove_value name="global.$SES_Salvage_Plan_Token" />
+          <remove_value name="global.$SES_M5_Native_Salvage_Confirm_Active" />
+        </do_if>
+        <do_else>
+          <remove_value name="global.$SES_Inventory_View_Open" />
+          <remove_value name="global.$SES_Inventory_View_OpenedAt" />
+          <remove_value name="global.$SES_Inventory_View_Closing" />
+          <remove_value name="global.$SES_Inventory_View_Refreshing" />
+          <remove_value name="global.$SES_Inventory_View_Target" />
+          <remove_value name="global.$SES_Inventory_View_TargetToken" />
+          <remove_value name="global.$SES_Weld_Plan" />
+          <remove_value name="global.$SES_Weld_Plan_Target" />
+          <remove_value name="global.$SES_M5_Weld_Entry_Selected" />
+          <remove_value name="global.$SES_M5_Native_Weld_Confirm_Active" />
+        </do_else>
+        <remove_value name="global.$SES_M5_Native_UI_Context" />
+        <remove_value name="player.entity.$SES_M5_Native_PlannerData" />
+        <set_value name="global.$SES_Menu_Cooldown_Until" exact="player.age + 2s" />
+        <return value="true" />
+      </actions>
+    </library>
+
+    <!-- Called when the salvage or weld pipeline finishes a plan. When it was a
+         remote job: report, mark the job done, release the lock, return true. -->
+    <library name="SES_Remote_Finish_V1" purpose="run_actions">
+      <params>
+        <param name="Mode" />
+        <param name="Rows" />
+      </params>
+      <actions>
+        <set_value name="$Apply" exact="@global.$SES_Remote_Apply" />
+        <do_if value="not $Apply or $Apply.$mode != $Mode">
+          <return value="false" />
+        </do_if>
+        <remove_value name="global.$SES_Remote_Apply" />
+        <set_value name="$Job" exact="@global.$SES_Remote_Jobs.{$Apply.$id}" />
+        <set_value name="$Planned" exact="if $Job then $Job.$quantity else 0" />
+        <set_value name="$Done" exact="0" />
+        <do_if value="$Mode == 'salvage'">
+          <do_for_each name="$Row" in="$Rows">
+            <set_value name="$Done" operation="add" exact="if @$Row.$recovered then $Row.$recovered else 0" />
+          </do_for_each>
+          <set_value name="$Text" exact="readtext.{1171361}.{1257}.[@$Apply.$ship.knownname, $Done, $Planned, @$Apply.$target.knownname]" />
+        </do_if>
+        <do_else>
+          <set_value name="$Done" exact="if @global.$SES_Weld_Plan_Apply_TotalInstalled then global.$SES_Weld_Plan_Apply_TotalInstalled else 0" />
+          <set_value name="$Text" exact="readtext.{1171361}.{1258}.[@$Apply.$ship.knownname, $Done, $Planned, @$Apply.$target.knownname]" />
+          <remove_value name="global.$SES_Weld_Plan_Target" />
+          <remove_value name="global.$SES_Weld_Plan_Apply_Results" />
+          <remove_value name="global.$SES_Weld_Plan_Apply_TotalInstalled" />
+          <remove_value name="global.$SES_Weld_Plan_Apply_TotalCatalystsSpent" />
+          <remove_value name="global.$SES_Weld_Plan_Apply_RequestedRows" />
+          <remove_value name="global.$SES_Weld_Plan_Apply_RequestedQuantity" />
+          <remove_value name="global.$SES_Weld_Plan_Apply_RequestedCatalysts" />
+        </do_else>
+        <show_notification text="$Text" />
+        <write_to_logbook category="general" title="readtext.{1171361}.{1250}" text="$Text" object="@$Apply.$target" />
+        <do_if value="$Job">
+          <set_value name="$Job.$state" exact="'done'" />
+          <set_value name="$Job.$done" exact="$Done" />
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Finished job=%s mode=%s done=%s planned=%s'.[$Apply.$id, $Mode, $Done, $Planned]" />
+        <return value="true" />
+      </actions>
+    </library>
+  </cues>
+</mdscript>

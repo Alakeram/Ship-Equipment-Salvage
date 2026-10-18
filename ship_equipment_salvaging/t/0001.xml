@@ -426,6 +426,28 @@
     <t id="1245">Your stowed blaster is back in your inventory and is fitted again on your next EVA.</t>
     <t id="1246">Hand Laser ready. Your blaster is stowed while a regulator mode is active.</t>
     <t id="1247">Your blaster is back in hand.</t>
+    <!-- Remote service: a ship's service crew salvages or welds with the pilot's regulator. -->
+    <t id="1248">Salvage Equipment</t>
+    <t id="1249">Weld Equipment</t>
+    <t id="1250">Remote Service</t>
+    <t id="1251">Flies to the target ship. The service crew salvages or welds the parts planned in the Ship Configuration planner. The pilot must carry the matching Avarice regulator.</t>
+    <t id="1252">Hand Beam Regulator to Pilot</t>
+    <t id="1253">Hand Bonding Regulator to Pilot</t>
+    <t id="1254">Take Regulators from Pilot</t>
+    <t id="1255">%s queued remote salvage of %s item(s) on %s.</t>
+    <t id="1256">%s queued remote welding of %s item(s) on %s.</t>
+    <t id="1257">Remote salvage done: %s recovered %s of %s item(s) from %s.</t>
+    <t id="1258">Remote welding done: %s installed %s of %s item(s) on %s.</t>
+    <t id="1259">Remote service stopped: %s</t>
+    <t id="1260">the pilot no longer carries the regulator.</t>
+    <t id="1261">no service crew aboard.</t>
+    <t id="1262">the target is no longer eligible.</t>
+    <t id="1263">%s now carries the %s.</t>
+    <t id="1264">Board the ship or dock at the same station to hand over a regulator.</t>
+    <t id="1265">%s returned %s regulator(s) to you.</t>
+    <t id="1266">An Avarice planner or work order is busy. Try again in a moment.</t>
+    <t id="1267">Remote service could not be completed.</t>
+    <t id="1269">No service crew aboard.</t>
     <!-- SES SYSTEMS NAMES BEGIN (generated) -->
     <t id="1101">Argon S/M Systems I</t>
     <t id="1104">Argon S/M Systems Schematics I</t>

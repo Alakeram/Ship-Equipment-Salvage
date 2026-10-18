@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v4.01<br>
+**Release:** v4.10<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -14,6 +14,20 @@ through a dedicated Black Market parts network.
 
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
+
+## What Changed in v4.10
+
+- **Salvage Equipment / Weld Equipment:** order a ship with service crew to
+  salvage from, or weld saved parts onto, an S/M ship. Right-click the target
+  with the ship selected; the normal planner opens and confirming queues the
+  order. The pilot must carry the matching Avarice regulator.
+- Hand regulators to pilots (pilot conversation More... > More..., or the
+  ship's right-click menu while you are with the ship); no more one-of-each
+  limit; the Black Market stocks 1-3 per restock.
+- "Hand me your inventory" and HQ deposits leave the regulators with the pilot.
+- When visible, a crew member flies over in a spacesuit to do the work.
+- AI salvage skips drone and laser-tower wrecks and gives up a stuck wreck
+  after 60 seconds.
 
 ## What Changed in v4.01
 
@@ -342,16 +356,15 @@ start with an empty salvage inventory.
 
 ## Compatibility and Scope
 
-- Built as a proper X4 extension; no vanilla files are modified.
+- Built as a proper X4 extension; no vanilla files are modified. Since v4.10
+  two small additive patches keep the Avarice regulators with a pilot during
+  "Hand me your inventory" (md/conversations.xml) and Deposit Inventory
+  (aiscripts/order.trade.depositinventory.xml).
 - SES-specific UI behavior remains inside the SES extension and consumes
   published Kuertee UIX callbacks.
 - Kuertee UI Extensions itself is not patched by the release package.
 - Current tested gameplay scope is S and M ships.
-- L/XL recovery, detailed component condition, automation, and salvage-fleet
-  gameplay remain future scope.
-- Wreck Mining & Fabrication is an opt-in BETA and is off by default; leaving
-  it off keeps the production salvage, welding, inventory, and Black Market
-  behavior unchanged.
+- L/XL recovery and detailed component condition remain future scope.
 - Deployables, countermeasures, mines, satellites, probes, beacons, internal
   wares, restricted ship-specific equipment, and L/XL dealer equipment are not
   treated as normal recoverable S/M components.
