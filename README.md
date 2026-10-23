@@ -2,7 +2,7 @@
 
 **Author:** Alakeram  
 **Game:** X4: Foundations 9.00  
-**Release:** v4.10<br>
+**Release:** v4.11<br>
 **Scope:** Production S/M salvage, native refitting, persistent inventory, and Black Market trading
 
 **Public release notes:** [PUBLIC_RELEASE_CHANGELOG.md](PUBLIC_RELEASE_CHANGELOG.md)
@@ -15,6 +15,13 @@ through a dedicated Black Market parts network.
 Shipyards call it theft. Scrappers call it recovery. The Black Market calls it
 demand.
 
+## What Changed in v4.11
+
+- Fix: the Paranid and Teladi M shield generators that only fit L/XL ships
+  were part of the Paranid/Teladi S/M Systems I and II research and could
+  appear at the Black Market. They are now excluded like every other faction's
+  L/XL-only parts.
+- Three Remote Service messages show "item(s)" correctly again.
 ## What Changed in v4.10
 
 - **Salvage Equipment / Weld Equipment:** order a ship with service crew to

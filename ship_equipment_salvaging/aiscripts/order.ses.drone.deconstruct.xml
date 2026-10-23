@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<aiscript name="order.ses.drone.deconstruct" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!-- SES Deconstruct Wreck: the ship's building drones take wrecks of any
+       size apart. md/ses_drone_salvage.xml owns the job
+       (global.$SES_Drone_Jobs.{ship}):
+       - it claims each wreck through the vanilla salvage claim, so NPC tugs
+         and compactors skip it;
+       - it spends the Beam Catalysts and keeps the work progress;
+       - it pays the pilot and removes the wreck when done.
+       This order only moves the ship, keeps it near the wrecks and sends the
+       work ticks. Several S/M wrecks can be worked at once; an L/XL wreck is
+       worked alone. Cancelling stops the work and keeps what was paid so far. -->
+  <order id="SESDroneDeconstruct" name="{1171361,1270}" description="{1171361,1271}" category="salvage" allowinloop="false">
+    <params>
+      <param name="target" required="true" type="object" text="{1041,10126}" comment="Target. The wreck to deconstruct.">
+        <input_param name="canbedismantled" value="true"/>
+      </param>
+      <param name="debugchance" type="bool" default="0" advanced="true" text="{1041,10086}" comment="Print debug output">
+        <input_param name="truevalue" value="100"/>
+      </param>
+    </params>
+    <requires>
+      <match class="class.spacesuit" negate="true"/>
+    </requires>
+    <location object="$target" condition="@$target.exists"/>
+  </order>
+  <interrupts>
+    <handler ref="AttackHandler"/>
+    <handler ref="MissileLockHandler"/>
+    <handler ref="ScannedHandler"/>
+    <handler ref="InspectedHandler"/>
+    <handler ref="ResupplyHandler"/>
+  </interrupts>
+  <attention min="unknown">
+    <actions>
+      <label name="start"/>
+      <set_value name="$ship" exact="this.assignedcontrolled"/>
+      <set_value name="$log" exact="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else $debugchance"/>
+      <!-- MD claims the wreck, spends the catalysts and creates the job, or
+           reports why not (notification) and leaves no job. -->
+      <signal_objects object="player.galaxy" param="'SES_Drone_Salvage'" param2="table[$ship = $ship, $event = 'start', $wreck = $target]"/>
+      <wait exact="500ms"/>
+      <do_if value="not @global.$SES_Drone_Jobs.{$ship}.$wrecks.{$target}">
+        <debug_text text="'[SES][DRONE] %s could not start on %s; order ends.'.[$ship, $target]" chance="$log"/>
+        <do_if value="@$ship.order.isrunning">
+          <set_order_failed order="$ship.order" text="{1171361,1279}"/>
+        </do_if>
+        <resume label="finish"/>
+      </do_if>
+      <set_value name="$approaches" exact="0"/>
+      <set_value name="$visual" exact="false"/>
+
+      <label name="approach"/>
+      <!-- The work site is the closest wreck that is still being worked. -->
+      <set_value name="$site" exact="null"/>
+      <do_for_each name="$w" in="@global.$SES_Drone_Jobs.{$ship}.$wrecks.keys.list">
+        <do_if value="@$w.exists and (not $site or $ship.bboxdistanceto.{$w} lt $ship.bboxdistanceto.{$site})">
+          <set_value name="$site" exact="$w"/>
+        </do_if>
+      </do_for_each>
+      <do_if value="not $site">
+        <resume label="finish"/>
+      </do_if>
+      <do_if value="$ship.sector != $site.sector or $ship.bboxdistanceto.{$site} gt 1500m">
+        <set_value name="$approaches" operation="add"/>
+        <do_if value="$approaches gt 5">
+          <debug_text text="'[SES][DRONE] %s could not stay near %s; order fails.'.[$ship, $site]" chance="$log"/>
+          <do_if value="@$ship.order.isrunning">
+            <set_order_failed order="$ship.order" text="{1045,101}" comment="Unable to reach destination."/>
+          </do_if>
+          <resume label="finish"/>
+        </do_if>
+        <run_script name="'move.generic'" result="$movesuccess">
+          <param name="destination" value="$site"/>
+          <param name="position" value="position.[0m, 0m, -([$site.size * 0.5, 200m].max + $ship.size)]"/>
+          <param name="allowwreck" value="true"/>
+          <param name="debugchance" value="$debugchance"/>
+        </run_script>
+        <do_if value="not $movesuccess">
+          <do_if value="@$ship.order.isrunning">
+            <set_order_failed order="$ship.order" text="{1045,101}" comment="Unable to reach destination."/>
+          </do_if>
+          <resume label="finish"/>
+        </do_if>
+        <resume label="approach"/>
+      </do_if>
+      <stop_moving object="$ship"/>
+
+      <label name="work"/>
+      <!-- Work ticks. MD credits only wrecks within work range of the ship and
+           removes finished, lost or vanished wrecks from the job. -->
+      <set_value name="$working" exact="true"/>
+      <do_while value="$working">
+        <do_if value="this.attention ge attention.visible">
+          <do_if value="not $visual">
+            <set_value name="$visual" exact="true"/>
+          </do_if>
+          <signal_objects object="player.galaxy" param="'SES_Drone_Salvage'" param2="table[$ship = $ship, $event = 'visual']"/>
+        </do_if>
+        <do_elseif value="$visual">
+          <set_value name="$visual" exact="false"/>
+          <signal_objects object="player.galaxy" param="'SES_Drone_Salvage'" param2="table[$ship = $ship, $event = 'visual_off']"/>
+        </do_elseif>
+        <wait exact="5s"/>
+        <signal_objects object="player.galaxy" param="'SES_Drone_Salvage'" param2="table[$ship = $ship, $event = 'tick']"/>
+        <wait exact="200ms"/>
+        <do_if value="not @global.$SES_Drone_Jobs.{$ship}.$wrecks.keys.count">
+          <set_value name="$working" exact="false"/>
+        </do_if>
+        <do_elseif value="not @global.$SES_Drone_Jobs.{$ship}.$inrange">
+          <!-- Nothing in range any more (the ship drifted or the closest wreck
+               is done): fly to the next wreck of the job. -->
+          <set_value name="$working" exact="false"/>
+          <set_value name="$approaches" exact="0"/>
+        </do_elseif>
+      </do_while>
+      <do_if value="@global.$SES_Drone_Jobs.{$ship}.$wrecks.keys.count">
+        <resume label="approach"/>
+      </do_if>
+
+      <label name="finish"/>
+      <signal_objects object="player.galaxy" param="'SES_Drone_Salvage'" param2="table[$ship = $ship, $event = 'end']"/>
+      <wait exact="200ms"/>
+    </actions>
+  </attention>
+  <!-- Cancelled by the player or replaced by another order: MD stops every
+       wreck of the job, pays the progress so far and releases the claims. -->
+  <on_abort>
+    <signal_objects object="player.galaxy" param="'SES_Drone_Salvage'" param2="table[$ship = this.assignedcontrolled, $event = 'abort']"/>
+  </on_abort>
+</aiscript>

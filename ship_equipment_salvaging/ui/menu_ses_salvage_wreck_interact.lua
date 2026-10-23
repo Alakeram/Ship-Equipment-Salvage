@@ -48,6 +48,7 @@ pcall(ffi.cdef, [[UniverseID GetContextByClass(UniverseID componentid, const cha
 pcall(ffi.cdef, [[uint32_t GetPeople2(PeopleInfo* result, uint32_t resultlen, UniverseID controllableid, bool includearriving);]])
 pcall(ffi.cdef, [[bool IsOrderSelectableFor(const char* orderdefid, UniverseID controllableid);]])
 pcall(ffi.cdef, [[bool RemoveAllOrders2(UniverseID controllableid, bool onlytrade, bool onlypriority);]])
+pcall(ffi.cdef, [[uint32_t GetNumStoredUnits(UniverseID defensibleid, const char* cat, bool virtualammo);]])
 
 local AREA_CONTENT_TYPE = "ses_salvage_in_area"
 local AREA_ORDER_ID = "SESSalvageInRadius"
@@ -255,6 +256,13 @@ local function insertSalvageInArea()
     })
 end
 
+-- L/XL update BETA gate (Extension Options, default off; MD checks it again).
+local function lxlBetaEnabled()
+    if not GetNPCBlackboard then return false end
+    local ok, value = pcall(GetNPCBlackboard, componentID(C.GetPlayerID()), "$SES_LXL_Salvage_Beta_Enabled")
+    return ok and (value == true or value == 1)
+end
+
 -- Remote service (md/ses_remote_service.xml): a selected ship whose pilot
 -- carries the matching Avarice regulator and that has service crew salvages
 -- from, or welds onto, the right-clicked S/M ship. The row opens the native
@@ -306,8 +314,20 @@ local function remoteTargetOK(target64, mode)
     return owner == "ownerless" and (not pilot or pilot == 0)
 end
 
--- Selected ships whose pilot carries the regulator. With requireCrew, only
--- those that also have service crew (the ones that can take the order).
+-- Drone ships (outfitting, L/XL update BETA): repair drones aboard replace the
+-- regulator and the service crew, and the ship may work on itself.
+local function repairDrones(ship64)
+    local ok, count = pcall(function() return tonumber(C.GetNumStoredUnits(ship64, "repair", false)) or 0 end)
+    return ok and count or 0
+end
+
+local function isDroneShip(ship64)
+    return lxlBetaEnabled() and repairDrones(ship64) > 0
+end
+
+-- Selected ships that can do the work: drone ships, or ships whose pilot
+-- carries the regulator. With requireCrew, regulator ships also need service
+-- crew (the ones that can take the order).
 local function remoteShips(target64, mode, requireCrew)
     if requireCrew == nil then requireCrew = true end
     local result = {}
@@ -315,13 +335,17 @@ local function remoteShips(target64, mode, requireCrew)
     local controlled = componentID(C.GetPlayerControlledShipID())
     for _, component in ipairs(interactMenu.selectedplayerships) do
         local ok, ship64 = pcall(componentID, component)
-        if ok and ship64 and ship64 ~= 0 and ship64 ~= target64 and ship64 ~= controlled
+        if ok and ship64 and ship64 ~= 0 and ship64 ~= controlled
             and (not IsValidComponent or IsValidComponent(ship64))
             and (not IsComponentOperational or IsComponentOperational(ship64))
             and GetComponentData(ship64, "isplayerowned") == true
-            and carries(assignedPilot(ship64), REMOTE_TOOL[mode])
-            and ((not requireCrew) or serviceCrew(ship64) > 0) then
-            result[#result + 1] = ship64
+            and assignedPilot(ship64) then
+            local drone = isDroneShip(ship64)
+            if drone or (ship64 ~= target64
+                and carries(assignedPilot(ship64), REMOTE_TOOL[mode])
+                and ((not requireCrew) or serviceCrew(ship64) > 0)) then
+                result[#result + 1] = ship64
+            end
         end
     end
     return result
@@ -426,8 +450,87 @@ local function insertHandover()
     end
 end
 
+-- "Deconstruct Wreck" (md/ses_drone_salvage.xml): selected ships carrying
+-- building drones take a wreck of any size apart. MD validates everything
+-- again, claims the wreck and spends the catalysts.
+local DRONE_ORDER_ID = "SESDroneDeconstruct"
+
+local function droneWreck()
+    if not interactMenu or not interactMenu.componentSlot or not interactMenu.componentSlot.component then return nil end
+    local ok, object64 = pcall(componentID, interactMenu.componentSlot.component)
+    if not ok or not object64 or object64 == 0 then return nil end
+    if IsValidComponent and not IsValidComponent(object64) then return nil end
+    local iswreck, realclass = GetComponentData(object64, "iswreck", "realclassid")
+    if iswreck ~= true then return nil end
+    local sized = false
+    for _, class in ipairs({ "ship_s", "ship_m", "ship_l", "ship_xl" }) do
+        if Helper.isComponentClass(realclass, class) then sized = true end
+    end
+    if not sized or GetComponentData(object64, "isdeployable") then return nil end
+    local unitOk, isUnit = pcall(function() return C.IsUnit(object64) end)
+    if unitOk and isUnit then return nil end
+    return object64
+end
+
+local function buildDrones(ship64)
+    local ok, count = pcall(function() return tonumber(C.GetNumStoredUnits(ship64, "build", false)) or 0 end)
+    return ok and count or 0
+end
+
+local function droneShips()
+    local result = {}
+    if not interactMenu or type(interactMenu.selectedplayerships) ~= "table" then return result end
+    local controlled = componentID(C.GetPlayerControlledShipID())
+    for _, component in ipairs(interactMenu.selectedplayerships) do
+        local ok, ship64 = pcall(componentID, component)
+        if ok and ship64 and ship64 ~= 0 and ship64 ~= controlled
+            and (not IsValidComponent or IsValidComponent(ship64))
+            and (not IsComponentOperational or IsComponentOperational(ship64))
+            and GetComponentData(ship64, "isplayerowned") == true
+            and assignedPilot(ship64) and buildDrones(ship64) > 0 then
+            result[#result + 1] = ship64
+        end
+    end
+    return result
+end
+
+local function deconstructWreck()
+    local wreck = droneWreck()
+    local ships = droneShips()
+    if wreck and #ships > 0 and AddUITriggeredEvent and ConvertStringToLuaID then
+        local wire = { 1, ConvertStringToLuaID(tostring(wreck)) }
+        for _, ship64 in ipairs(ships) do
+            wire[#wire + 1] = ConvertStringToLuaID(tostring(ship64))
+        end
+        pcall(AddUITriggeredEvent, "SES_Drone_Salvage", "order", wire)
+    end
+    finishAction()
+end
+
+local function insertDeconstructWreck()
+    if not lxlBetaEnabled() then return end
+    if type(interactMenu.insertInteractionContent) ~= "function" then return end
+    if not droneWreck() or #droneShips() == 0 then return end
+    local iconText = ""
+    if type(interactMenu.orderIconText) == "function" then
+        local ok, result = pcall(interactMenu.orderIconText, DRONE_ORDER_ID)
+        if ok and type(result) == "string" then iconText = result end
+    end
+    interactMenu.insertInteractionContent("selected_orders", {
+        type = "ses_drone_deconstruct",
+        text = iconText .. sesText(1270, "Deconstruct Wreck"),
+        script = deconstructWreck,
+        active = true,
+        orderid = DRONE_ORDER_ID,
+        helpOverlayID = "",
+        helpOverlayText = "",
+        helpOverlayHighlightOnly = true,
+    })
+end
+
 local function insertSesOrders()
     pcall(insertSalvageWreck)
+    pcall(insertDeconstructWreck)
     pcall(insertSalvageInArea)
     pcall(insertRemoteService)
     pcall(insertHandover)

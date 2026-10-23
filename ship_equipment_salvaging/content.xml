@@ -4,8 +4,8 @@
   name="Ship Equipment Salvaging"
   description="Recover installed equipment from eligible ships for later reuse."
   author="Alakeram"
-  version="410"
-  date="2026-10-18"
+  version="411"
+  date="2026-10-23"
   enabled="1"
   save="false">
   <dependency version="900" />

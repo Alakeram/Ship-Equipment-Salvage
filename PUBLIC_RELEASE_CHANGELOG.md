@@ -5,6 +5,18 @@ Salvaging. Entries are added only for an explicitly approved public release,
 patch, or hotfix. Internal development versions are compiled into one entry
 under the final public version rather than listed individually.
 
+## v4.11 - 2026-10-23
+
+**Fix: Paranid and Teladi capital-ship shields**
+
+- The Paranid and Teladi M shield generators that only fit L/XL ships (the
+  hittable "standard" mounts, Mk1 and Mk2) were mistakenly part of the Paranid
+  and Teladi S/M Systems I and II research and could show up as Black Market
+  stock. They are now excluded like every other faction's L/XL-only parts and
+  are tagged "(L/XL-Class)" in the Salvage Inventory. Paranid and Teladi S/M
+  Systems I and II need slightly fewer shield components and Salvaged Metal as
+  a result.
+- Three Remote Service messages lost the "(s)" in "item(s)"; they show it again.
 ## v4.10 - 2026-10-18
 
 **Remote salvage and welding by your ships' service crew**

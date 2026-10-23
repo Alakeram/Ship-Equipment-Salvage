@@ -14,5 +14,6 @@
     <icon name="order_sessalvageroutine" texture="assets\textures\ui\order\order_salvagecollect.tga" height="32" width="32" />
     <icon name="order_sessalvageinradius" texture="assets\textures\ui\order\order_salvagecollect.tga" height="32" width="32" />
     <icon name="order_sesremoteservice" texture="assets\textures\ui\order\order_salvagecollect.tga" height="32" width="32" />
+    <icon name="order_sesdronedeconstruct" texture="assets\textures\ui\order\order_salvagecollect.tga" height="32" width="32" />
   </add>
 </diff>

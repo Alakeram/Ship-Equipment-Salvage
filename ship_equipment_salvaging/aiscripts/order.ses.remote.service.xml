@@ -44,7 +44,9 @@
 
       <label name="check"/>
       <!-- Early, quiet checks; MD repeats them before any change. -->
-      <do_if value="not this.inventory.{$tool}.exists or @this.assignedcontrolled.people.{entityrole.service}.count lt 1 or not @$target.exists">
+      <!-- Drone ships (repair drones, L/XL BETA) need no regulator or crew. -->
+      <set_value name="$droneship" exact="@global.$SES_LXL_Salvage_Beta_Enabled and @this.assignedcontrolled.units.{unitcategory.repair}.count ge 1"/>
+      <do_if value="(not $droneship and (not this.inventory.{$tool}.exists or @this.assignedcontrolled.people.{entityrole.service}.count lt 1)) or not @$target.exists">
         <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'apply']"/>
         <wait exact="1s"/>
         <resume label="poll"/>
@@ -83,7 +85,8 @@
         <set_value name="$eva" exact="true"/>
         <signal_objects object="player.galaxy" param="'SES_Remote_Service'" param2="table[$id = $jobid, $event = 'eva_out']"/>
         <wait exact="1s"/>
-        <set_value name="$evauntil" exact="player.age + 60s"/>
+        <!-- A cosmetic repair drone (drone ships) is not waited for as long. -->
+        <set_value name="$evauntil" exact="player.age + (if $droneship then 20s else 60s)"/>
         <set_value name="$suit" exact="@global.$SES_Remote_Jobs.{$jobid}.$suit"/>
         <do_while value="@$suit.exists and @$target.exists and $suit.distanceto.{$target} gt [$target.size * 0.5, 15m].max + 40m and player.age lt $evauntil">
           <wait exact="1s"/>

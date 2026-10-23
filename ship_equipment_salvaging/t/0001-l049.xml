@@ -434,10 +434,10 @@
     <t id="1252">Hand Beam Regulator to Pilot</t>
     <t id="1253">Hand Bonding Regulator to Pilot</t>
     <t id="1254">Take Regulators from Pilot</t>
-    <t id="1255">%s queued remote salvage of %s item(s) on %s.</t>
-    <t id="1256">%s queued remote welding of %s item(s) on %s.</t>
-    <t id="1257">Remote salvage done: %s recovered %s of %s item(s) from %s.</t>
-    <t id="1258">Remote welding done: %s installed %s of %s item(s) on %s.</t>
+    <t id="1255">%s queued remote salvage of %s item\(s\) on %s.</t>
+    <t id="1256">%s queued remote welding of %s item\(s\) on %s.</t>
+    <t id="1257">Remote salvage done: %s recovered %s of %s item\(s\) from %s.</t>
+    <t id="1258">Remote welding done: %s installed %s of %s item\(s\) on %s.</t>
     <t id="1259">Remote service stopped: %s</t>
     <t id="1260">the pilot no longer carries the regulator.</t>
     <t id="1261">no service crew aboard.</t>
@@ -448,6 +448,19 @@
     <t id="1266">An Avarice planner or work order is busy. Try again in a moment.</t>
     <t id="1267">Remote service could not be completed.</t>
     <t id="1269">No service crew aboard.</t>
+    <!-- Drone wreck deconstruction (2026-10-19; English placeholder, needs German translation) -->
+    <t id="1270">Deconstruct Wreck</t>
+    <t id="1271">Fly to a wreck of any size and take it apart with the ship's building drones. Several small or medium wrecks are worked at once, a large or extra-large wreck alone. More drones work faster. Each wreck costs Beam Catalysts; materials go to the pilot's inventory.</t>
+    <t id="1272">%s started deconstructing %s with %s building drone\(s\).</t>
+    <t id="1273">Deconstruction done: %s took apart %s. Recovered: %s.</t>
+    <t id="1274">Deconstruction stopped: %s</t>
+    <t id="1275">The ship carries no building drones.</t>
+    <t id="1276">Not enough Beam Catalysts \(%s needed\).</t>
+    <t id="1277">The wreck is already claimed by another salvager.</t>
+    <t id="1278">The ship is already deconstructing a large wreck.</t>
+    <t id="1279">This wreck can't be deconstructed.</t>
+    <t id="1280">Another ship took over the wreck.</t>
+    <t id="1281">%s stopped deconstructing %s. Recovered so far: %s.</t>
     <!-- SES SYSTEMS NAMES BEGIN (generated; English placeholder, needs German translation) -->
     <t id="1101">Argon S/M Systems I</t>
     <t id="1104">Argon S/M Systems Schematics I</t>

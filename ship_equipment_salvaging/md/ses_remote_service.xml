@@ -77,11 +77,14 @@
                 <param name="Mode" value="$Mode" />
               </run_actions>
               <run_actions ref="SES_Remote_Busy_V1" result="$Busy" />
-              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Menu order mode=%s ship=%s target=%s problem=%s targetok=%s busy=%s'.[$Mode, $Ship, $Target, $Problem, $TargetOK, $Busy]" />
+              <run_actions ref="SES_Remote_Is_Drone_Ship_V1" result="$IsDroneShip">
+                <param name="Ship" value="$Ship" />
+              </run_actions>
+              <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][REMOTE] Menu order mode=%s ship=%s target=%s problem=%s targetok=%s busy=%s droneship=%s'.[$Mode, $Ship, $Target, $Problem, $TargetOK, $Busy, $IsDroneShip]" />
               <do_if value="$Problem">
                 <show_notification text="readtext.{1171361}.{1259}.[readtext.{1171361}.{$Problem}]" />
               </do_if>
-              <do_elseif value="not $TargetOK or $Ship == $Target or not @global.$SES_M5_Native_Planners_Experimental_Enabled">
+              <do_elseif value="not $TargetOK or ($Ship == $Target and not $IsDroneShip) or not @global.$SES_M5_Native_Planners_Experimental_Enabled">
                 <show_notification text="readtext.{1171361}.{1259}.[readtext.{1171361}.{1262}]" />
               </do_elseif>
               <do_elseif value="$Busy">
@@ -274,7 +277,11 @@
                  order removes the suit. It never affects the result. -->
             <do_elseif value="$Event == 'eva_out' and not @$Job.$suit.exists and @$Job.$ship.isoperational and @$Job.$target.exists">
               <set_value name="$Race" exact="@$Job.$ship.assignedpilot.race" />
-              <set_value name="$SuitMacro" exact="if $Race == race.argon then macro.ship_arg_xs_spacesuit_01_a_macro else if $Race == race.paranid then macro.ship_par_xs_spacesuit_01_a_macro else if $Race == race.split then macro.ship_spl_xs_spacesuit_01_a_macro else if $Race == race.teladi then macro.ship_tel_xs_spacesuit_01_a_macro else macro.ship_gen_xs_spacesuit_01_a_macro" />
+              <run_actions ref="SES_Remote_Is_Drone_Ship_V1" result="$IsDroneShip">
+                <param name="Ship" value="$Job.$ship" />
+              </run_actions>
+              <!-- Drone ships send a repair drone instead of a crew member. -->
+              <set_value name="$SuitMacro" exact="if $IsDroneShip then macro.ship_gen_xs_repairdrone_01_a_macro else if $Race == race.argon then macro.ship_arg_xs_spacesuit_01_a_macro else if $Race == race.paranid then macro.ship_par_xs_spacesuit_01_a_macro else if $Race == race.split then macro.ship_spl_xs_spacesuit_01_a_macro else if $Race == race.teladi then macro.ship_tel_xs_spacesuit_01_a_macro else macro.ship_gen_xs_spacesuit_01_a_macro" />
               <create_ship name="$Suit" macro="$SuitMacro" sector="$Job.$ship.sector" capturable="false" commandeerable="false">
                 <owner exact="faction.player" overridenpc="true" />
                 <pilot><select race="if $Race then $Race else race.argon" tags="tag.aipilot" /></pilot>
@@ -425,6 +432,17 @@
       </actions>
     </library>
 
+    <!-- Drone ship (outfitting, L/XL update BETA): a ship carrying repair
+         drones services ships without a regulator or service crew. -->
+    <library name="SES_Remote_Is_Drone_Ship_V1" purpose="run_actions">
+      <params>
+        <param name="Ship" />
+      </params>
+      <actions>
+        <return value="if @global.$SES_LXL_Salvage_Beta_Enabled and @$Ship.isoperational and @$Ship.units.{unitcategory.repair}.count ge 1 then true else false" />
+      </actions>
+    </library>
+
     <!-- 0 when $Ship can do remote $Mode work, else the text id of the reason. -->
     <library name="SES_Remote_Ship_Problem_V1" purpose="run_actions">
       <params>
@@ -435,6 +453,14 @@
         <set_value name="$Ware" exact="if $Mode == 'weld' then ware.ses_equipment_welder else ware.ses_equipment_salvager" />
         <do_if value="not @$Ship.isoperational or not @$Ship.isplayerowned or not @$Ship.isclass.ship or $Ship == player.controlled or not @$Ship.assignedpilot.exists">
           <return value="1267" />
+        </do_if>
+        <!-- Drone ships (repair drones aboard, L/XL BETA): drones and the
+             player's catalysts are enough, no regulator or service crew (Marek). -->
+        <run_actions ref="SES_Remote_Is_Drone_Ship_V1" result="$IsDroneShip">
+          <param name="Ship" value="$Ship" />
+        </run_actions>
+        <do_if value="$IsDroneShip">
+          <return value="0" />
         </do_if>
         <do_if value="not $Ship.assignedpilot.inventory.{$Ware}.exists">
           <return value="1260" />

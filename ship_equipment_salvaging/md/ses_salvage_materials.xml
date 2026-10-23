@@ -70,11 +70,14 @@
       <params>
         <param name="Target" />
         <param name="Recipient" />
+        <!-- Drone deconstruction passes its own cap per wreck size (L/XL too). -->
+        <param name="Cap" default="null" />
       </params>
       <actions>
+        <set_value name="$GradeSummary" exact="''" />
         <do_if value="@global.$SES_Wreck_Mining_Beta_Enabled and @$Target.exists and @$Recipient.exists">
           <set_value name="$GradeSmall" exact="@$Target.isrealclass.ship_s or @global.$SES_Component_Kill_Records.{$Target}.$size == 's'" />
-          <set_value name="$GradeCap" exact="if $GradeSmall then 8 else 20" />
+          <set_value name="$GradeCap" exact="if $Cap then $Cap else if $GradeSmall then 8 else 20" />
           <set_value name="$GradeAwards" exact="table[]" />
           <set_value name="$GradeTotal" exact="0" />
           <do_for_each name="$GradeWare" in="if @$Target.loadout.wares.list then $Target.loadout.wares.list else []">
@@ -93,7 +96,6 @@
             <set_value name="$GradeRandom" exact="[ware.ses_weapon_grade_salvage, ware.ses_turret_grade_salvage, ware.ses_shield_grade_salvage, ware.ses_engine_grade_salvage, ware.ses_thruster_grade_salvage].random" />
             <set_value name="$GradeAwards.{$GradeRandom}" exact="[1, 2].random" />
           </do_if>
-          <set_value name="$GradeSummary" exact="''" />
           <do_for_each name="$GradeAwardWare" valuename="$GradeAwardAmount" in="$GradeAwards">
             <add_inventory entity="$Recipient" ware="$GradeAwardWare" exact="$GradeAwardAmount" />
             <set_value name="$GradeSummary" exact="$GradeSummary + (if $GradeSummary == '' then '' else ', ') + '%s x %s'.[$GradeAwardAmount, $GradeAwardWare.name]" />
@@ -104,6 +106,7 @@
           </do_if>
           <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][SALVAGE] Grade salvage target=%s recipient=%s total=%s awards=%s'.[$Target, $Recipient, $GradeTotal, $GradeSummary]" />
         </do_if>
+        <return value="$GradeSummary" />
       </actions>
     </library>
 

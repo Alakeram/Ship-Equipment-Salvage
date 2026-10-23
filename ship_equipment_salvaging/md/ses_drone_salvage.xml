@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="SES_Drone_Salvage" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <!-- SES Deconstruct Wreck (design: docs/LXL_DRONE_DECONSTRUCTION_DESIGN.md).
+
+       A player ship with building drones takes wrecks of any size apart. The
+       order (aiscripts/order.ses.drone.deconstruct.xml) moves the ship and
+       sends ticks; this script owns everything else.
+
+       Minimal collision with vanilla:
+       - Each wreck is claimed with the vanilla salvage claim
+         (assign_dismantling_target). Vanilla tugs and compactors skip claimed
+         wrecks (MCP run 48). start_dismantling is never called.
+       - A compactor told to crush the wreck directly wins the claim. We get
+         event_object_salvage_claim_lost and stop that wreck.
+       - The drones never leave the bay, so vanilla drone behaviour, restock
+         and losses are untouched. Cosmetic drones fly only while the player
+         can see the work.
+
+       Rules (Marek, 2026-10-19):
+       - Several S/M wrecks can be worked at once, but an L/XL wreck is worked
+         alone.
+       - Any number of building drones works. Time = base x (20 / drones).
+       - Each wreck costs Beam Catalysts from the player's inventory when the
+         work starts.
+       - Materials go to the pilot's inventory, as in the other AI salvage
+         orders. L/XL wrecks never give intact equipment: L/XL gear is crafted
+         only. -->
+  <cues>
+    <cue name="SES_Drone_Root_V1" namespace="this">
+      <actions>
+        <do_if value="not global.$SES_Drone_Jobs?">
+          <set_value name="global.$SES_Drone_Jobs" exact="table[]" />
+        </do_if>
+        <do_if value="not global.$SES_Drone_Wreck_Owner?">
+          <set_value name="global.$SES_Drone_Wreck_Owner" exact="table[]" />
+        </do_if>
+        <create_group groupname="$DroneShips" />
+        <!-- Base work time per size at the reference drone count (seconds),
+             the Beam Catalyst cost per wreck, and the work range. -->
+        <set_value name="global.$SES_Drone_Settings" exact="table[
+          $refdrones = 20,
+          $base = table[$s = 30, $m = 60, $l = 720, $xl = 1800],
+          $cost = table[$s = 1, $m = 2, $l = 6, $xl = 12],
+          $metal = table[$s = [4, 6], $m = [10, 14], $l = [30, 40], $xl = [80, 100]],
+          $gradecap = table[$s = 8, $m = 20, $l = 40, $xl = 80],
+          $range = 3km,
+          $maxtick = 15s,
+          $fxdrones = 4
+        ]" />
+        <!-- First run in an existing save starts after event_game_loaded. -->
+        <set_value name="player.entity.$SES_LXL_Salvage_Beta_Enabled" exact="if @global.$SES_LXL_Salvage_Beta_Enabled then true else false" />
+      </actions>
+      <cues>
+        <!-- The Lua menu row reads the L/XL BETA gate from the player blackboard.
+             Published at start, after every load and on option changes. -->
+        <cue name="SES_Drone_Publish_V1" instantiate="true">
+          <conditions>
+            <check_any>
+              <event_cue_signalled />
+              <event_game_loaded />
+              <event_game_started />
+            </check_any>
+          </conditions>
+          <actions>
+            <set_value name="player.entity.$SES_LXL_Salvage_Beta_Enabled" exact="if @global.$SES_LXL_Salvage_Beta_Enabled then true else false" />
+          </actions>
+        </cue>
+
+        <!-- Settings are code, not save data: refresh them after every load. -->
+        <cue name="SES_Drone_Load_V1" instantiate="true">
+          <conditions>
+            <event_game_loaded />
+          </conditions>
+          <delay exact="3s" />
+          <actions>
+            <set_value name="global.$SES_Drone_Settings" exact="table[
+              $refdrones = 20,
+              $base = table[$s = 30, $m = 60, $l = 720, $xl = 1800],
+              $cost = table[$s = 1, $m = 2, $l = 6, $xl = 12],
+              $metal = table[$s = [4, 6], $m = [10, 14], $l = [30, 40], $xl = [80, 100]],
+              $gradecap = table[$s = 8, $m = 20, $l = 40, $xl = 80],
+              $range = 3km,
+              $maxtick = 15s,
+              $fxdrones = 4
+            ]" />
+            <!-- A job whose ship no longer runs the order (lost, sold, order
+                 replaced while the script was off) is stopped. Cosmetic drones
+                 never survive a load. -->
+            <do_for_each name="$OldShip" in="global.$SES_Drone_Jobs.keys.list">
+              <run_actions ref="SES_Drone_Fx_Clear_V1">
+                <param name="Ship" value="$OldShip" />
+              </run_actions>
+              <do_if value="not @$OldShip.exists or @$OldShip.order.id != 'SESDroneDeconstruct'">
+                <run_actions ref="SES_Drone_Stop_All_V1">
+                  <param name="Ship" value="$OldShip" />
+                  <param name="Reason" value="0" />
+                </run_actions>
+              </do_if>
+              <do_else>
+                <set_value name="global.$SES_Drone_Jobs.{$OldShip}.$lasttick" exact="player.age" />
+              </do_else>
+            </do_for_each>
+          </actions>
+        </cue>
+
+        <!-- Right-click "Deconstruct Wreck" (ui/menu_ses_salvage_wreck_interact.lua).
+             Wire: [1, wreck, ship, ship...]. A ship already deconstructing
+             nearby S/M wrecks takes a further S/M wreck into its running job.
+             Otherwise the wreck becomes a new order: it starts now when the ship
+             is busy with something else, or is queued after the current wreck
+             job. -->
+        <cue name="SES_Drone_Menu_V1" instantiate="true">
+          <conditions>
+            <event_ui_triggered screen="'SES_Drone_Salvage'" control="'order'" />
+          </conditions>
+          <actions>
+            <set_value name="$Wire" exact="event.param3" />
+            <set_value name="$Wreck" exact="null" />
+            <do_if value="@$Wire.count ge 3 and @$Wire.{1} == 1">
+              <set_value name="$Wreck" exact="$Wire.{2}" />
+            </do_if>
+            <run_actions ref="SES_Drone_Size_V1" result="$Size">
+              <param name="Wreck" value="$Wreck" />
+            </run_actions>
+            <set_value name="$Ordered" exact="0" />
+            <!-- L/XL update BETA gate (Extension Options, default off). -->
+            <do_if value="$Size and @global.$SES_LXL_Salvage_Beta_Enabled">
+              <do_all exact="$Wire.count - 2" counter="$Index">
+                <set_value name="$Ship" exact="$Wire.{$Index + 2}" />
+                <run_actions ref="SES_Drone_Count_V1" result="$Drones">
+                  <param name="Ship" value="$Ship" />
+                </run_actions>
+                <do_if value="$Drones lt 1">
+                  <show_notification text="readtext.{1171361}.{1274}.[readtext.{1171361}.{1275}]" />
+                </do_if>
+                <do_elseif value="@$Ship.isclass.ship and @$Ship.isplayerowned and $Ship != player.controlled and @$Ship.assignedpilot.exists and @global.$SES_Drone_Wreck_Owner.{$Wreck} != $Ship">
+                  <set_value name="$Job" exact="@global.$SES_Drone_Jobs.{$Ship}" />
+                  <set_value name="$Merged" exact="false" />
+                  <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][DRONE] Menu ship=%s order=%s jobwrecks=%s sector=%s dist=%s'.[$Ship, @$Ship.order.id, @$Job.$wrecks.keys.count, $Ship.sector == $Wreck.sector, $Ship.bboxdistanceto.{$Wreck}]" />
+                  <do_if value="@$Ship.order.id == 'SESDroneDeconstruct' and @$Job.$wrecks.keys.count">
+                    <do_if value="$Ship.sector == $Wreck.sector and $Ship.bboxdistanceto.{$Wreck} le global.$SES_Drone_Settings.$range">
+                      <run_actions ref="SES_Drone_Add_V1" result="$Problem">
+                        <param name="Ship" value="$Ship" />
+                        <param name="Wreck" value="$Wreck" />
+                      </run_actions>
+                      <do_if value="$Problem == 0">
+                        <set_value name="$Merged" exact="true" />
+                      </do_if>
+                      <do_elseif value="$Problem != 1278">
+                        <!-- Real refusal (claimed, catalysts...): already reported. -->
+                        <set_value name="$Merged" exact="true" />
+                      </do_elseif>
+                    </do_if>
+                    <do_if value="not $Merged">
+                      <create_order object="$Ship" id="'SESDroneDeconstruct'" immediate="false">
+                        <param name="target" value="$Wreck" />
+                      </create_order>
+                    </do_if>
+                  </do_if>
+                  <do_else>
+                    <create_order object="$Ship" id="'SESDroneDeconstruct'" immediate="true">
+                      <param name="target" value="$Wreck" />
+                    </create_order>
+                  </do_else>
+                  <set_value name="$Ordered" operation="add" />
+                </do_elseif>
+              </do_all>
+            </do_if>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][DRONE] Deconstruct Wreck from menu. wreck=%s size=%s ships=%s ordered=%s'.[$Wreck, $Size, [@$Wire.count - 2, 0].max, $Ordered]" />
+          </actions>
+        </cue>
+
+        <!-- Order events: start, tick, visual, visual_off, end, abort. -->
+        <cue name="SES_Drone_Signal_V1" instantiate="true">
+          <conditions>
+            <event_object_signalled object="player.galaxy" param="'SES_Drone_Salvage'" />
+          </conditions>
+          <actions>
+            <set_value name="$Ship" exact="@event.param2.$ship" />
+            <set_value name="$Event" exact="@event.param2.$event" />
+            <do_if value="$Event == 'start'">
+              <run_actions ref="SES_Drone_Add_V1" result="$Problem">
+                <param name="Ship" value="$Ship" />
+                <param name="Wreck" value="@event.param2.$wreck" />
+              </run_actions>
+            </do_if>
+            <do_elseif value="$Event == 'tick'">
+              <run_actions ref="SES_Drone_Tick_V1">
+                <param name="Ship" value="$Ship" />
+              </run_actions>
+            </do_elseif>
+            <do_elseif value="$Event == 'visual'">
+              <run_actions ref="SES_Drone_Fx_V1">
+                <param name="Ship" value="$Ship" />
+              </run_actions>
+            </do_elseif>
+            <do_elseif value="$Event == 'visual_off'">
+              <run_actions ref="SES_Drone_Fx_Clear_V1">
+                <param name="Ship" value="$Ship" />
+              </run_actions>
+            </do_elseif>
+            <do_elseif value="$Event == 'end' or $Event == 'abort'">
+              <run_actions ref="SES_Drone_Fx_Clear_V1">
+                <param name="Ship" value="$Ship" />
+              </run_actions>
+              <run_actions ref="SES_Drone_Stop_All_V1">
+                <param name="Ship" value="$Ship" />
+                <param name="Reason" value="0" />
+              </run_actions>
+            </do_elseif>
+            <debug_text chance="if @global.$SES_Debug_Log_Chance and $Event != 'tick' and $Event != 'visual' then global.$SES_Debug_Log_Chance else 0" text="'[SES][DRONE] Signal ship=%s event=%s wreck=%s problem=%s'.[$Ship, $Event, @event.param2.$wreck, @$Problem]" />
+          </actions>
+        </cue>
+
+        <!-- A compactor ordered directly onto one of our wrecks won the claim. -->
+        <cue name="SES_Drone_Claim_Lost_V1" instantiate="true">
+          <conditions>
+            <event_object_salvage_claim_lost group="$DroneShips" />
+          </conditions>
+          <actions>
+            <set_value name="$Ship" exact="event.object" />
+            <set_value name="$Wreck" exact="event.param" />
+            <do_if value="@global.$SES_Drone_Jobs.{$Ship}.$wrecks.{$Wreck}">
+              <run_actions ref="SES_Drone_Release_V1">
+                <param name="Ship" value="$Ship" />
+                <param name="Wreck" value="$Wreck" />
+                <param name="Mode" value="'stop'" />
+                <param name="Reason" value="1280" />
+              </run_actions>
+            </do_if>
+          </actions>
+        </cue>
+      </cues>
+    </cue>
+
+    <!-- 's', 'm', 'l' or 'xl' for a wreck the drones can take apart, else null.
+         Drones and deployables (laser towers) are not hulls. -->
+    <library name="SES_Drone_Size_V1" purpose="run_actions">
+      <params><param name="Wreck" /></params>
+      <actions>
+        <set_value name="$SizeResult" exact="null" />
+        <do_if value="@$Wreck.exists and @$Wreck.iswreck and not @$Wreck.isunit and not @$Wreck.isdeployable">
+          <set_value name="$SizeResult" exact="if $Wreck.isrealclass.ship_xl then 'xl' else if $Wreck.isrealclass.ship_l then 'l' else if $Wreck.isrealclass.ship_m then 'm' else if $Wreck.isrealclass.ship_s then 's' else null" />
+        </do_if>
+        <return value="$SizeResult" />
+      </actions>
+    </library>
+
+    <library name="SES_Drone_Count_V1" purpose="run_actions">
+      <params><param name="Ship" /></params>
+      <actions>
+        <return value="if @$Ship.isoperational then [@$Ship.units.{unitcategory.build}.count, 0].max else 0" />
+      </actions>
+    </library>
+
+    <!-- Claim a wreck for the ship and start the work. Returns 0, or the text
+         id of the reason (reported here, except 1278: the caller queues the
+         wreck as a new order instead). -->
+    <library name="SES_Drone_Add_V1" purpose="run_actions">
+      <params>
+        <param name="Ship" />
+        <param name="Wreck" />
+      </params>
+      <actions>
+        <run_actions ref="SES_Drone_Size_V1" result="$AddSize">
+          <param name="Wreck" value="$Wreck" />
+        </run_actions>
+        <run_actions ref="SES_Drone_Count_V1" result="$AddDrones">
+          <param name="Ship" value="$Ship" />
+        </run_actions>
+        <set_value name="$AddJob" exact="@global.$SES_Drone_Jobs.{$Ship}" />
+        <set_value name="$AddProblem" exact="0" />
+        <set_value name="$AddDetail" exact="''" />
+        <do_if value="not @global.$SES_LXL_Salvage_Beta_Enabled or not @$Ship.isplayerowned or not @$Ship.assignedpilot.exists or not $AddSize">
+          <set_value name="$AddProblem" exact="1279" />
+        </do_if>
+        <do_elseif value="@$AddJob.$wrecks.{$Wreck}">
+          <!-- Already ours (order restarted on the same wreck). -->
+          <return value="0" />
+        </do_elseif>
+        <do_elseif value="$AddDrones lt 1">
+          <set_value name="$AddProblem" exact="1275" />
+        </do_elseif>
+        <do_elseif value="@$Wreck.tugship or (@$Wreck.dismantlingobject and $Wreck.dismantlingobject != $Ship) or (@$Wreck.salvageclaimants.count and not $Wreck.salvageclaimants.indexof.{$Ship}) or @global.$SES_Salvage_Standin_Of.{$Wreck}.exists or (@global.$SES_Drone_Wreck_Owner.{$Wreck}.exists and global.$SES_Drone_Wreck_Owner.{$Wreck} != $Ship)">
+          <set_value name="$AddProblem" exact="1277" />
+        </do_elseif>
+        <do_elseif value="@global.$SES_Wreck_Harvest_State.{$Wreck}.$exhausted">
+          <set_value name="$AddProblem" exact="1279" />
+        </do_elseif>
+        <do_elseif value="@$AddJob.$wrecks.keys.count and ($AddSize == 'l' or $AddSize == 'xl' or @$AddJob.$exclusive)">
+          <!-- An L/XL wreck is always worked alone. -->
+          <set_value name="$AddProblem" exact="1278" />
+        </do_elseif>
+        <do_else>
+          <set_value name="$AddCost" exact="global.$SES_Drone_Settings.$cost.{'$' + $AddSize}" />
+          <do_if value="player.entity.inventory.{ware.ses_avarice_beam_catalyst}.count lt $AddCost">
+            <set_value name="$AddProblem" exact="1276" />
+            <set_value name="$AddDetail" exact="$AddCost" />
+          </do_if>
+        </do_else>
+
+        <!-- Claim: a dismantle claim (accepted on L/XL wrecks from any ship,
+             MCP run 48), else a tow claim. If the engine refuses both on an
+             S/M wreck, the job runs without a claim; a tug or compactor
+             arriving then simply takes the wreck over (tick: 'lost'). -->
+        <set_value name="$AddClaim" exact="'none'" />
+        <do_if value="$AddProblem == 0">
+          <!-- Only try what the engine allows (S/M wrecks are not dismantlable
+               and an assign attempt there logs an engine error). -->
+          <do_if value="@$Wreck.canbedismantled">
+            <assign_dismantling_target object="$Ship" wreck="$Wreck" />
+          </do_if>
+          <do_if value="@$Wreck.salvageclaimants.indexof.{$Ship}">
+            <set_value name="$AddClaim" exact="'dismantle'" />
+          </do_if>
+          <do_else>
+            <do_if value="@$Wreck.canbetowed and @$Ship.cantowobjects">
+              <assign_tow_target ship="$Ship" object="$Wreck" />
+            </do_if>
+            <do_if value="@$Wreck.salvageclaimants.indexof.{$Ship}">
+              <set_value name="$AddClaim" exact="'tow'" />
+            </do_if>
+            <do_elseif value="$AddSize == 'l' or $AddSize == 'xl'">
+              <set_value name="$AddProblem" exact="1277" />
+            </do_elseif>
+          </do_else>
+        </do_if>
+
+        <do_if value="$AddProblem == 0">
+          <remove_inventory entity="player.entity" ware="ware.ses_avarice_beam_catalyst" exact="$AddCost" />
+          <set_wreck_persistence object="$Wreck" persistent="true" />
+          <do_if value="not $AddJob">
+            <set_value name="global.$SES_Drone_Jobs.{$Ship}" exact="table[$wrecks = table[], $lasttick = player.age, $exclusive = false, $inrange = true, $fx = []]" />
+          </do_if>
+          <set_value name="global.$SES_Drone_Jobs.{$Ship}.$wrecks.{$Wreck}" exact="table[
+            $size = $AddSize,
+            $progress = 0,
+            $total = global.$SES_Drone_Settings.$base.{'$' + $AddSize} * global.$SES_Drone_Settings.$refdrones,
+            $cost = $AddCost,
+            $started = player.age,
+            $name = $Wreck.knownname,
+            $claim = $AddClaim
+          ]" />
+          <do_if value="$AddSize == 'l' or $AddSize == 'xl'">
+            <set_value name="global.$SES_Drone_Jobs.{$Ship}.$exclusive" exact="true" />
+          </do_if>
+          <set_value name="global.$SES_Drone_Wreck_Owner.{$Wreck}" exact="$Ship" />
+          <add_to_group groupname="md.SES_Drone_Salvage.SES_Drone_Root_V1.$DroneShips" object="$Ship" />
+          <show_notification text="readtext.{1171361}.{1272}.[$Ship.knownname, $Wreck.knownname, $AddDrones]" />
+        </do_if>
+        <do_elseif value="$AddProblem != 1278">
+          <set_value name="$AddReason" exact="if $AddProblem == 1276 then readtext.{1171361}.{1276}.[$AddDetail] else readtext.{1171361}.{$AddProblem}" />
+          <show_notification text="readtext.{1171361}.{1274}.[$AddReason]" />
+        </do_elseif>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][DRONE] Add ship=%s wreck=%s size=%s drones=%s problem=%s claim=%s dismantle=%s tow=%s claimants=%s jobwrecks=%s catalysts=%s'.[$Ship, $Wreck, $AddSize, $AddDrones, $AddProblem, $AddClaim, @$Wreck.canbedismantled, @$Wreck.canbetowed, @$Wreck.salvageclaimants.count, @global.$SES_Drone_Jobs.{$Ship}.$wrecks.keys.count, player.entity.inventory.{ware.ses_avarice_beam_catalyst}.count]" />
+        <return value="$AddProblem" />
+      </actions>
+    </library>
+
+    <!-- One work tick: credit every wreck within range, drones split evenly. -->
+    <library name="SES_Drone_Tick_V1" purpose="run_actions">
+      <params><param name="Ship" /></params>
+      <actions>
+        <set_value name="$TickJob" exact="@global.$SES_Drone_Jobs.{$Ship}" />
+        <do_if value="not $TickJob">
+          <return />
+        </do_if>
+        <set_value name="$TickDelta" exact="[[player.age - $TickJob.$lasttick, 0s].max, global.$SES_Drone_Settings.$maxtick].min" />
+        <set_value name="global.$SES_Drone_Jobs.{$Ship}.$lasttick" exact="player.age" />
+        <run_actions ref="SES_Drone_Count_V1" result="$TickDrones">
+          <param name="Ship" value="$Ship" />
+        </run_actions>
+        <do_if value="$TickDrones lt 1">
+          <run_actions ref="SES_Drone_Stop_All_V1">
+            <param name="Ship" value="$Ship" />
+            <param name="Reason" value="1275" />
+          </run_actions>
+          <return />
+        </do_if>
+        <!-- Drop vanished wrecks and wrecks someone else took over. -->
+        <set_value name="$TickInRange" exact="[]" />
+        <do_for_each name="$TickWreck" in="$TickJob.$wrecks.keys.list">
+          <do_if value="not @$TickWreck.exists">
+            <run_actions ref="SES_Drone_Release_V1">
+              <param name="Ship" value="$Ship" />
+              <param name="Wreck" value="$TickWreck" />
+              <param name="Mode" value="'gone'" />
+              <param name="Reason" value="0" />
+            </run_actions>
+          </do_if>
+          <do_elseif value="(@$TickWreck.tugship and $TickWreck.tugship != $Ship) or (@$TickWreck.dismantlingobject and $TickWreck.dismantlingobject != $Ship) or (if @$TickJob.$wrecks.{$TickWreck}.$claim == 'none' then @$TickWreck.salvageclaimants.count gt 0 else not @$TickWreck.salvageclaimants.indexof.{$Ship})">
+            <run_actions ref="SES_Drone_Release_V1">
+              <param name="Ship" value="$Ship" />
+              <param name="Wreck" value="$TickWreck" />
+              <param name="Mode" value="'stop'" />
+              <param name="Reason" value="1280" />
+            </run_actions>
+          </do_elseif>
+          <do_elseif value="$Ship.sector == $TickWreck.sector and $Ship.bboxdistanceto.{$TickWreck} le global.$SES_Drone_Settings.$range">
+            <append_to_list name="$TickInRange" exact="$TickWreck" />
+          </do_elseif>
+        </do_for_each>
+        <do_if value="$TickInRange.count">
+          <set_value name="$TickShare" exact="($TickDrones)f / $TickInRange.count" />
+          <do_for_each name="$TickWreck" in="$TickInRange">
+            <set_value name="global.$SES_Drone_Jobs.{$Ship}.$wrecks.{$TickWreck}.$progress" operation="add" exact="$TickShare * ($TickDelta)f" />
+            <set_value name="$TickRecord" exact="global.$SES_Drone_Jobs.{$Ship}.$wrecks.{$TickWreck}" />
+            <do_if value="$TickRecord.$progress ge $TickRecord.$total">
+              <run_actions ref="SES_Drone_Release_V1">
+                <param name="Ship" value="$Ship" />
+                <param name="Wreck" value="$TickWreck" />
+                <param name="Mode" value="'done'" />
+                <param name="Reason" value="0" />
+              </run_actions>
+            </do_if>
+          </do_for_each>
+        </do_if>
+        <!-- Tell the order whether anything left is in range (else it moves on). -->
+        <do_if value="@global.$SES_Drone_Jobs.{$Ship}">
+          <set_value name="$TickAnyInRange" exact="false" />
+          <do_for_each name="$TickWreck" in="global.$SES_Drone_Jobs.{$Ship}.$wrecks.keys.list">
+            <do_if value="@$TickWreck.exists and $Ship.sector == $TickWreck.sector and $Ship.bboxdistanceto.{$TickWreck} le global.$SES_Drone_Settings.$range">
+              <set_value name="$TickAnyInRange" exact="true" />
+            </do_if>
+          </do_for_each>
+          <set_value name="global.$SES_Drone_Jobs.{$Ship}.$inrange" exact="$TickAnyInRange" />
+        </do_if>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][DRONE] Tick ship=%s drones=%s delta=%s inrange=%s left=%s'.[$Ship, $TickDrones, $TickDelta, $TickInRange.count, @global.$SES_Drone_Jobs.{$Ship}.$wrecks.keys.count]" />
+      </actions>
+    </library>
+
+    <!-- End the work on one wreck.
+         Mode 'done': full payout, the wreck is removed.
+         Mode 'stop': Salvaged Metal for the progress made, claim released.
+         Mode 'gone': the wreck vanished, nothing paid. -->
+    <library name="SES_Drone_Release_V1" purpose="run_actions">
+      <params>
+        <param name="Ship" />
+        <param name="Wreck" />
+        <param name="Mode" />
+        <param name="Reason" default="0" />
+      </params>
+      <actions>
+        <set_value name="$RelRecord" exact="@global.$SES_Drone_Jobs.{$Ship}.$wrecks.{$Wreck}" />
+        <do_if value="not $RelRecord">
+          <return />
+        </do_if>
+        <set_value name="$RelRecipient" exact="if @$Ship.assignedpilot.exists then $Ship.assignedpilot else player.entity" />
+        <set_value name="$RelKey" exact="'$' + $RelRecord.$size" />
+        <set_value name="$RelFraction" exact="[[($RelRecord.$progress)f / ([$RelRecord.$total, 1].max)f, 0.0].max, 1.0].min" />
+        <set_value name="$RelSummary" exact="''" />
+        <set_value name="$RelWreckName" exact="if @$Wreck.exists then $Wreck.knownname else $RelRecord.$name" />
+
+        <do_if value="$Mode == 'done' or $Mode == 'stop'">
+          <set_value name="$RelMetalRange" exact="global.$SES_Drone_Settings.$metal.{$RelKey}" />
+          <set_value name="$RelMetal" min="$RelMetalRange.{1}" max="$RelMetalRange.{2}" />
+          <do_if value="$Mode == 'stop'">
+            <set_value name="$RelMetal" exact="($RelMetal * $RelFraction)i" />
+          </do_if>
+          <do_if value="$RelMetal gt 0">
+            <add_inventory entity="$RelRecipient" ware="ware.ses_salvaged_metal" exact="$RelMetal" />
+            <set_value name="$RelSummary" exact="'%s x %s'.[$RelMetal, ware.ses_salvaged_metal.name]" />
+          </do_if>
+        </do_if>
+
+        <do_if value="$Mode == 'done' and @$Wreck.exists">
+          <!-- Grade salvage from the equipment still on the wreck, and core
+               fragments. Never intact equipment. -->
+          <run_actions ref="md.SES_Salvage_Materials.SES_Grade_Salvage_Award_V1" result="$RelGrade">
+            <param name="Target" value="$Wreck" />
+            <param name="Recipient" value="$RelRecipient" />
+            <param name="Cap" value="global.$SES_Drone_Settings.$gradecap.{$RelKey}" />
+          </run_actions>
+          <do_if value="$RelGrade">
+            <set_value name="$RelSummary" exact="$RelSummary + (if $RelSummary == '' then '' else ', ') + $RelGrade" />
+          </do_if>
+          <set_value name="$RelRoll" min="1" max="100" />
+          <set_value name="$RelFragments" exact="if $RelRecord.$size == 's' then (if $RelRoll le 35 then 1 else 0) else if $RelRecord.$size == 'm' then (if $RelRoll le 10 then 2 else if $RelRoll le 80 then 1 else 0) else 0" />
+          <do_if value="$RelRecord.$size == 'l'">
+            <set_value name="$RelFragments" min="1" max="3" />
+          </do_if>
+          <do_elseif value="$RelRecord.$size == 'xl'">
+            <set_value name="$RelFragments" min="2" max="5" />
+          </do_elseif>
+          <do_if value="$RelFragments gt 0">
+            <add_inventory entity="$RelRecipient" ware="ware.ses_functional_core_fragment" exact="$RelFragments" />
+            <set_value name="$RelSummary" exact="$RelSummary + (if $RelSummary == '' then '' else ', ') + '%s x %s'.[$RelFragments, ware.ses_functional_core_fragment.name]" />
+          </do_if>
+        </do_if>
+
+        <!-- Release the claim and the persistence; a finished wreck is removed. -->
+        <do_if value="@$Wreck.exists">
+          <do_if value="@$Wreck.salvageclaimants.indexof.{$Ship}">
+            <do_if value="$RelRecord.$claim == 'tow'">
+              <clear_tow_target ship="$Ship" object="$Wreck" />
+            </do_if>
+            <do_else>
+              <clear_dismantling_target object="$Ship" wreck="$Wreck" />
+            </do_else>
+          </do_if>
+          <do_if value="$Mode == 'done'">
+            <destroy_object object="$Wreck" explosion="false" />
+          </do_if>
+          <do_else>
+            <set_wreck_persistence object="$Wreck" persistent="false" />
+          </do_else>
+        </do_if>
+        <remove_value name="global.$SES_Drone_Jobs.{$Ship}.$wrecks.{$Wreck}" />
+        <remove_value name="global.$SES_Drone_Wreck_Owner.{$Wreck}" />
+        <do_if value="not @global.$SES_Drone_Jobs.{$Ship}.$wrecks.keys.count">
+          <set_value name="global.$SES_Drone_Jobs.{$Ship}.$exclusive" exact="false" />
+        </do_if>
+
+        <set_value name="$RelShipName" exact="if @$Ship.exists then $Ship.knownname else ''" />
+        <do_if value="$Mode == 'done'">
+          <set_value name="$RelText" exact="readtext.{1171361}.{1273}.[$RelShipName, $RelWreckName, (if $RelSummary == '' then '-' else $RelSummary)]" />
+          <show_notification text="$RelText" />
+          <write_to_logbook category="general" title="readtext.{1171361}.{1270}" text="$RelText" object="@$Ship" />
+        </do_if>
+        <do_elseif value="$Mode == 'stop'">
+          <set_value name="$RelText" exact="readtext.{1171361}.{1281}.[$RelShipName, $RelWreckName, (if $RelSummary == '' then '-' else $RelSummary)]" />
+          <do_if value="$Reason">
+            <show_notification text="readtext.{1171361}.{1274}.[readtext.{1171361}.{$Reason}]" />
+          </do_if>
+          <show_notification text="$RelText" />
+          <write_to_logbook category="general" title="readtext.{1171361}.{1270}" text="$RelText" object="@$Ship" />
+        </do_elseif>
+        <debug_text chance="if @global.$SES_Debug_Log_Chance then global.$SES_Debug_Log_Chance else 0" text="'[SES][DRONE] Release ship=%s wreck=%s mode=%s reason=%s fraction=%s recipient=%s paid=%s'.[$Ship, $Wreck, $Mode, $Reason, $RelFraction, $RelRecipient, $RelSummary]" />
+      </actions>
+    </library>
+
+    <!-- Stop every wreck of a ship's job (order cancelled or ended) and drop the job. -->
+    <library name="SES_Drone_Stop_All_V1" purpose="run_actions">
+      <params>
+        <param name="Ship" />
+        <param name="Reason" default="0" />
+      </params>
+      <actions>
+        <set_value name="$StopJob" exact="@global.$SES_Drone_Jobs.{$Ship}" />
+        <do_if value="$StopJob">
+          <do_for_each name="$StopWreck" in="$StopJob.$wrecks.keys.list">
+            <run_actions ref="SES_Drone_Release_V1">
+              <param name="Ship" value="$Ship" />
+              <param name="Wreck" value="$StopWreck" />
+              <param name="Mode" value="if @$StopWreck.exists then 'stop' else 'gone'" />
+              <param name="Reason" value="$Reason" />
+            </run_actions>
+          </do_for_each>
+          <run_actions ref="SES_Drone_Fx_Clear_V1">
+            <param name="Ship" value="$Ship" />
+          </run_actions>
+          <remove_value name="global.$SES_Drone_Jobs.{$Ship}" />
+        </do_if>
+        <do_if value="@$Ship.exists">
+          <remove_from_group group="md.SES_Drone_Salvage.SES_Drone_Root_V1.$DroneShips" object="$Ship" />
+        </do_if>
+      </actions>
+    </library>
+
+    <!-- Cosmetic building drones while the player can see the work. They fly
+         from the ship to points on the wrecks in range and change point now and
+         then. They never affect the result and are removed when the player
+         looks away, the job ends or the game is loaded. -->
+    <library name="SES_Drone_Fx_V1" purpose="run_actions">
+      <params><param name="Ship" /></params>
+      <actions>
+        <set_value name="$FxJob" exact="@global.$SES_Drone_Jobs.{$Ship}" />
+        <do_if value="not $FxJob or not @$Ship.isoperational">
+          <return />
+        </do_if>
+        <set_value name="$FxWrecks" exact="[]" />
+        <do_for_each name="$FxWreck" in="$FxJob.$wrecks.keys.list">
+          <do_if value="@$FxWreck.exists and $Ship.sector == $FxWreck.sector and $Ship.bboxdistanceto.{$FxWreck} le global.$SES_Drone_Settings.$range">
+            <append_to_list name="$FxWrecks" exact="$FxWreck" />
+          </do_if>
+        </do_for_each>
+        <do_if value="not $FxWrecks.count">
+          <return />
+        </do_if>
+        <run_actions ref="SES_Drone_Count_V1" result="$FxCount">
+          <param name="Ship" value="$Ship" />
+        </run_actions>
+        <set_value name="$FxWanted" exact="[$FxCount, global.$SES_Drone_Settings.$fxdrones].min" />
+        <set_value name="$FxList" exact="[]" />
+        <do_for_each name="$FxDrone" in="if @$FxJob.$fx then $FxJob.$fx else []">
+          <do_if value="@$FxDrone.exists">
+            <append_to_list name="$FxList" exact="$FxDrone" />
+          </do_if>
+        </do_for_each>
+        <do_while value="$FxList.count lt $FxWanted">
+          <create_ship name="$FxNew" macro="macro.ship_gen_xs_buildingdrone_01_a_macro" sector="$Ship.sector" capturable="false" commandeerable="false">
+            <owner exact="faction.player" overridenpc="true" />
+            <pilot><select race="race.argon" tags="tag.aipilot" /></pilot>
+            <safepos object="$Ship" radius="[$Ship.size * 0.5, 30m].max" />
+          </create_ship>
+          <do_if value="@$FxNew.exists">
+            <append_to_list name="$FxList" exact="$FxNew" />
+          </do_if>
+          <do_else>
+            <!-- The engine refused the drone: no cosmetic drones this time. -->
+            <set_value name="$FxWanted" exact="$FxList.count" />
+          </do_else>
+          <remove_value name="$FxNew" />
+        </do_while>
+        <!-- New drones and about a third of the others pick a new work point. -->
+        <do_for_each name="$FxDrone" in="$FxList">
+          <set_value name="$FxRoll" min="1" max="100" />
+          <do_if value="not @$FxDrone.order or $FxRoll le 33">
+            <set_value name="$FxWreck" exact="$FxWrecks.random" />
+            <set_value name="$FxSpread" exact="$FxWreck.size * 0.35" />
+            <set_value name="$FxX" min="-100" max="100" />
+            <set_value name="$FxY" min="-100" max="100" />
+            <set_value name="$FxZ" min="-100" max="100" />
+            <create_position name="$FxPos" object="$FxWreck" space="$FxWreck.sector" x="$FxSpread * $FxX / 100" y="$FxSpread * $FxY / 100" z="$FxSpread * $FxZ / 100" />
+            <create_order object="$FxDrone" id="'MoveWait'" immediate="true">
+              <param name="destination" value="[$FxWreck.sector, $FxPos]" />
+            </create_order>
+          </do_if>
+        </do_for_each>
+        <set_value name="global.$SES_Drone_Jobs.{$Ship}.$fx" exact="$FxList" />
+      </actions>
+    </library>
+
+    <library name="SES_Drone_Fx_Clear_V1" purpose="run_actions">
+      <params><param name="Ship" /></params>
+      <actions>
+        <do_for_each name="$ClearDrone" in="if @global.$SES_Drone_Jobs.{$Ship}.$fx then global.$SES_Drone_Jobs.{$Ship}.$fx else []">
+          <do_if value="@$ClearDrone.exists">
+            <destroy_object object="$ClearDrone" explosion="false" />
+          </do_if>
+        </do_for_each>
+        <do_if value="@global.$SES_Drone_Jobs.{$Ship}">
+          <set_value name="global.$SES_Drone_Jobs.{$Ship}.$fx" exact="[]" />
+        </do_if>
+      </actions>
+    </library>
+  </cues>
+</mdscript>

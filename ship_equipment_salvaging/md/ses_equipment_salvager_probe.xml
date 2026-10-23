@@ -21,9 +21,13 @@
              features since 2026-10-10 (Marek). The flag name stays for save and
              script compatibility; it is always on and has no toggle. -->
         <set_value name="global.$SES_Wreck_Mining_Beta_Enabled" exact="true" />
-        <!-- L/XL ship salvage: BETA placeholder for the next major update; no
-             feature reads it yet and the option is shown disabled. -->
-        <set_value name="global.$SES_LXL_Salvage_Beta_Enabled" exact="false" />
+        <!-- L/XL update BETA (drone wreck deconstruction, 2026-10-19): a real
+             Extension Options toggle, default off, so a public patch can ship
+             without exposing the unfinished L/XL work (Marek). The toggle is
+             only shown with developer helpers on, and is forced off without them. -->
+        <do_if value="not @global.$SES_LXL_Salvage_Beta_Enabled or not @global.$SES_Debug_Keys_Enabled">
+          <set_value name="global.$SES_LXL_Salvage_Beta_Enabled" exact="false" />
+        </do_if>
         <!-- Legacy compatibility alias. The native salvage/weld planners are
              public and always enabled as of v351. -->
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
@@ -465,7 +469,7 @@
             $enabled = @global.$SES_Debug_Keys_Enabled,
             $onOpen = SES_Extension_Options_Build_Helper_Menu_V1
           ]" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Ship Equipment Salvaging options registered for v410. helpersenabled=%s, wreckminingbeta=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Ship Equipment Salvaging options registered for v411. helpersenabled=%s, wreckminingbeta=%s'.[
           @global.$SES_Debug_Keys_Enabled,
           @global.$SES_Wreck_Mining_Beta_Enabled
         ]" />
@@ -539,23 +543,27 @@
           </run_actions>
         </do_else>
 
-        <run_actions ref="md.Options_Helper.Add_Title_Row">
-          <param name="title" value="readtext.{1171361}.{800}" />
-          <param name="columns" value="12" />
-        </run_actions>
-
-        <!-- L/XL ship salvage: placeholder for the next major update, shown
-             disabled (no handler; global.$SES_LXL_Salvage_Beta_Enabled stays false). -->
-        <run_actions ref="md.Options_Helper.Add_Dropdown">
-          <param name="id" value="'lxlSalvageBeta'" />
-          <param name="options" value="[table[$text = readtext.{1171361}.{1243}, $value = 'off']]" />
-          <param name="currentIndex" value="1" />
-          <param name="col" value="1" />
-          <param name="textColSpan" value="7" />
-          <param name="text" value="readtext.{1171361}.{801}" />
-          <param name="dropdownColSpan" value="5" />
-          <param name="active" value="false" />
-        </run_actions>
+        <!-- L/XL update BETA (global.$SES_LXL_Salvage_Beta_Enabled, default
+             off): drone wreck deconstruction and drone outfitting. Shown only
+             with the developer helpers on, so public players cannot enable the
+             unfinished L/XL work (Marek, 2026-10-23). -->
+        <do_if value="@global.$SES_Debug_Keys_Enabled">
+          <run_actions ref="md.Options_Helper.Add_Title_Row">
+            <param name="title" value="readtext.{1171361}.{800}" />
+            <param name="columns" value="12" />
+          </run_actions>
+          <set_value name="$SESOptionIndex" exact="if @global.$SES_LXL_Salvage_Beta_Enabled then 2 else 1" />
+          <run_actions ref="md.Options_Helper.Add_Dropdown">
+            <param name="id" value="'lxlSalvageBeta'" />
+            <param name="options" value="$SESOffOnOptions" />
+            <param name="currentIndex" value="$SESOptionIndex" />
+            <param name="col" value="1" />
+            <param name="textColSpan" value="7" />
+            <param name="text" value="readtext.{1171361}.{801}" />
+            <param name="dropdownColSpan" value="5" />
+            <param name="handle" value="SES_Extension_Options_Handle_Changed_V1" />
+          </run_actions>
+        </do_if>
 
         <remove_value name="$SESOffOnOptions" />
         <remove_value name="$SESOptionIndex" />
@@ -674,7 +682,8 @@
         <set_value name="$SESOptionState" exact="table[
           $debugLogging = if @global.$SES_Debug_Log_Enabled then 'on' else 'off',
           $developerHelpers = if @global.$SES_Debug_Keys_Enabled then 'on' else 'off',
-          $fastStockRotation = if @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled then 'on' else 'off'
+          $fastStockRotation = if @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled then 'on' else 'off',
+          $lxlSalvageBeta = if @global.$SES_LXL_Salvage_Beta_Enabled then 'on' else 'off'
         ]" />
         <set_value name="$resultTable" exact="$SESOptionState" />
         <include_actions ref="md.Options_Helper.Process_Dropdown_Changed" />
@@ -684,6 +693,9 @@
         <set_value name="global.$SES_Debug_Keys_Enabled" exact="$SESOptionState.$developerHelpers == 'on'" />
         <set_value name="global.$SES_Debug_Abandon_Enabled" exact="@global.$SES_Debug_Keys_Enabled" />
         <set_value name="global.$SES_Black_Market_Debug_Fast_Rotation_Enabled" exact="$SESOptionState.$fastStockRotation == 'on'" />
+        <!-- The L/XL BETA follows the developer helpers: off whenever they are off. -->
+        <set_value name="global.$SES_LXL_Salvage_Beta_Enabled" exact="$SESOptionState.$lxlSalvageBeta == 'on' and @global.$SES_Debug_Keys_Enabled" />
+        <signal_cue_instantly cue="md.SES_Drone_Salvage.SES_Drone_Publish_V1" />
         <signal_cue_instantly cue="md.SES_Wreck_Fabrication.SES_Fabrication_Publish_V1" param="''" />
         <signal_cue_instantly cue="md.SES_Turret_Salvage.SES_Turret_Salvage_Publish_V1" />
         <do_if value="event.param.$echo.$valueId == '$developerHelpers'">
@@ -697,11 +709,11 @@
           ]" />
           <signal_cue_instantly cue="md.Simple_Menu_API.Refresh_Menu" />
         </do_if>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Options changed. debug=%s, developer=%s, fastrotation=%s, wreckminingbeta=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][OPTIONS] Options changed. debug=%s, developer=%s, fastrotation=%s, lxlbeta=%s'.[
           global.$SES_Debug_Log_Enabled,
           global.$SES_Debug_Keys_Enabled,
           global.$SES_Black_Market_Debug_Fast_Rotation_Enabled,
-          global.$SES_Wreck_Mining_Beta_Enabled
+          global.$SES_LXL_Salvage_Beta_Enabled
         ]" />
         <remove_value name="$resultTable" />
         <remove_value name="$SESOptionState" />
@@ -761,7 +773,7 @@
       <actions>
         <set_value name="global.$SES_M5_Native_Planners_Experimental_Enabled" exact="true" />
         <raise_lua_event name="'SES.M5.NativePlanner'" param="'gate;on'" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v410. Native salvage equipment tiles retain the two-line chance display, merged missile banks use exact bank quantities, and the extension no longer creates a hard save dependency.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][M5 UIX] Public native planner bridge initialized for v411. Native salvage equipment tiles retain the two-line chance display, merged missile banks use exact bank quantities, and the extension no longer creates a hard save dependency.'" />
       </actions>
     </cue>
 
@@ -859,7 +871,7 @@
               </do_for_each>
             </do_if>
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v410',
+              $version = 'v411',
               $kind = 'salvage',
               $targetid = '%s'.[$M5Target],
               $targetname = $M5Target.knownname,
@@ -873,7 +885,7 @@
           </do_if>
           <do_elseif value="$M5Kind == 'weld'">
             <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-              $version = 'v410',
+              $version = 'v411',
               $kind = 'weld',
               $targetname = $M5Target.knownname,
               $available = if @global.$SES_Salvage_Inventory then global.$SES_Salvage_Inventory else [],
@@ -1353,6 +1365,10 @@
         <do_elseif value="event.param.$id == 'ses_developer_helpers'">
           <set_value name="global.$SES_Debug_Keys_Enabled" exact="$SESOptionEnabled" />
           <set_value name="global.$SES_Debug_Abandon_Enabled" exact="$SESOptionEnabled" />
+          <do_if value="not $SESOptionEnabled and @global.$SES_LXL_Salvage_Beta_Enabled">
+            <set_value name="global.$SES_LXL_Salvage_Beta_Enabled" exact="false" />
+            <signal_cue_instantly cue="md.SES_Drone_Salvage.SES_Drone_Publish_V1" />
+          </do_if>
         </do_elseif>
       </actions>
     </cue>
@@ -1363,7 +1379,7 @@
         <do_if value="not @global.$SES_Black_Market_Shop_Stock">
           <set_value name="global.$SES_Black_Market_Shop_Stock" exact="[]" />
         </do_if>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v42 initialized for v410 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated component stock and SES-owned shady-guy item stock both use lazy 1-2 hour production refresh windows; the developer-gated fast component rotation switch selects 1-2 minute refreshes. Production economy remains independent of the Wreck Mining &amp; Fabrication BETA flag. forcegeneration=%s fastrotation=%s'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][ECON] Black Market economy v42 initialized for v411 production. First successful salvage schedules the global announcement after a randomized 2-4 minute delay, then unlocks the shady-guy shop option. Player sales pay 60 percent; all dealer stock costs 120 percent. Generated component stock and SES-owned shady-guy item stock both use lazy 1-2 hour production refresh windows; the developer-gated fast component rotation switch selects 1-2 minute refreshes. Production economy remains independent of the Wreck Mining &amp; Fabrication BETA flag. forcegeneration=%s fastrotation=%s'.[
           @global.$SES_Black_Market_Debug_Force_Rotation_Generation,
           @global.$SES_Black_Market_Debug_Fast_Rotation_Enabled
         ]" />
@@ -3485,7 +3501,7 @@
 
     <cue name="SES_Production_Features_Startup_V1">
       <actions>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v410. S/M salvage, refit, persistent inventory, delayed Black Market progression, rotating dealer stock, atomic merged missile-bank salvage/refit, and a removable save-independent manifest are active. Wreck Mining &amp; Fabrication BETA defaults off; when enabled it adds finite personal-inventory salvage, armed-wreck fragments, core refinement, exact learned patterns, and S/M weapon/M-turret fabrication. Wrecks are not mutated. The developer-only read-only wreck probe remains separately gated. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated component stock plus SES-owned shady-guy item stock refresh lazily on randomized 1-2 hour production windows.'" />
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES] Production systems initialized for v411. S/M salvage, refit, persistent inventory, delayed Black Market progression, rotating dealer stock, atomic merged missile-bank salvage/refit, and a removable save-independent manifest are active. Wreck Mining &amp; Fabrication BETA defaults off; when enabled it adds finite personal-inventory salvage, armed-wreck fragments, core refinement, exact learned patterns, and S/M weapon/M-turret fabrication. Wrecks are not mutated. The developer-only read-only wreck probe remains separately gated. Player sales pay 60 percent, dealer purchases cost 120 percent, and generated component stock plus SES-owned shady-guy item stock refresh lazily on randomized 1-2 hour production windows.'" />
       </actions>
     </cue>
 
@@ -3507,7 +3523,7 @@
           <set_value name="global.$SES_Wreck_Harvest_State" exact="table[]" />
         </do_if>
         <set_value name="global.$SES_Wreck_Mining_Beta_Version" exact="1" />
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Finite harvesting initialized for v410. enabled=%s. The default-off BETA accepts six verified ship mining lasers and physical mining-turret hits from the currently piloted ship on unclaimed S/M wrecks. It stores materials in personal inventory and never mutates the wreck. New armed wrecks can yield core fragments; refinement, exact patterns and fabrication are BETA-gated. The BETA All dropdown can direct all mining turrets to the selected eligible wreck while combat turret modes remain unchanged.'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK BETA] Finite harvesting initialized for v411. enabled=%s. The default-off BETA accepts six verified ship mining lasers and physical mining-turret hits from the currently piloted ship on unclaimed S/M wrecks. It stores materials in personal inventory and never mutates the wreck. New armed wrecks can yield core fragments; refinement, exact patterns and fabrication are BETA-gated. The BETA All dropdown can direct all mining turrets to the selected eligible wreck while combat turret modes remain unchanged.'.[
           @global.$SES_Wreck_Mining_Beta_Enabled
         ]" />
       </actions>
@@ -3754,7 +3770,7 @@
 
     <cue name="SES_Wreck_Mining_ReadOnly_Probe_V1_Startup">
       <actions>
-        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK PROBE] Read-only S/M wreck-mining probe v1 initialized for v410. gate=%s, developerhelpers=%s, debuglogging=%s. The probe records qualifying hit cadence and wreck metadata only; it grants no wares, changes no cargo or ledger state, and does not mutate or claim wrecks.'.[
+        <debug_text chance="global.$SES_Debug_Log_Chance" text="'[SES][WRECK PROBE] Read-only S/M wreck-mining probe v1 initialized for v411. gate=%s, developerhelpers=%s, debuglogging=%s. The probe records qualifying hit cadence and wreck metadata only; it grants no wares, changes no cargo or ledger state, and does not mutate or claim wrecks.'.[
           @global.$SES_Debug_Keys_Enabled and @global.$SES_Debug_Log_Enabled,
           @global.$SES_Debug_Keys_Enabled,
           @global.$SES_Debug_Log_Enabled
@@ -7042,7 +7058,7 @@
         </do_for_each>
         <do_if value="@global.$SES_M5_Native_Planners_Experimental_Enabled and $Rows.count gt 0">
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v410',
+            $version = 'v411',
             $kind = 'salvage_result',
             $targetname = $TargetName,
             $results = $Rows,
@@ -8472,7 +8488,7 @@
             </do_for_each>
           </do_if>
           <set_value name="player.entity.$SES_M5_Native_PlannerData" exact="table[
-            $version = 'v410',
+            $version = 'v411',
             $kind = 'weld',
             $targetname = if $InventoryInstallTarget then $InventoryInstallTarget.knownname else '--',
             $targetok = $InventoryInstallTargetOK,
